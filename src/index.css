@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 228 25% 96%;
+  --foreground: 0 0% 20%;
+  --border: 225 12% 83%;
+  --input: 225 12% 83%;
+  --ring: 212 91% 45%;
+  --primary: 212 91% 45%;
+  --primary-foreground: 0 0% 100%;
+  --muted: 226 30% 95%;
+  --muted-foreground: 0 0% 36%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f1f3f9;
+  color: #333333;
+  font-family: Roboto, Arial, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.scrollbar-slim {
+  scrollbar-color: #c5cad3 transparent;
+  scrollbar-width: thin;
+}
+
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes aura-badge {
+  0% {
+    opacity: 0;
+    transform: scale(0.72) translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes aura-typing-pulse {
+  0%,
+  70%,
+  100% {
+    opacity: 0.36;
+    transform: translateY(0);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes aura-message-in {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes aura-panel-vanish {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+    filter: blur(0);
+  }
+  70% {
+    opacity: 0;
+    transform: translate(10px, 8px) scale(0.985);
+    filter: blur(1px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(14px, 10px) scale(0.98);
+    filter: blur(2px);
+  }
+}
+
+@keyframes aura-launcher-nudge {
+  0% {
+    transform: translateY(4px) scale(0.98);
+  }
+  42% {
+    transform: translateY(-3px) scale(1.035);
+  }
+  68% {
+    transform: translateY(1px) scale(0.995);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.aura-typing-dot {
+  animation: aura-typing-pulse 1s ease-in-out infinite;
+  background: #6f7a8d;
+  border-radius: 9999px;
+  display: inline-flex;
+  height: 6px;
+  width: 6px;
+}
+
+.aura-panel-closing {
+  animation: aura-panel-vanish 260ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+.aura-launcher-nudge {
+  animation: aura-launcher-nudge 420ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+
+  .aura-panel-closing {
+    animation-name: none;
+    opacity: 0;
+    transform: translate(8px, 6px);
+  }
+
+  .aura-launcher-nudge {
+    animation-name: none;
+  }
+}
