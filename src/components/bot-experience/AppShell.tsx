@@ -14,9 +14,16 @@ import { Input } from "../ui/input";
 
 type AppShellProps = {
   children: ReactNode;
+  activeNavLabel?: string;
+  profile?: {
+    name: string;
+    role: string;
+    avatar: string;
+    badge: number;
+  };
 };
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, activeNavLabel, profile = employee }: AppShellProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
@@ -73,15 +80,15 @@ export function AppShell({ children }: AppShellProps) {
             className="flex h-12 min-w-0 items-center gap-2 rounded-md border border-[#d4d7de] bg-white px-2 transition hover:border-[#b9bec8] sm:min-w-[206px]"
           >
             <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#b8e0aa] text-xs font-bold text-[#2e6623] ring-2 ring-[#dff4d6]">
-              {employee.avatar}
+              {profile.avatar}
               <span className="absolute -right-0.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e22d20] text-[10px] text-white">
-                {employee.badge}
+                {profile.badge}
               </span>
               <CheckCircle2 className="absolute -bottom-0.5 -right-0.5 h-3 w-3 fill-white text-[#2bb673]" />
             </span>
             <span className="hidden min-w-0 text-left leading-tight sm:block">
-              <span className="block truncate text-[15px] font-medium">{employee.name}</span>
-              <span className="block text-[15px] font-medium text-[#5c5c5c]">{employee.role}</span>
+              <span className="block truncate text-[15px] font-medium">{profile.name}</span>
+              <span className="block text-[15px] font-medium text-[#5c5c5c]">{profile.role}</span>
             </span>
             <ChevronDown className="ml-auto hidden h-5 w-5 text-[#5c5c5c] sm:block" />
           </button>
@@ -118,20 +125,23 @@ export function AppShell({ children }: AppShellProps) {
             IMS
           </div>
           <nav className="space-y-2">
-            {navItems.map(({ label, icon: Icon, active }) => (
+            {navItems.map(({ label, icon: Icon, active }) => {
+              const isActive = activeNavLabel ? label === activeNavLabel : active;
+              return (
               <button
                 key={label}
                 type="button"
                 className={cn(
                   "relative flex min-h-[58px] w-[79px] flex-col items-center justify-center gap-1 rounded-r-md text-center text-[12px] leading-[14px] text-[#5c5c5c] transition hover:bg-white",
-                  active && "bg-[#dce8f8] font-medium text-[#0858b9]",
+                  isActive && "bg-[#dce8f8] font-medium text-[#0858b9]",
                 )}
               >
-                {active ? <span className="absolute left-0 top-3 h-9 w-[3px] rounded-r bg-primary" /> : null}
+                {isActive ? <span className="absolute left-0 top-3 h-9 w-[3px] rounded-r bg-primary" /> : null}
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>
               </button>
-            ))}
+              );
+            })}
           </nav>
         </aside>
 

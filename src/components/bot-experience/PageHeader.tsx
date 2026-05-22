@@ -24,8 +24,8 @@ export function PageHeader({ activeTab, onTabChange }: PageHeaderProps) {
           activeTab={activeTab}
           onChange={onTabChange}
           tabs={[
-            { id: "availability", label: "Availability", badge: 2 },
-            { id: "time-off", label: "Time Off", badge: 2 },
+            { id: "availability", label: "Availability" },
+            { id: "time-off", label: "Time Off" },
           ]}
         />
       </div>
