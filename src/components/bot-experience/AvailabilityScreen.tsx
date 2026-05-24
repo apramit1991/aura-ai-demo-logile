@@ -37,7 +37,7 @@ export function AvailabilityScreen({
         <section className="min-w-0 p-4 md:p-4">
           <SummaryCards totalHours={totalHours} totalDays={totalDays} />
 
-          <div className="mt-7 flex items-center justify-between">
+          <div id="my-availability-section" className="mt-7 flex items-center justify-between">
             <h2 className="text-[21px] font-normal">My Availability</h2>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={onReset} disabled={isSubmitted}>

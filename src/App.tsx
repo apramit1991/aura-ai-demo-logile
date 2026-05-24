@@ -7,6 +7,7 @@ import { AuraAssistant } from "./components/bot-experience/AuraAssistant";
 import { EmptyState } from "./components/bot-experience/EmptyState";
 import { PageHeader } from "./components/bot-experience/PageHeader";
 import { SkillGapDesktopScreen } from "./components/bot-experience/SkillGapDesktopScreen";
+import { TimeOffDesktopScreen } from "./components/bot-experience/TimeOffDesktopScreen";
 import logileLogoUrl from "./assets/logile-logo.png";
 import { availabilityDays } from "./data/mockData";
 import { AvailabilityRow } from "./types/availability";
@@ -37,7 +38,7 @@ function DemoNavigationScreen() {
       <header className="flex items-center gap-3">
         <img src={logileLogoUrl} alt="Logile" className="h-8 w-auto" />
       </header>
-      <h1 className="text-3xl font-semibold text-[#1f2937]">Logile WFM Demo Screens</h1>
+      <h1 className="text-[1.875rem] font-semibold leading-[2.5rem] text-[#1f2937]">Aura AI Demo Screens</h1>
       <p className="mt-2 text-[#4b5563]">Select a screen to open the prototype demo.</p>
 
       <section className="mt-8 rounded-md border border-[#d1d5db] bg-white p-5">
@@ -109,6 +110,7 @@ function AvailabilityDesktopScreen() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
+  const isTabletEmbed = new URLSearchParams(window.location.search).get("tablet") === "1";
 
   const hasPopulatedRows = useMemo(
     () => availabilityRows.some((row) => row.hours !== "0h"),
@@ -135,7 +137,13 @@ function AvailabilityDesktopScreen() {
       current.map((row) => {
         const matched = recommendationByDay[row.day];
         if (!matched) {
-          return { ...row, auraFilled: false };
+          return {
+            ...row,
+            start: "00:00a/p",
+            end: "00:00a/p",
+            hours: "0h",
+            auraFilled: false,
+          };
         }
 
         const times = parseRecommendationTime(matched.time);
@@ -148,6 +156,14 @@ function AvailabilityDesktopScreen() {
         };
       }),
     );
+
+    if (isTabletEmbed) {
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById("my-availability-section")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
   }
 
   function handleDeleteRow(day: string) {
@@ -196,17 +212,17 @@ function AvailabilityDesktopScreen() {
   return (
     <AppShell>
       {toastVisible ? (
-        <div className="fixed right-6 top-6 z-[70] w-[360px] rounded-lg border border-[#d7e5db] bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.14)]">
+        <div className="fixed right-6 top-6 z-[70] w-[360px] rounded-lg bg-[#1f8f46] p-4 text-white shadow-[0_18px_45px_rgba(15,23,42,0.22)]">
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 text-[#1f8f55]" />
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-white" />
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-semibold text-[#1f2937]">Availability request submitted</p>
-              <p className="mt-1 text-[13px] text-[#4b5563]">Your availability request has been submitted for manager review.</p>
+              <p className="text-[14px] font-semibold">Availability request submitted</p>
+              <p className="mt-1 text-[13px] text-white/90">Your availability request has been submitted for manager review.</p>
             </div>
             <button
               type="button"
               onClick={() => setToastVisible(false)}
-              className="rounded p-1 text-[#6b7280] hover:bg-[#f3f4f6]"
+              className="rounded p-1 text-white/80 hover:bg-white/10 hover:text-white"
               aria-label="Close success toast"
             >
               <X className="h-4 w-4" />
@@ -264,12 +280,34 @@ function AvailabilityDesktopScreen() {
       <AuraAssistant
         onApplyRecommendation={handleApplyRecommendation}
         onUndoRecommendation={handleUndoRecommendation}
-        onConfirmSubmitRecommendation={handleConfirmSubmit}
         hasPopulatedRows={hasPopulatedRows}
         isSubmitted={isSubmitted}
       />
     </AppShell>
   );
+}
+
+function TabletFrame() {
+  return (
+    <main className="min-h-screen overflow-auto bg-[radial-gradient(circle_at_top,#f8fafc_0%,#dfe5ee_48%,#c9d2df_100%)] px-4 py-6 md:px-8">
+      <div className="mx-auto w-fit rounded-[44px] border border-slate-950/30 bg-[#111827] p-4 shadow-[0_34px_90px_rgba(15,23,42,0.42)]">
+        <div className="relative h-[768px] w-[1024px] max-w-[calc(100vw-64px)] overflow-hidden rounded-[30px] border border-black/10 bg-white shadow-inner">
+          <div className="pointer-events-none sticky left-0 top-0 z-[90] flex h-5 w-full justify-center bg-black/5">
+            <span className="mt-2 h-1.5 w-24 rounded-full bg-slate-900/25" />
+          </div>
+          <iframe
+            title="Availability Tablet Prototype"
+            src="/availability-desktop?tablet=1"
+            className="-mt-5 h-full w-full border-0 bg-white"
+          />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function AvailabilityTabletScreen() {
+  return <TabletFrame />;
 }
 
 function PasswordGate({ children }: { children: React.ReactNode }) {
@@ -397,9 +435,9 @@ export default function App() {
         <Route path="/demo" element={<DemoNavigationScreen />} />
         <Route path="/availability-desktop" element={<AvailabilityDesktopScreen />} />
         <Route path="/skill-gap-desktop" element={<SkillGapDesktopScreen />} />
-        <Route path="/time-off-desktop" element={<PlaceholderScreen title="Time Off - Desktop" />} />
+        <Route path="/time-off-desktop" element={<TimeOffDesktopScreen />} />
         <Route path="/skill-gap-tablet" element={<PlaceholderScreen title="Skill Gap - Tablet" />} />
-        <Route path="/availability-tablet" element={<PlaceholderScreen title="Availability - Tablet" />} />
+        <Route path="/availability-tablet" element={<AvailabilityTabletScreen />} />
         <Route path="/time-off-tablet" element={<PlaceholderScreen title="Time Off - Tablet" />} />
         <Route path="/mobile-screen" element={<PlaceholderScreen title="Mobile Screen" />} />
         <Route path="*" element={<Navigate to="/demo" replace />} />

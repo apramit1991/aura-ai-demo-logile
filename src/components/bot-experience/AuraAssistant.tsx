@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CalendarDays,
-  CheckCircle2,
   ChevronUp,
   Clock3,
   Send,
@@ -21,12 +20,13 @@ type AuraMessage = {
   text: string;
   variant?: "recommendation";
   applied?: boolean;
+  recommendationRows?: RecommendationData;
+  recommendationType?: "standard" | "revision";
 };
 
 type AuraAssistantProps = {
   onApplyRecommendation: (data: RecommendationData) => void;
   onUndoRecommendation: () => void;
-  onConfirmSubmitRecommendation: () => void;
   hasPopulatedRows: boolean;
   isSubmitted: boolean;
 };
@@ -62,12 +62,20 @@ const capabilityPills = [
   "Write request comment",
 ];
 
-const recommendationRows: RecommendationData = [
+const initialRecommendationRows: RecommendationData = [
   { day: "Monday", time: "10:00a - 8:00p", hours: "10h" },
   { day: "Wednesday", time: "10:00a - 8:00p", hours: "10h" },
   { day: "Thursday", time: "9:00a - 5:00p", hours: "8h" },
   { day: "Friday", time: "10:00a - 8:00p", hours: "10h" },
   { day: "Saturday", time: "10:00a - 8:00p", hours: "10h" },
+];
+
+const revisedRecommendationRows: RecommendationData = [
+  { day: "Sunday", time: "10:00a - 8:00p", hours: "10h" },
+  { day: "Tuesday", time: "10:00a - 8:00p", hours: "10h" },
+  { day: "Wednesday", time: "10:00a - 8:00p", hours: "10h" },
+  { day: "Thursday", time: "9:00a - 5:00p", hours: "8h" },
+  { day: "Friday", time: "10:00a - 8:00p", hours: "10h" },
 ];
 
 const initialAssistantMessage =
@@ -113,6 +121,24 @@ function getFreeTextReply(input: string) {
   return `I can review "${input}" against the availability rules and translate it into a compliant request draft.`;
 }
 
+function isMondaySaturdayUnavailableMessage(input: string) {
+  const normalized = input.toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+  const unavailableIndicators = [
+    "not available",
+    "not avilable",
+    "unavailable",
+    "cant work",
+    "cannot work",
+    "can t work",
+  ];
+
+  return (
+    normalized.includes("monday") &&
+    normalized.includes("saturday") &&
+    unavailableIndicators.some((indicator) => normalized.includes(indicator))
+  );
+}
+
 function TypingIndicator() {
   return (
     <div className="max-w-[88%] rounded-lg bg-white px-3 py-2 text-[#5c5c5c] shadow-sm">
@@ -126,7 +152,98 @@ function TypingIndicator() {
   );
 }
 
-function RecommendationCard({ applied, onApply }: { applied: boolean; onApply: () => void }) {
+function AvailabilityComparison({ rows }: { rows: RecommendationData }) {
+  const requestedDays = [
+    { day: "Mon", start: "10:00a", end: "8:00p", unavailable: true },
+    { day: "Wed", start: "10:00a", end: "8:00p" },
+    { day: "Thu", start: "9:00a", end: "5:00p" },
+    { day: "Sat", start: "10:00a", end: "8:00p", unavailable: true },
+  ];
+  const recommendedDays = rows.map((row) => {
+    const [start, end] = row.time.split(" - ");
+    return { day: row.day.slice(0, 3), start, end };
+  });
+
+  return (
+    <div className="space-y-2">
+      <div className="overflow-hidden rounded-[16px] border border-[#d8dce6] bg-white">
+        <div className="grid grid-cols-4 bg-[#f4f5fb] text-[14px] font-semibold text-[#333333]">
+          {requestedDays.map((item) => (
+            <div key={item.day} className="px-2 py-2 text-center">{item.day}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-4 text-center text-[13px] leading-5">
+          {requestedDays.map((item) => (
+            <div key={`${item.day}-start`} className={cn("px-2 py-2", item.unavailable && "text-[#e87500]")}>{item.start}</div>
+          ))}
+          {requestedDays.map((item) => (
+            <div key={`${item.day}-end`} className={cn("px-2 py-2", item.unavailable && "text-[#e87500]")}>{item.end}</div>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-center text-[16px] font-semibold text-[#333333]">Vs</p>
+
+      <div>
+        <p className="mb-2 text-[16px] font-semibold text-primary">Recommended Availability (48h)</p>
+        <div className="overflow-hidden rounded-[16px] border border-[#d8dce6] bg-white">
+          <div className="grid grid-cols-5 bg-[#f4f5fb] text-[14px] font-semibold text-[#333333]">
+            {recommendedDays.map((item) => (
+              <div key={item.day} className="px-2 py-2 text-center">{item.day}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-5 text-center text-[13px] leading-5 text-[#333333]">
+            {recommendedDays.map((item) => (
+              <div key={`${item.day}-start`} className="px-2 py-2">{item.start}</div>
+            ))}
+            {recommendedDays.map((item) => (
+              <div key={`${item.day}-end`} className="px-2 py-2">{item.end}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecommendationCard({
+  applied,
+  onApply,
+  rows,
+  type = "standard",
+}: {
+  applied: boolean;
+  onApply: () => void;
+  rows: RecommendationData;
+  type?: "standard" | "revision";
+}) {
+  if (type === "revision") {
+    return (
+      <div className="overflow-hidden rounded-lg bg-[#f4f5fb] text-[#333333] ring-1 ring-[#e2e4ec]">
+        <div className="space-y-3 px-3 py-3">
+          <div>
+            <p className="text-[17px] font-semibold leading-6 text-[#333333]">Updated Availability (48h)</p>
+            <p className="mt-1 text-[14px] leading-5 text-[#e87500]">I removed Monday and Saturday and found a schedule that keeps you at 48 hrs / 5 days.</p>
+          </div>
+          <AvailabilityComparison rows={rows} />
+          <p className="border-t border-[#cfd3dd] pt-3 text-[15px] leading-5 text-[#5c5c5c]">
+            This keeps Monday and Saturday unavailable while matching high-demand periods. Would you like to apply this?
+          </p>
+        </div>
+        <div className="border-t border-[#d8dce6] px-3 py-2 text-right">
+          <button
+            type="button"
+            onClick={onApply}
+            disabled={applied}
+            className="inline-flex h-9 min-w-[112px] items-center justify-center rounded-md bg-primary px-4 text-[14px] font-medium text-white transition hover:bg-[#0858b9] disabled:cursor-default disabled:bg-[#8cadde]"
+          >
+            {applied ? "Applied" : "Yes, Apply"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       <div className="overflow-hidden rounded-lg bg-[#f0f1f6] text-[#333333] ring-1 ring-[#e2e4ec]">
@@ -135,7 +252,7 @@ function RecommendationCard({ applied, onApply }: { applied: boolean; onApply: (
             Based on current demand patterns, here's my recommendation for this week. This gives you 48 hrs / 5 days while matching peak demand periods.
           </p>
           <div className="space-y-1.5 text-[14px]">
-            {recommendationRows.map((row) => (
+            {rows.map((row) => (
               <div key={row.day} className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
                 <span>{row.day}</span>
                 <span className="text-[#5c5c5c]">{row.time}</span>
@@ -172,8 +289,8 @@ function RecommendationCard({ applied, onApply }: { applied: boolean; onApply: (
 export function AuraAssistant({
   onApplyRecommendation,
   onUndoRecommendation,
-  onConfirmSubmitRecommendation,
   hasPopulatedRows,
+  isSubmitted,
 }: AuraAssistantProps) {
   const [panelState, setPanelState] = useState<PanelState>("closed");
   const [requestState, setRequestState] = useState<AuraState>("valid");
@@ -186,14 +303,10 @@ export function AuraAssistant({
 
   const [hasAppliedSuggestion, setHasAppliedSuggestion] = useState(false);
   const [showActionButtons, setShowActionButtons] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
 
   const replyTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const nudgeTimerRef = useRef<number | null>(null);
-  const toastTimerRef = useRef<number | null>(null);
   const nextMessageIdRef = useRef(1);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -227,13 +340,6 @@ export function AuraAssistant({
     if (nudgeTimerRef.current) {
       window.clearTimeout(nudgeTimerRef.current);
       nudgeTimerRef.current = null;
-    }
-  }
-
-  function clearToastTimer() {
-    if (toastTimerRef.current) {
-      window.clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = null;
     }
   }
 
@@ -288,20 +394,16 @@ export function AuraAssistant({
       setShowQuickActions(false);
       setShowActionButtons(false);
       setHasAppliedSuggestion(false);
-      setShowConfirmDialog(false);
-      if (!isSubmitted) {
-        setToastVisible(false);
-      }
     }
 
     queueAssistantReply(
       action === "Suggest availability with my preference."
-        ? { text: "here's my recommendation:", variant: "recommendation", applied: false }
+        ? { text: "here's my recommendation:", variant: "recommendation", applied: false, recommendationRows: initialRecommendationRows, recommendationType: "standard" }
         : getAssistantReply(action),
     );
   }
 
-  function handleApplyRecommendation(messageId: number) {
+  function handleApplyRecommendation(messageId: number, rows: RecommendationData) {
     if (isTyping || isSubmitted) return;
 
     setMessages((current) =>
@@ -311,42 +413,19 @@ export function AuraAssistant({
     );
     appendMessage({ role: "user", text: "Yes, apply" });
     setRequestState("partial");
-    onApplyRecommendation(recommendationRows);
+    onApplyRecommendation(rows);
     setHasAppliedSuggestion(true);
     setShowActionButtons(true);
 
-    queueAssistantReply("Review the suggested schedule below. You can undo or submit.", 420);
+    queueAssistantReply("I’ve applied the suggested availability. You can undo this change if you want to revise it.", 420);
   }
 
   function handleUndo() {
     onUndoRecommendation();
     setHasAppliedSuggestion(false);
     setShowActionButtons(false);
-    setShowConfirmDialog(false);
     appendMessage({ role: "user", text: "Undo" });
     queueAssistantReply("I’ve undone the suggested availability changes.", 240);
-  }
-
-  function handleSubmitClick() {
-    if (!hasAppliedSuggestion || isSubmitted) return;
-    setShowConfirmDialog(true);
-  }
-
-  function handleConfirmSubmit() {
-    onConfirmSubmitRecommendation();
-    setShowConfirmDialog(false);
-    setShowActionButtons(false);
-    setHasAppliedSuggestion(false);
-    setIsSubmitted(true);
-
-    setToastVisible(true);
-    clearToastTimer();
-    toastTimerRef.current = window.setTimeout(() => {
-      setToastVisible(false);
-      toastTimerRef.current = null;
-    }, 3600);
-
-    queueAssistantReply("Your availability request has been submitted for manager review.", 200);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -357,20 +436,33 @@ export function AuraAssistant({
     appendMessage({ role: "user", text: trimmedMessage });
     setDraftMessage("");
     setRequestState("partial");
+
+    if (isMondaySaturdayUnavailableMessage(trimmedMessage)) {
+      setShowActionButtons(false);
+      setHasAppliedSuggestion(false);
+      queueAssistantReply({
+        text: "I updated the recommendation to keep Monday and Saturday unavailable.",
+        variant: "recommendation",
+        applied: false,
+        recommendationRows: revisedRecommendationRows,
+        recommendationType: "revision",
+      }, 820);
+      return;
+    }
+
     queueAssistantReply(getFreeTextReply(trimmedMessage), 820);
   }
 
   useEffect(() => {
     if (!isPanelVisible) return;
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, isTyping, isPanelVisible, showActionButtons, showConfirmDialog]);
+  }, [messages, isTyping, isPanelVisible, showActionButtons]);
 
 
   useEffect(() => {
     if (!hasPopulatedRows || isSubmitted) {
       setShowActionButtons(false);
       setHasAppliedSuggestion(false);
-      setShowConfirmDialog(false);
     }
   }, [hasPopulatedRows, isSubmitted]);
   useEffect(() => {
@@ -378,32 +470,11 @@ export function AuraAssistant({
       clearReplyTimer();
       clearCloseTimer();
       clearNudgeTimer();
-      clearToastTimer();
     };
   }, []);
 
   return (
     <>
-      {toastVisible ? (
-        <div className="fixed right-6 top-6 z-[70] w-[360px] rounded-lg border border-[#d7e5db] bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.14)]">
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 text-[#1f8f55]" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-semibold text-[#1f2937]">Availability request submitted</p>
-              <p className="mt-1 text-[13px] text-[#4b5563]">Your availability request has been submitted for manager review.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setToastVisible(false)}
-              className="rounded p-1 text-[#6b7280] hover:bg-[#f3f4f6]"
-              aria-label="Close success toast"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       <div
         className={cn(
           "fixed bottom-4 right-4 z-50 transition-all duration-300 sm:bottom-6 sm:right-6",
@@ -456,33 +527,6 @@ export function AuraAssistant({
         )}
         aria-hidden={!isPanelVisible}
       >
-        {showConfirmDialog ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/30 p-4">
-            <div className="w-full max-w-[340px] rounded-lg border border-[#d8dce6] bg-white p-4 shadow-xl">
-              <h3 className="text-[18px] font-semibold text-[#1f2937]">Submit Availability Request?</h3>
-              <p className="mt-2 text-[14px] text-[#4b5563]">
-                You’re about to submit this availability request for review. Please confirm that the highlighted availability details are correct.
-              </p>
-              <div className="mt-4 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmDialog(false)}
-                  className="inline-flex h-9 items-center justify-center rounded-md border border-[#c9cbd2] bg-white px-4 text-[14px] font-medium text-[#333333] hover:bg-[#f3f4f6]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmSubmit}
-                  className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-[14px] font-medium text-white hover:bg-[#0858b9]"
-                >
-                  Confirm Submit
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
         <header className="flex items-start justify-between border-b border-[#e2e5ec] bg-gradient-to-r from-[#f8fbff] to-[#f6f0ff] px-5 py-4">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#0868db] to-[#7c3aed] text-white shadow-md">
@@ -515,7 +559,12 @@ export function AuraAssistant({
               )}
             >
               {message.variant === "recommendation" ? (
-                <RecommendationCard applied={Boolean(message.applied)} onApply={() => handleApplyRecommendation(message.id)} />
+                <RecommendationCard
+                  applied={Boolean(message.applied)}
+                  rows={message.recommendationRows ?? initialRecommendationRows}
+                  type={message.recommendationType}
+                  onApply={() => handleApplyRecommendation(message.id, message.recommendationRows ?? initialRecommendationRows)}
+                />
               ) : (
                 message.text
               )}
@@ -524,21 +573,14 @@ export function AuraAssistant({
 
           {showActionButtons ? (
             <div className="rounded-lg border border-[#d8dce6] bg-white px-3 py-3 text-[14px] text-[#333333]">
-              <p className="mb-3">Take action on the suggested availability:</p>
-              <div className="flex items-center justify-end gap-2">
+              <p className="mb-3">You can undo the applied availability change from this chat.</p>
+              <div className="flex items-center justify-end">
                 <button
                   type="button"
                   onClick={handleUndo}
                   className="inline-flex h-9 items-center justify-center rounded-md border border-[#c9cbd2] bg-white px-4 font-medium text-[#333333] transition hover:bg-[#f3f4f6]"
                 >
                   Undo
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmitClick}
-                  className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 font-medium text-white transition hover:bg-[#0858b9]"
-                >
-                  Submit
                 </button>
               </div>
             </div>
