@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, X } from "lucide-react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/bot-experience/AppShell";
@@ -6,6 +6,8 @@ import { AvailabilityScreen } from "./components/bot-experience/AvailabilityScre
 import { AuraAssistant } from "./components/bot-experience/AuraAssistant";
 import { EmptyState } from "./components/bot-experience/EmptyState";
 import { PageHeader } from "./components/bot-experience/PageHeader";
+import { SkillGapDesktopScreen } from "./components/bot-experience/SkillGapDesktopScreen";
+import logileLogoUrl from "./assets/logile-logo.png";
 import { availabilityDays } from "./data/mockData";
 import { AvailabilityRow } from "./types/availability";
 
@@ -32,6 +34,9 @@ function DemoNavigationScreen() {
 
   return (
     <main className="mx-auto max-w-3xl p-6 md:p-10">
+      <header className="flex items-center gap-3">
+        <img src={logileLogoUrl} alt="Logile" className="h-8 w-auto" />
+      </header>
       <h1 className="text-3xl font-semibold text-[#1f2937]">Logile WFM Demo Screens</h1>
       <p className="mt-2 text-[#4b5563]">Select a screen to open the prototype demo.</p>
 
@@ -267,19 +272,138 @@ function AvailabilityDesktopScreen() {
   );
 }
 
+function PasswordGate({ children }: { children: React.ReactNode }) {
+  const isProd = import.meta.env.PROD;
+  const [isAuthed, setIsAuthed] = useState(() => {
+    if (!isProd) return true;
+    try {
+      return localStorage.getItem("logile_demo_authed") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!isProd || isAuthed) return;
+    window.setTimeout(() => inputRef.current?.focus(), 0);
+  }, [isAuthed, isProd]);
+
+  function trapFocus(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Tab") return;
+    const root = modalRef.current;
+    if (!root) return;
+
+    const focusable = Array.from(
+      root.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((node) => !node.hasAttribute("disabled") && node.tabIndex !== -1);
+
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+
+    if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    } else if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    }
+  }
+
+  function handleUnlock() {
+    if (password === "Demo@Logile") {
+      try {
+        localStorage.setItem("logile_demo_authed", "true");
+      } catch {
+        // ignore storage failures; the session will still be unlocked for this runtime
+      }
+      setIsAuthed(true);
+      setError(null);
+      return;
+    }
+
+    setError("Incorrect password. Please try again.");
+  }
+
+  if (!isProd || isAuthed) return <>{children}</>;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4" onKeyDown={trapFocus}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="demo-password-title"
+        className="w-full max-w-[420px] rounded-xl border border-slate-200 bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.22)]"
+      >
+        <div className="flex items-center gap-3">
+          <img src={logileLogoUrl} alt="Logile" className="h-7 w-auto" />
+          <div className="min-w-0">
+            <h2 id="demo-password-title" className="text-[18px] font-semibold text-slate-900">
+              Protected Demo
+            </h2>
+            <p className="mt-0.5 text-[13px] text-slate-600">Enter password to continue.</p>
+          </div>
+        </div>
+
+        <form
+          className="mt-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleUnlock();
+          }}
+        >
+          <label className="block text-[13px] font-medium text-slate-700" htmlFor="demo-password">
+            Password
+          </label>
+          <input
+            id="demo-password"
+            ref={inputRef}
+            type="password"
+            value={password}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              setError(null);
+            }}
+            className="mt-2 h-10 w-full rounded-md border border-slate-300 px-3 text-[14px] text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            autoComplete="current-password"
+          />
+          {error ? <p className="mt-2 text-[13px] font-medium text-red-600">{error}</p> : null}
+          <button
+            type="submit"
+            className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 text-[14px] font-semibold text-white hover:bg-[#0858b9] focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2"
+          >
+            Unlock
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/demo" replace />} />
-      <Route path="/demo" element={<DemoNavigationScreen />} />
-      <Route path="/availability-desktop" element={<AvailabilityDesktopScreen />} />
-      <Route path="/skill-gap-desktop" element={<PlaceholderScreen title="Skill Gap - Desktop" />} />
-      <Route path="/time-off-desktop" element={<PlaceholderScreen title="Time Off - Desktop" />} />
-      <Route path="/skill-gap-tablet" element={<PlaceholderScreen title="Skill Gap - Tablet" />} />
-      <Route path="/availability-tablet" element={<PlaceholderScreen title="Availability - Tablet" />} />
-      <Route path="/time-off-tablet" element={<PlaceholderScreen title="Time Off - Tablet" />} />
-      <Route path="/mobile-screen" element={<PlaceholderScreen title="Mobile Screen" />} />
-      <Route path="*" element={<Navigate to="/demo" replace />} />
-    </Routes>
+    <PasswordGate>
+      <Routes>
+        <Route path="/" element={<Navigate to="/demo" replace />} />
+        <Route path="/demo" element={<DemoNavigationScreen />} />
+        <Route path="/availability-desktop" element={<AvailabilityDesktopScreen />} />
+        <Route path="/skill-gap-desktop" element={<SkillGapDesktopScreen />} />
+        <Route path="/time-off-desktop" element={<PlaceholderScreen title="Time Off - Desktop" />} />
+        <Route path="/skill-gap-tablet" element={<PlaceholderScreen title="Skill Gap - Tablet" />} />
+        <Route path="/availability-tablet" element={<PlaceholderScreen title="Availability - Tablet" />} />
+        <Route path="/time-off-tablet" element={<PlaceholderScreen title="Time Off - Tablet" />} />
+        <Route path="/mobile-screen" element={<PlaceholderScreen title="Mobile Screen" />} />
+        <Route path="*" element={<Navigate to="/demo" replace />} />
+      </Routes>
+    </PasswordGate>
   );
 }

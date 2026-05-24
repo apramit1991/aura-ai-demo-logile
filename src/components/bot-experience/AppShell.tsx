@@ -20,6 +20,7 @@ type AppShellProps = {
     role: string;
     avatar: string;
     badge: number;
+    avatarUrl?: string;
   };
 };
 
@@ -79,8 +80,12 @@ export function AppShell({ children, activeNavLabel, profile = employee }: AppSh
             onClick={() => setProfileOpen((open) => !open)}
             className="flex h-12 min-w-0 items-center gap-2 rounded-md border border-[#d4d7de] bg-white px-2 transition hover:border-[#b9bec8] sm:min-w-[206px]"
           >
-            <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#b8e0aa] text-xs font-bold text-[#2e6623] ring-2 ring-[#dff4d6]">
-              {profile.avatar}
+            <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible rounded-full bg-[#b8e0aa] text-xs font-bold text-[#2e6623] ring-2 ring-[#dff4d6]">
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+              ) : (
+                profile.avatar
+              )}
               <span className="absolute -right-0.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e22d20] text-[10px] text-white">
                 {profile.badge}
               </span>
