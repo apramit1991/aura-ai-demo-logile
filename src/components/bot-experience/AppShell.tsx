@@ -29,8 +29,8 @@ export function AppShell({ children, activeNavLabel, profile = employee }: AppSh
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#f1f3f9] text-[#333333]">
-      <header className="sticky top-0 z-30 flex h-auto min-h-14 items-center gap-3 border-b border-transparent bg-[#f1f3f9] px-3 md:h-14 md:px-4">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#f1f3f9] text-[#333333]">
+      <header className="z-30 flex h-auto min-h-14 shrink-0 items-center gap-3 border-b border-transparent bg-[#f1f3f9] px-3 md:h-14 md:px-4">
         <button
           type="button"
           className="flex h-10 w-9 items-center justify-center rounded-md text-[#333333] transition hover:bg-white"
@@ -123,8 +123,8 @@ export function AppShell({ children, activeNavLabel, profile = employee }: AppSh
         </div>
       ) : null}
 
-      <div className="flex">
-        <aside className="sticky top-14 z-20 hidden h-[calc(100vh-56px)] w-20 shrink-0 overflow-y-auto scrollbar-hidden border-r border-transparent bg-[#f1f3f9] pb-4 md:block">
+      <div className="flex min-h-0 flex-1">
+        <aside className="z-20 hidden h-full w-20 shrink-0 overflow-y-auto scrollbar-hidden border-r border-transparent bg-[#f1f3f9] pb-4 md:block">
           <div className="flex h-11 items-center justify-center gap-1 text-[17px] font-medium text-primary">
             <ArrowLeftRight className="h-[18px] w-[18px]" />
             IMS
@@ -150,7 +150,7 @@ export function AppShell({ children, activeNavLabel, profile = employee }: AppSh
           </nav>
         </aside>
 
-        <main className="w-full min-w-0 md:pl-3">{children}</main>
+        <main className="min-w-0 flex-1 overflow-y-auto md:pl-3">{children}</main>
       </div>
     </div>
   );

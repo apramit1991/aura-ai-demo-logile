@@ -13,8 +13,8 @@ export function RequestForm({ onCycleDate }: RequestFormProps) {
   const [reason, setReason] = useState(request.reasons[0]);
 
   return (
-    <section className="bg-white lg:w-[327px] lg:shrink-0 lg:border-r lg:border-[#d0d3da]">
-      <div className="grid content-start gap-4 bg-[#f1f3f9] p-4 lg:min-h-[860px]">
+    <section className="min-w-0 bg-white lg:shrink-0 lg:border-r lg:border-[#d0d3da]">
+      <div className="grid content-start gap-4 bg-[#f1f3f9] p-3 lg:min-h-[860px] 2xl:p-4 bg-white" >
         <div className="rounded-[14px] bg-[#e9ecf4] p-3">
           <p className="text-[15px] text-[#5c5c5c]">Employee Name</p>
           <p className="text-[17px] text-[#333333]">{employee.name}</p>

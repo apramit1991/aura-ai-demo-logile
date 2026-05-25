@@ -83,8 +83,8 @@ function SelectLike({ label, value }: { label: string; value: string }) {
 
 function SummaryCard({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
   return (
-    <section className={cn("min-w-0 rounded-[14px] bg-white p-3", className)}>
-      <h3 className="text-[25px] font-semibold leading-[34px] text-[#333333]">{title}</h3>
+    <section className={cn("min-w-0 max-w-full rounded-[14px] bg-white p-2.5 2xl:p-3", className)}>
+      <h3 className="whitespace-normal text-[21px] font-normal leading-[30px] text-[#333333]">{title}</h3>
       {children}
     </section>
   );
@@ -99,7 +99,7 @@ export function TimeOffDesktopScreen() {
 
   return (
     <AppShell activeNavLabel="Labor Model">
-      <div className="min-h-[calc(100vh-56px)] min-w-0 bg-[#f1f3f9] pr-5">
+      <div className="min-w-0 bg-[#f1f3f9] pr-3 2xl:pr-5">
         <div className="flex h-[96px] flex-col justify-end">
           <div className="flex h-[54px] items-center gap-3 px-4">
             <button type="button" aria-label="Back" className="flex h-9 w-9 items-center justify-center rounded-md border border-[#d4d7de] bg-white text-[#333333]">
@@ -124,7 +124,7 @@ export function TimeOffDesktopScreen() {
           </div>
         </div>
 
-        <section className="min-h-[calc(100vh-152px)] overflow-hidden rounded-t-md border border-[#d6d9df] bg-white">
+        <section className="min-w-0 overflow-hidden rounded-t-md border border-[#d6d9df] bg-white">
           <div className="flex h-16 items-center justify-between border-b border-[#dfe1e6] px-5">
             <h2 className="text-[17px] font-semibold leading-[22px] text-primary">Create Timeoff Request</h2>
             <button type="button" disabled className="h-10 rounded-md bg-[#e5e5e5] px-6 text-[17px] leading-[22px] text-[#8a8a8a]">
@@ -132,8 +132,8 @@ export function TimeOffDesktopScreen() {
             </button>
           </div>
 
-          <div className="grid min-h-[calc(100vh-216px)] grid-cols-[380px_minmax(0,1fr)]">
-            <aside className="border-r border-[#d0d3da] bg-white px-4 py-3">
+          <div className="grid min-w-0 grid-cols-[clamp(300px,24vw,380px)_minmax(0,1fr)]">
+            <aside className="min-w-0 border-r border-[#d0d3da] bg-white px-3 py-3 2xl:px-4">
               <div className="grid min-h-full content-start gap-4 rounded-[14px] bg-[#f1f3f9] p-3">
                 <div className="rounded-[14px] bg-[#e9ecf4] p-3">
                   <p className="text-[15px] leading-5 text-[#5c5c5c]">Employee Name</p>
@@ -169,24 +169,24 @@ export function TimeOffDesktopScreen() {
               </div>
             </aside>
 
-            <main className="min-w-0 bg-[#f1f3f9] py-4 pl-[14px] pr-[5px]">
-              <div className="grid w-full min-w-0 grid-cols-[minmax(0,233fr)_minmax(0,501fr)_minmax(0,233fr)_minmax(0,392fr)] gap-4">
+            <main className="min-w-0 max-w-full overflow-hidden bg-[#f1f3f9] py-3 pl-3 pr-1 2xl:py-4 2xl:pl-[14px] 2xl:pr-[5px]">
+              <div className="grid w-full min-w-0 grid-cols-[minmax(0,233fr)_minmax(0,501fr)_minmax(0,233fr)_minmax(0,392fr)] gap-3 2xl:gap-4">
                 <SummaryCard title="My Preferences">
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-3 space-y-2 2xl:mt-4 2xl:space-y-3">
                     <TextInputLike label="Hours per week" value="30h" />
                     <TextInputLike label="Days Per Week" value="5d" />
                   </div>
                 </SummaryCard>
 
                 <SummaryCard title="Work Group Rules">
-                  <div className="mt-4 grid grid-cols-[1fr_1px_1fr] gap-3">
-                    <div className="space-y-3 text-[17px] leading-[22px] text-[#333333]">
+                  <div className="mt-3 grid grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] gap-2 2xl:mt-4 2xl:gap-3">
+                    <div className="min-w-0 space-y-2 text-[15px] leading-5 text-[#333333] 2xl:space-y-3 2xl:text-[17px] 2xl:leading-[22px]">
                       <p className="flex justify-between"><span>Min hours/day:</span><span>4</span></p>
                       <p className="flex justify-between"><span>Max hours/day:</span><span>10</span></p>
                       <p className="flex justify-between"><span>Weekly Range:</span><span>20-40</span></p>
                     </div>
                     <div className="bg-[#d0d3da]" />
-                    <div className="space-y-3 text-[17px] leading-[22px] text-[#333333]">
+                    <div className="min-w-0 space-y-2 text-[15px] leading-5 text-[#333333] 2xl:space-y-3 2xl:text-[17px] 2xl:leading-[22px]">
                       <p className="flex justify-between"><span>Min days/week:</span><span>1</span></p>
                       <p className="flex justify-between"><span>Max days/week:</span><span>5</span></p>
                     </div>
@@ -194,21 +194,21 @@ export function TimeOffDesktopScreen() {
                 </SummaryCard>
 
                 <SummaryCard title="My Time off">
-                  <p className="mt-6 text-[25px] font-semibold leading-[34px] text-[#333333]">0Days</p>
+                  <p className="mt-4 text-[22px] font-semibold leading-8 text-[#333333] 2xl:mt-6 2xl:text-[25px] 2xl:leading-[34px]">0Days</p>
                 </SummaryCard>
 
                 <SummaryCard title="My Requests">
-                  <div className="mt-5 space-y-3">
-                    <div className="flex h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-[#dfe1e6] bg-[#f8f9fb] px-4">
-                      <span className="min-w-0 truncate text-[15px] font-semibold leading-5 text-[#111827]">Jan 01 - Jan 04, 2026</span>
-                      <span className="flex h-7 shrink-0 items-center gap-1 rounded-full bg-[#cdf7d9] px-3 text-[15px] leading-5 text-[#00843d]">
+                  <div className="mt-4 space-y-2 2xl:mt-5 2xl:space-y-3">
+                    <div className="flex h-10 min-w-0 items-center justify-between gap-2 rounded-lg border border-[#dfe1e6] bg-[#f8f9fb] px-2 2xl:h-11 2xl:px-4">
+                      <span className="min-w-0 truncate text-[14px] font-semibold leading-5 text-[#111827] 2xl:text-[15px]">Jan 01 - Jan 04, 2026</span>
+                      <span className="flex h-7 shrink-0 items-center gap-1 rounded-full bg-[#cdf7d9] px-2 text-[13px] leading-5 text-[#00843d] 2xl:px-3 2xl:text-[15px]">
                         <CheckCircle2 className="h-4 w-4" />
                         Approved
                       </span>
                     </div>
-                    <div className="flex h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-[#dfe1e6] bg-[#f8f9fb] px-4">
-                      <span className="min-w-0 truncate text-[15px] font-semibold leading-5 text-[#111827]">May 19 - May 19, 2026</span>
-                      <span className="flex h-7 shrink-0 items-center gap-1 rounded-full bg-[#ffefb8] px-3 text-[15px] leading-5 text-[#9a6200]">
+                    <div className="flex h-10 min-w-0 items-center justify-between gap-2 rounded-lg border border-[#dfe1e6] bg-[#f8f9fb] px-2 2xl:h-11 2xl:px-4">
+                      <span className="min-w-0 truncate text-[14px] font-semibold leading-5 text-[#111827] 2xl:text-[15px]">May 19 - May 19, 2026</span>
+                      <span className="flex h-7 shrink-0 items-center gap-1 rounded-full bg-[#ffefb8] px-2 text-[13px] leading-5 text-[#9a6200] 2xl:px-3 2xl:text-[15px]">
                         <Clock3 className="h-4 w-4" />
                         Pending
                       </span>
@@ -220,7 +220,7 @@ export function TimeOffDesktopScreen() {
               <section className="mt-5 min-w-0">
                 <div className="flex items-end justify-between">
                   <div>
-                    <h3 className="text-[21px] font-semibold leading-[30px] text-[#333333]">Create Time Off</h3>
+                    <h3 className="text-[21px] font-normal leading-[30px] text-[#333333]">Create Time Off</h3>
                     <div className="mt-5 flex items-center gap-2 text-[13px] leading-[18px] text-[#667085]">
                       <span>Approved Request Impact:</span>
                       <ImpactSwatch color="border-green-200 bg-green-100" />
@@ -231,7 +231,7 @@ export function TimeOffDesktopScreen() {
                   </div>
                 </div>
 
-                <div className="mt-3 overflow-hidden rounded-lg border border-[#d6d9df] bg-white">
+                <div className="mt-3 max-w-full overflow-hidden rounded-lg border border-[#d6d9df] bg-white">
                   <div className="grid grid-cols-7 border-b border-[#d6d9df] bg-[#f5f6fb]">
                     {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
                       <div key={day} className="flex h-7 items-center justify-center border-r border-[#d6d9df] text-[15px] font-semibold leading-5 text-[#333333] last:border-r-0">
@@ -242,11 +242,11 @@ export function TimeOffDesktopScreen() {
                   {calendarWeeks.map((week, weekIndex) => (
                     <div key={weekIndex} className="grid grid-cols-7 border-b border-[#d6d9df] last:border-b-0">
                       {week.map((day, dayIndex) => (
-                        <div key={`${weekIndex}-${day.label}`} className="min-h-[101px] border-r border-[#d6d9df] bg-white last:border-r-0">
+                        <div key={`${weekIndex}-${day.label}`} className="min-h-[82px] border-r border-[#d6d9df] bg-white last:border-r-0 2xl:min-h-[101px]">
                           <div className="px-2 pt-2 text-[15px] font-semibold leading-5 text-[#333333]">{day.label}</div>
                           <div
                             className={cn(
-                              "mt-[45px] h-7",
+                              "mt-7 h-6 2xl:mt-[45px] 2xl:h-7",
                               day.tone === "green" && "bg-green-50",
                               day.tone === "amber" && "bg-orange-50",
                               day.tone === "red" && "bg-red-100",

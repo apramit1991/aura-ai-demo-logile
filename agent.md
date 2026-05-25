@@ -25,11 +25,13 @@ Implement the referenced Figma frame as a working code prototype, then iterative
    - Follow the repo's framework, styling system, component conventions, and asset pipeline.
    - Match the Figma hierarchy with semantic, maintainable components. Avoid over-abstracting while the design is still being aligned.
    - Use exact dimensions, constraints, font families, weights, line heights, colors, border radii, shadows, and spacing from Figma when available.
+   - If the Figma frame is a fixed desktop viewport, preserve the Figma look at that size while also adding responsive desktop safeguards for smaller laptop widths.
    - For icons, use existing icon libraries or exported SVGs. Do not approximate detailed brand or product artwork with CSS shapes.
 
 4. Run and screenshot the prototype.
    - Start the local app if needed.
    - Use browser automation to capture screenshots at the Figma frame size and any requested breakpoints.
+   - For fixed desktop Figma frames, also test common laptop widths such as 1440px, 1366px, and 1280px before delivery.
    - Keep screenshots and source exports named clearly, such as `figma-source.png` and `prototype-current.png`, in a temporary or task-local folder.
 
 5. Compare and iterate.
@@ -51,6 +53,21 @@ Implement the referenced Figma frame as a working code prototype, then iterative
 - Use real exported images for product, brand, avatar, photo, or illustration assets when possible.
 - Match interactive states shown or implied by the design: hover, active, selected, disabled, focus, open menus, and empty/loading/error states.
 - If the Figma design uses a font that is unavailable locally, use the closest installed or bundled alternative and report the substitution.
+
+## Fixed Viewport Responsiveness
+
+When a Figma frame is designed at a fixed desktop size, do not hard-code the prototype so tightly that it only works at that exact viewport. Keep the visual match at the source size, but add responsive desktop behavior so the screen remains usable on smaller laptop viewports.
+
+- Support at least `1440px`, `1366px`, and `1280px` desktop/laptop widths unless the user specifies different breakpoints.
+- Use an app shell pattern that prevents clipping: `h-screen overflow-hidden` on the shell, fixed/shrink header, `flex min-h-0` body, fixed sidebar where needed, and `flex-1 min-w-0 overflow-y-auto` for the main content.
+- Add `min-w-0` to flex/grid children and `max-w-full` to large cards, widgets, tables, modals, and panels.
+- Avoid viewport-breaking fixed widths. Prefer `minmax(0, 1fr)`, `clamp()`, percentages, proportional grid columns, and breakpoint-specific compact spacing.
+- Prevent page-level horizontal scrolling. If a grid or table truly cannot fit, contain horizontal scrolling inside that component only.
+- Preserve bottom content by using vertical scroll, not by hiding overflow on the main content area.
+- For dense laptop widths, reduce padding/gaps moderately before reducing typography. Keep body text readable, generally no smaller than `13px` to `14px`.
+- Keep modal overlays responsive with viewport-aware max width and height, for example `max-width: min(900px, calc(100vw - 48px))` and `max-height: calc(100vh - 64px)`, with scrollable modal bodies.
+- Keep assistant/chat panels and floating pills from covering critical actions by using responsive widths such as `clamp(360px, 28vw, 420px)` and safe bottom/right spacing.
+- Verify both empty/default states and populated/detail states, because selected cards, expanded accordions, chat panels, and recommendation widgets often create overflow that the default state does not show.
 
 ## Tool Guidance
 

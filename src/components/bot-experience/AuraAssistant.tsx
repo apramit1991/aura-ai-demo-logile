@@ -9,7 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { RecommendationData } from "../../App";
+import { AvailabilityValidationState, RecommendationData } from "../../App";
 
 type AuraState = "empty" | "partial" | "valid" | "error";
 type PanelState = "closed" | "open" | "closing";
@@ -21,11 +21,11 @@ type AuraMessage = {
   variant?: "recommendation";
   applied?: boolean;
   recommendationRows?: RecommendationData;
-  recommendationType?: "standard" | "revision";
+  recommendationType?: "standard" | "warning" | "warning-comparison";
 };
 
 type AuraAssistantProps = {
-  onApplyRecommendation: (data: RecommendationData) => void;
+  onApplyRecommendation: (data: RecommendationData, options?: { validationState?: AvailabilityValidationState }) => void;
   onUndoRecommendation: () => void;
   hasPopulatedRows: boolean;
   isSubmitted: boolean;
@@ -70,12 +70,20 @@ const initialRecommendationRows: RecommendationData = [
   { day: "Saturday", time: "10:00a - 8:00p", hours: "10h" },
 ];
 
-const revisedRecommendationRows: RecommendationData = [
-  { day: "Sunday", time: "10:00a - 8:00p", hours: "10h" },
-  { day: "Tuesday", time: "10:00a - 8:00p", hours: "10h" },
+const comparisonTopRows: RecommendationData = [
+  { day: "Monday", time: "10:00a - 8:00p", hours: "10h" },
   { day: "Wednesday", time: "10:00a - 8:00p", hours: "10h" },
   { day: "Thursday", time: "9:00a - 5:00p", hours: "8h" },
   { day: "Friday", time: "10:00a - 8:00p", hours: "10h" },
+  { day: "Saturday", time: "10:00a - 8:00p", hours: "10h" },
+];
+
+const warningRecommendationRows: RecommendationData = [
+  { day: "Monday", time: "9:00a - 8:00p", hours: "11h" },
+  { day: "Tuesday", time: "12:00p - 4:00p", hours: "4h" },
+  { day: "Thursday", time: "9:00a - 8:00p", hours: "11h" },
+  { day: "Saturday", time: "9:00a - 8:00p", hours: "11h" },
+  { day: "Sunday", time: "9:00a - 5:00p", hours: "8h" },
 ];
 
 const initialAssistantMessage =
@@ -121,7 +129,7 @@ function getFreeTextReply(input: string) {
   return `I can review "${input}" against the availability rules and translate it into a compliant request draft.`;
 }
 
-function isMondaySaturdayUnavailableMessage(input: string) {
+function isWednesdayFridayTuesdayMorningUnavailableMessage(input: string) {
   const normalized = input.toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
   const unavailableIndicators = [
     "not available",
@@ -133,8 +141,10 @@ function isMondaySaturdayUnavailableMessage(input: string) {
   ];
 
   return (
-    normalized.includes("monday") &&
-    normalized.includes("saturday") &&
+    normalized.includes("wednesday") &&
+    normalized.includes("friday") &&
+    normalized.includes("tuesday") &&
+    normalized.includes("morning") &&
     unavailableIndicators.some((indicator) => normalized.includes(indicator))
   );
 }
@@ -152,60 +162,6 @@ function TypingIndicator() {
   );
 }
 
-function AvailabilityComparison({ rows }: { rows: RecommendationData }) {
-  const requestedDays = [
-    { day: "Mon", start: "10:00a", end: "8:00p", unavailable: true },
-    { day: "Wed", start: "10:00a", end: "8:00p" },
-    { day: "Thu", start: "9:00a", end: "5:00p" },
-    { day: "Sat", start: "10:00a", end: "8:00p", unavailable: true },
-  ];
-  const recommendedDays = rows.map((row) => {
-    const [start, end] = row.time.split(" - ");
-    return { day: row.day.slice(0, 3), start, end };
-  });
-
-  return (
-    <div className="space-y-2">
-      <div className="overflow-hidden rounded-[16px] border border-[#d8dce6] bg-white">
-        <div className="grid grid-cols-4 bg-[#f4f5fb] text-[14px] font-semibold text-[#333333]">
-          {requestedDays.map((item) => (
-            <div key={item.day} className="px-2 py-2 text-center">{item.day}</div>
-          ))}
-        </div>
-        <div className="grid grid-cols-4 text-center text-[13px] leading-5">
-          {requestedDays.map((item) => (
-            <div key={`${item.day}-start`} className={cn("px-2 py-2", item.unavailable && "text-[#e87500]")}>{item.start}</div>
-          ))}
-          {requestedDays.map((item) => (
-            <div key={`${item.day}-end`} className={cn("px-2 py-2", item.unavailable && "text-[#e87500]")}>{item.end}</div>
-          ))}
-        </div>
-      </div>
-
-      <p className="text-center text-[16px] font-semibold text-[#333333]">Vs</p>
-
-      <div>
-        <p className="mb-2 text-[16px] font-semibold text-primary">Recommended Availability (48h)</p>
-        <div className="overflow-hidden rounded-[16px] border border-[#d8dce6] bg-white">
-          <div className="grid grid-cols-5 bg-[#f4f5fb] text-[14px] font-semibold text-[#333333]">
-            {recommendedDays.map((item) => (
-              <div key={item.day} className="px-2 py-2 text-center">{item.day}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-5 text-center text-[13px] leading-5 text-[#333333]">
-            {recommendedDays.map((item) => (
-              <div key={`${item.day}-start`} className="px-2 py-2">{item.start}</div>
-            ))}
-            {recommendedDays.map((item) => (
-              <div key={`${item.day}-end`} className="px-2 py-2">{item.end}</div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function RecommendationCard({
   applied,
   onApply,
@@ -215,27 +171,112 @@ function RecommendationCard({
   applied: boolean;
   onApply: () => void;
   rows: RecommendationData;
-  type?: "standard" | "revision";
+  type?: "standard" | "warning" | "warning-comparison";
 }) {
-  if (type === "revision") {
+  if (type === "warning-comparison") {
     return (
-      <div className="overflow-hidden rounded-lg bg-[#f4f5fb] text-[#333333] ring-1 ring-[#e2e4ec]">
-        <div className="space-y-3 px-3 py-3">
-          <div>
-            <p className="text-[17px] font-semibold leading-6 text-[#333333]">Updated Availability (48h)</p>
-            <p className="mt-1 text-[14px] leading-5 text-[#e87500]">I removed Monday and Saturday and found a schedule that keeps you at 48 hrs / 5 days.</p>
+      <div className="space-y-3">
+        <div className="overflow-hidden rounded-lg bg-[#f0f1f6] text-[#333333] ring-1 ring-[#e2e4ec]">
+          <div className="px-3 py-3">
+            <div className="space-y-1.5 text-[14px]">
+              {comparisonTopRows.map((row) => (
+                <div key={row.day} className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+                  <span>{row.day}</span>
+                  <span className="text-[#5c5c5c]">{row.time}</span>
+                  <span className="min-w-8 text-right text-primary">{row.hours}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 border-y border-[#cfd3dd] py-2 text-[14px] font-semibold text-[#5c5c5c]">
+              <span className="inline-flex items-center gap-1">
+                <Clock3 className="h-3.5 w-3.5" />
+                48 hrs total
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <CalendarDays className="h-3.5 w-3.5" />
+                5 days/week
+              </span>
+            </div>
           </div>
-          <AvailabilityComparison rows={rows} />
-          <p className="border-t border-[#cfd3dd] pt-3 text-[15px] leading-5 text-[#5c5c5c]">
-            This keeps Monday and Saturday unavailable while matching high-demand periods. Would you like to apply this?
-          </p>
         </div>
-        <div className="border-t border-[#d8dce6] px-3 py-2 text-right">
+
+        <p className="text-center text-[16px] font-medium text-[#111827]">VS</p>
+
+        <div className="overflow-hidden rounded-lg border border-[#e6dca8] bg-[#f5edbe] text-[#333333] shadow-sm">
+          <div className="space-y-3 px-3 py-3">
+            <div className="flex items-center gap-2 text-[14px] leading-5 text-[#8a2d0a]">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <p>You may not meet your preferences for weekly total hours or days per week.</p>
+            </div>
+            <div className="space-y-1.5 text-[15px] leading-6">
+              {rows.map((row) => (
+                <div key={row.day} className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+                  <span>{row.day}</span>
+                  <span className="text-[#333333]">{row.time}</span>
+                  <span className="min-w-8 text-right text-[#8a2d0a]">{row.hours}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 border-y border-[#d8cfa2] py-2 text-[14px] font-semibold text-[#333333]">
+              <span className="inline-flex items-center gap-1">
+                <Clock3 className="h-3.5 w-3.5" />
+                43 hrs total
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <CalendarDays className="h-3.5 w-3.5" />
+                5 days/week
+              </span>
+            </div>
+          </div>
+          <div className="border-t border-[#d8cfa2] px-3 py-2 text-center">
+            <button
+              type="button"
+              onClick={onApply}
+              disabled={applied}
+              className="inline-flex h-8 min-w-[112px] items-center justify-center rounded-md bg-primary px-4 text-[14px] font-medium text-white transition hover:bg-[#0858b9] disabled:cursor-default disabled:bg-[#8cadde]"
+            >
+              {applied ? "Applied" : "Yes, Apply"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "warning") {
+    return (
+      <div className="overflow-hidden rounded-lg border border-[#e6dca8] bg-[#f5edbe] text-[#333333] shadow-sm">
+        <div className="space-y-3 px-3 py-3">
+          <div className="flex items-center gap-2 text-[14px] leading-5 text-[#8a2d0a]">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <p>You may not meet your preferences for weekly total hours or days per week.</p>
+          </div>
+          <div className="space-y-1.5 text-[15px] leading-6">
+            {rows.map((row) => (
+              <div key={row.day} className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+                <span>{row.day}</span>
+                <span className="text-[#333333]">{row.time}</span>
+                <span className="min-w-8 text-right text-[#8a2d0a]">{row.hours}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 border-y border-[#d8cfa2] py-2 text-[14px] font-semibold text-[#333333]">
+            <span className="inline-flex items-center gap-1">
+              <Clock3 className="h-3.5 w-3.5" />
+              43 hrs total
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <CalendarDays className="h-3.5 w-3.5" />
+              5 days/week
+            </span>
+          </div>
+        </div>
+        <div className="border-t border-[#d8cfa2] px-3 py-2 text-center">
           <button
             type="button"
             onClick={onApply}
             disabled={applied}
-            className="inline-flex h-9 min-w-[112px] items-center justify-center rounded-md bg-primary px-4 text-[14px] font-medium text-white transition hover:bg-[#0858b9] disabled:cursor-default disabled:bg-[#8cadde]"
+            className="inline-flex h-8 min-w-[112px] items-center justify-center rounded-md bg-primary px-4 text-[14px] font-medium text-white transition hover:bg-[#0858b9] disabled:cursor-default disabled:bg-[#8cadde]"
           >
             {applied ? "Applied" : "Yes, Apply"}
           </button>
@@ -403,7 +444,7 @@ export function AuraAssistant({
     );
   }
 
-  function handleApplyRecommendation(messageId: number, rows: RecommendationData) {
+  function handleApplyRecommendation(messageId: number, rows: RecommendationData, validationState: AvailabilityValidationState = "valid") {
     if (isTyping || isSubmitted) return;
 
     setMessages((current) =>
@@ -413,7 +454,7 @@ export function AuraAssistant({
     );
     appendMessage({ role: "user", text: "Yes, apply" });
     setRequestState("partial");
-    onApplyRecommendation(rows);
+    onApplyRecommendation(rows, { validationState });
     setHasAppliedSuggestion(true);
     setShowActionButtons(true);
 
@@ -437,15 +478,15 @@ export function AuraAssistant({
     setDraftMessage("");
     setRequestState("partial");
 
-    if (isMondaySaturdayUnavailableMessage(trimmedMessage)) {
+    if (isWednesdayFridayTuesdayMorningUnavailableMessage(trimmedMessage)) {
       setShowActionButtons(false);
       setHasAppliedSuggestion(false);
       queueAssistantReply({
-        text: "I updated the recommendation to keep Monday and Saturday unavailable.",
+        text: "Here’s my recommendation:",
         variant: "recommendation",
         applied: false,
-        recommendationRows: revisedRecommendationRows,
-        recommendationType: "revision",
+        recommendationRows: warningRecommendationRows,
+        recommendationType: "warning-comparison",
       }, 820);
       return;
     }
@@ -520,7 +561,7 @@ export function AuraAssistant({
 
       <aside
         className={cn(
-          "fixed bottom-3 right-3 top-3 z-50 flex w-[calc(100vw-24px)] max-w-[420px] origin-bottom-right flex-col overflow-hidden rounded-xl border border-[#d8dce6] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] transition-all duration-300 ease-out sm:bottom-5 sm:right-5 sm:top-16",
+          "fixed bottom-3 right-3 top-3 z-50 flex w-[calc(100vw-24px)] max-w-[clamp(360px,28vw,420px)] origin-bottom-right flex-col overflow-hidden rounded-xl border border-[#d8dce6] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] transition-all duration-300 ease-out sm:bottom-5 sm:right-5 sm:top-16",
           panelState === "open" && "translate-x-0 scale-100 opacity-100",
           panelState === "closing" && "aura-panel-closing pointer-events-none",
           panelState === "closed" && "pointer-events-none translate-x-[calc(100%+32px)] scale-95 opacity-0",
@@ -563,7 +604,15 @@ export function AuraAssistant({
                   applied={Boolean(message.applied)}
                   rows={message.recommendationRows ?? initialRecommendationRows}
                   type={message.recommendationType}
-                  onApply={() => handleApplyRecommendation(message.id, message.recommendationRows ?? initialRecommendationRows)}
+                  onApply={() =>
+                    handleApplyRecommendation(
+                      message.id,
+                      message.recommendationRows ?? initialRecommendationRows,
+                      message.recommendationType === "warning" || message.recommendationType === "warning-comparison"
+                        ? "warning"
+                        : "valid",
+                    )
+                  }
                 />
               ) : (
                 message.text

@@ -143,14 +143,14 @@ function AlertCard({ id, isActive, onClick }: { id: number; isActive: boolean; o
       type="button"
       onClick={id === 1 ? onClick : undefined}
       className={cn(
-        "grid h-[73px] w-[407px] grid-cols-[20px_minmax(0,1fr)] items-center gap-4 rounded-lg border-2 border-[#ff8b8f] px-4 text-left transition",
+        "grid h-[73px] w-full max-w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-3 rounded-lg border-2 border-[#ff8b8f] px-3 text-left transition 2xl:gap-4 2xl:px-4",
         isActive ? "bg-white" : "bg-[#fff2f2]",
         id === 1 ? "cursor-pointer" : "cursor-default",
       )}
     >
       <AlertCircle className="h-5 w-5 text-[#ff1d25]" />
       <span className="min-w-0">
-        <span className="block text-[17px] font-semibold leading-[22px] text-[#111827]">{card.title}</span>
+        <span className="block truncate text-[16px] font-semibold leading-[22px] text-[#111827] 2xl:text-[17px]">{card.title}</span>
         <span className="block text-[15px] font-normal leading-5 text-primary">{card.action}</span>
       </span>
     </button>
@@ -185,7 +185,7 @@ function HeatCell({ value }: { value: string }) {
           ? "bg-[#ff413b] text-white"
           : "bg-[#ffa000] text-white";
 
-  return <div className={cn("flex h-[28px] w-full min-w-0 items-center justify-center rounded-[4px] text-[16px] font-semibold", tone)}>{value}</div>;
+  return <div className={cn("flex h-[26px] w-full min-w-0 items-center justify-center rounded-[4px] text-[14px] font-semibold 2xl:h-[28px] 2xl:text-[16px]", tone)}>{value}</div>;
 }
 
 function SkillGapAccordion({
@@ -197,7 +197,7 @@ function SkillGapAccordion({
 }) {
   return (
     <section className="max-w-full overflow-hidden rounded-t-[14px] border border-[#d5d5d5] bg-white">
-      <div className={cn("flex h-[64px] items-center gap-4 px-[18px]", expanded && "border-b border-[#d5d5d5]")}>
+      <div className={cn("flex min-h-[58px] items-center gap-3 px-3 2xl:h-[64px] 2xl:gap-4 2xl:px-[18px]", expanded && "border-b border-[#d5d5d5]")}>
         <button
           type="button"
           onClick={onToggle}
@@ -207,28 +207,28 @@ function SkillGapAccordion({
         >
           <ChevronDown className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")} />
         </button>
-        <h2 className="text-[19px] font-semibold leading-[24px] text-[#111827]">
+        <h2 className="min-w-0 text-[21px] font-normal leading-[30px] text-[#111827]">
           Bakery - 40h Baking skill gap, 16 Weeks(7/26/26 - 8/16/26)
         </h2>
       </div>
       {expanded ? (
-        <div className="max-w-full overflow-hidden px-3 pb-0 pt-2">
-          <div className="grid max-w-full grid-cols-[140px_repeat(7,minmax(0,1fr))_72px] gap-x-2">
+        <div className="max-w-full overflow-hidden px-2 pb-0 pt-2 2xl:px-3">
+          <div className="grid max-w-full grid-cols-[120px_repeat(7,minmax(0,1fr))_56px] gap-x-1 2xl:grid-cols-[140px_repeat(7,minmax(0,1fr))_72px] 2xl:gap-x-2">
             <div />
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Total"].map((day) => (
-              <div key={day} className="flex h-[35px] min-w-0 items-center justify-center border-b border-[#cfd3dc] text-[14px] leading-5 text-[#344054]">
+              <div key={day} className="flex h-[32px] min-w-0 items-center justify-center border-b border-[#cfd3dc] text-[13px] leading-5 text-[#344054] 2xl:h-[35px] 2xl:text-[14px]">
                 {day}
               </div>
             ))}
             {skillGapRows.map((row) => (
               <div key={row.week} className="contents">
-                <div className="flex h-[51px] min-w-0 items-center px-1 text-[15px] font-normal leading-[22px] text-[#111827]">{row.week}</div>
+                <div className="flex h-[46px] min-w-0 items-center px-1 text-[13px] font-normal leading-5 text-[#111827] 2xl:h-[51px] 2xl:text-[15px] 2xl:leading-[22px]">{row.week}</div>
                 {row.values.map((value, index) => (
-                  <div key={`${row.week}-${index}`} className="flex h-[51px] min-w-0 items-center">
+                  <div key={`${row.week}-${index}`} className="flex h-[46px] min-w-0 items-center 2xl:h-[51px]">
                     <HeatCell value={value} />
                   </div>
                 ))}
-                <div className="flex h-[51px] min-w-0 items-center justify-center bg-[#f6f7f9] text-[13px] font-semibold text-[#111827]">
+                <div className="flex h-[46px] min-w-0 items-center justify-center bg-[#f6f7f9] text-[12px] font-semibold text-[#111827] 2xl:h-[51px] 2xl:text-[13px]">
                   {row.total}
                 </div>
               </div>
@@ -472,9 +472,9 @@ function RequestAvailabilityModal({ onClose, onSend }: { onClose: () => void; on
         role="dialog"
         aria-modal="true"
         aria-labelledby="availability-request-title"
-        className="max-h-[calc(100vh-48px)] w-full max-w-[1120px] overflow-y-auto rounded-xl bg-white shadow-[0_24px_70px_rgba(15,23,42,0.32)]"
+        className="max-h-[calc(100vh-64px)] w-full max-w-[900px] overflow-y-auto rounded-xl bg-white shadow-[0_24px_70px_rgba(15,23,42,0.32)]"
       >
-        <div className="flex items-start justify-between gap-4 px-8 pt-7">
+        <div className="flex items-start justify-between gap-4 px-6 pt-6 2xl:px-8 2xl:pt-7">
           <div>
             <h2 id="availability-request-title" className="text-[28px] font-semibold leading-9 text-slate-900">
               Request Availability Adjustment
@@ -492,7 +492,7 @@ function RequestAvailabilityModal({ onClose, onSend }: { onClose: () => void; on
           </button>
         </div>
 
-        <div className="space-y-5 px-8 py-6">
+        <div className="space-y-4 px-6 py-5 2xl:space-y-5 2xl:px-8 2xl:py-6">
           <div className="flex items-center gap-5 rounded-lg border border-blue-200 bg-blue-50/60 p-5">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-primary">
               <CalendarDays className="h-7 w-7" />
@@ -528,7 +528,7 @@ function RequestAvailabilityModal({ onClose, onSend }: { onClose: () => void; on
             <span className="font-semibold text-primary">Wednesday, Friday, Sunday</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-4 2xl:gap-5">
             <AvailabilityMiniTable title="Current Availability (39h)" days={currentDays} type="current" />
             <AvailabilityMiniTable title="Recommended Availability (52h)" days={recommendedDays} changedDays={["Wed", "Fri", "Sun"]} type="recommended" />
           </div>
@@ -545,7 +545,7 @@ function RequestAvailabilityModal({ onClose, onSend }: { onClose: () => void; on
           </div>
         </div>
 
-        <div className="flex justify-end gap-5 border-t border-slate-200 px-8 py-5">
+        <div className="flex justify-end gap-4 border-t border-slate-200 px-6 py-4 2xl:gap-5 2xl:px-8 2xl:py-5">
           <button
             type="button"
             onClick={onClose}
@@ -593,13 +593,13 @@ function SolutionCard({
   const canSendRequest = selectedEmployeeId === "Sarah Johnson" && !isRequestSent;
 
   return (
-    <section className={cn("flex h-[720px] min-w-0 max-w-full flex-col overflow-hidden rounded-[14px] border bg-[#f4f5fb]", selected ? "border-2 border-primary" : "border-[#cfd3dc]")}> 
+    <section className={cn("flex h-[640px] min-w-0 max-w-full flex-col overflow-hidden rounded-[14px] border bg-[#f4f5fb] 2xl:h-[720px]", selected ? "border-2 border-primary" : "border-[#cfd3dc]")}> 
       <div className={cn("flex h-[60px] shrink-0 items-center justify-between border-b bg-white px-4", selected ? "border-primary" : "border-[#cfd3dc]")}> 
         <div className="flex min-w-0 items-center gap-4">
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#edf5ff] text-primary">
             <Icon className="h-6 w-6" />
           </span>
-          <h4 className="min-w-0 truncate text-[19px] font-semibold leading-6 text-[#333333]">{title}</h4>
+          <h4 className="min-w-0 truncate text-[21px] font-normal leading-[30px] text-[#333333]">{title}</h4>
         </div>
         <button
           type="button"
@@ -615,9 +615,9 @@ function SolutionCard({
           {isRequestSent ? "Request Sent" : "Send Request"}
         </button>
       </div>
-      <div className="grid min-h-[98px] shrink-0 grid-cols-3 gap-0 px-8 py-4">
+      <div className="grid min-h-[88px] shrink-0 grid-cols-3 gap-0 px-4 py-3 2xl:min-h-[98px] 2xl:px-8 2xl:py-4">
         {metrics.map((metric, index) => (
-          <div key={metric.label} className={cn("min-w-0", index > 0 && "border-l border-slate-300 pl-8")}>
+          <div key={metric.label} className={cn("min-w-0", index > 0 && "border-l border-slate-300 pl-4 2xl:pl-8")}>
             <Metric {...metric} />
           </div>
         ))}
@@ -635,7 +635,7 @@ function SolutionCard({
           <Search className="h-5 w-5 text-slate-900" />
         </button>
       </div>
-      <div className="scrollbar-slim grid min-h-0 flex-1 grid-cols-2 content-start gap-4 overflow-y-auto px-4 py-4">
+      <div className="scrollbar-slim grid min-h-0 flex-1 grid-cols-1 content-start gap-4 overflow-y-auto px-4 py-4 2xl:grid-cols-2">
         {employees.map((employee) => (
           <EmployeeCard
             key={employee.name}
@@ -681,29 +681,29 @@ function SkillGapDetailPane() {
   }
 
   return (
-    <div className="min-h-full min-w-0 overflow-visible bg-white p-4 pb-8">
+    <div className="min-h-full min-w-0 overflow-visible bg-white p-3 pb-6 2xl:p-4 2xl:pb-8">
       {showSuccessToast ? <SuccessToast onClose={() => setShowSuccessToast(false)} /> : null}
       {isModalOpen ? <RequestAvailabilityModal onClose={() => setIsModalOpen(false)} onSend={handleConfirmSendRequest} /> : null}
       <SkillGapAccordion expanded={accordionExpanded} onToggle={() => setAccordionExpanded((expanded) => !expanded)} />
       <section className="relative mt-3 min-w-0 overflow-visible bg-white">
-        <div className="flex h-[52px] items-start justify-between">
+        <div className="flex min-h-[52px] items-start justify-between gap-3">
           <div>
-            <h3 className="text-[21px] font-semibold leading-[28px] text-[#111827]">Recommend Skill Gap Solutions</h3>
+            <h3 className="text-[21px] font-normal leading-[30px] text-[#111827]">Recommend Skill Gap Solutions</h3>
             <p className="mt-1 text-[17px] font-medium leading-[22px] text-primary">Baking Labor Task(40h gap)</p>
           </div>
-          <button type="button" className="h-[38px] rounded-md bg-[#555] px-4 text-[15px] font-medium text-white">
+          <button type="button" className="h-[38px] shrink-0 rounded-md bg-[#555] px-3 text-[14px] font-medium text-white 2xl:px-4 2xl:text-[15px]">
             Hire Recommendations
           </button>
         </div>
-        <div className="mt-4 flex h-[51px] min-w-0 items-center rounded-lg border border-[#bcdcff] bg-[#f7f4ff] px-4">
+        <div className="mt-3 flex min-h-[48px] min-w-0 items-center rounded-lg border border-[#bcdcff] bg-[#f7f4ff] px-3 2xl:mt-4 2xl:h-[51px] 2xl:px-4">
           <p className="flex min-w-0 items-center gap-1.5 text-[15px] leading-5 text-[#111827]">
             <Sparkles className="mr-1 h-6 w-6 shrink-0 text-primary" />
             <span className="font-semibold">AI Recommendation :</span>
             <span className="font-semibold text-primary">Adjust employee availability</span>
-            <span className="min-w-0 truncate">offers the fastest resolution with lowest risk.</span>
+            <span className="min-w-0 whitespace-normal">offers the fastest resolution with lowest risk.</span>
           </p>
         </div>
-        <div className="mt-4 grid min-w-0 grid-cols-2 gap-5 overflow-visible bg-[#f4f5fb]">
+        <div className="mt-3 grid min-w-0 grid-cols-2 gap-3 overflow-visible bg-[#f4f5fb] 2xl:mt-4 2xl:gap-5">
           <SolutionCard
             title="Adjust Availability"
             icon={CalendarDays}
@@ -742,7 +742,7 @@ export function SkillGapDesktopScreen() {
 
   return (
     <AppShell activeNavLabel="Home" profile={{ name: "Smith, Jane", role: "Store Manager", avatar: "SJ", badge: 9, avatarUrl: profileAvatar }}>
-      <div className="min-h-[calc(100vh-56px)] min-w-0 bg-[#f1f3f9] pr-5">
+      <div className="min-w-0 bg-[#f1f3f9] pr-3 2xl:pr-5">
         <div className="flex h-10 items-center gap-3 px-4">
           <button type="button" aria-label="Back" className="flex h-8 w-8 items-center justify-center rounded-md border border-[#d4d7de] bg-white text-[#333333]">
             <ChevronLeft className="h-5 w-5" />
@@ -751,7 +751,7 @@ export function SkillGapDesktopScreen() {
           <HelpCircle className="h-4 w-4 text-[#6b6f78]" />
         </div>
 
-        <section className="min-h-[calc(100vh-76px)] min-w-0 rounded-t-md border border-[#d6d9df] bg-white">
+        <section className="min-w-0 rounded-t-md border border-[#d6d9df] bg-white">
           <div className="flex h-[50px] items-center gap-5 border-b border-[#dfe1e6] px-4">
             <button type="button" className="rounded-md bg-[#e8f2ff] px-4 py-2 text-[17px] font-medium leading-[22px] text-primary">
               Alert
@@ -759,12 +759,12 @@ export function SkillGapDesktopScreen() {
             <button type="button" className="px-4 py-2 text-[17px] font-medium leading-[22px] text-[#5c5c5c]">Forecast</button>
           </div>
 
-          <div className="flex h-[68px] items-center gap-7 border-b border-[#dfe1e6] px-4">
+          <div className="flex min-h-[68px] flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#dfe1e6] px-4 py-2 2xl:gap-x-7 2xl:py-0">
             <div className="flex h-9 overflow-hidden rounded-md border border-[#c9cbd2] bg-white">
               <button type="button" className="flex w-9 items-center justify-center border-r border-[#c9cbd2]">
                 <ChevronLeft className="h-5 w-5 text-[#5c5c5c]" />
               </button>
-              <button type="button" className="flex min-w-[198px] items-center justify-between px-2 text-[17px] leading-[22px]">
+              <button type="button" className="flex min-w-[170px] items-center justify-between px-2 text-[16px] leading-[22px] 2xl:min-w-[198px] 2xl:text-[17px]">
                 <span>Sun, 5/3/26</span>
                 <Calendar className="h-[18px] w-[18px] text-primary" />
               </button>
@@ -773,23 +773,23 @@ export function SkillGapDesktopScreen() {
               </button>
             </div>
 
-            <SelectField label="Division:" value="Division 2" width="w-[200px]" disabled />
-            <SelectField label="Store:" value="111" width="w-[200px]" />
-            <SelectField label="Department:" value="All" width="w-[200px]" />
-            <SelectField label="Labor Task:" value="All" width="w-[200px]" />
+            <SelectField label="Division:" value="Division 2" width="w-[clamp(132px,12vw,200px)]" disabled />
+            <SelectField label="Store:" value="111" width="w-[clamp(132px,12vw,200px)]" />
+            <SelectField label="Department:" value="All" width="w-[clamp(132px,12vw,200px)]" />
+            <SelectField label="Labor Task:" value="All" width="w-[clamp(132px,12vw,200px)]" />
           </div>
 
-          <div className="grid min-h-[calc(100vh-194px)] min-w-0 grid-cols-[448px_minmax(0,1fr)]">
-            <aside className="min-w-0 border-r border-[#d9dde5] bg-white px-4 py-3">
+          <div className="grid min-w-0 grid-cols-[minmax(300px,320px)_minmax(0,1fr)] 2xl:grid-cols-[448px_minmax(0,1fr)]">
+            <aside className="min-w-0 border-r border-[#d9dde5] bg-white px-3 py-3 2xl:px-4">
               <div className="flex h-10 items-center justify-between">
-                <h2 className="text-[21px] font-semibold leading-[30px] text-[#111827]">Skill Gap Alerts</h2>
+                <h2 className="text-[21px] font-normal leading-[30px] text-[#111827]">Skill Gap Alerts</h2>
                 <button type="button" className="flex h-10 items-center gap-2 rounded-md border border-primary bg-white px-4 text-[17px] font-medium leading-[22px] text-primary">
                   <Sparkles className="h-4 w-4" />
                   Ask
                 </button>
               </div>
 
-              <div className="mt-4 grid grid-cols-[189px_200px] gap-4">
+              <div className="mt-4 grid grid-cols-2 gap-3 2xl:grid-cols-[189px_200px] 2xl:gap-4">
                 <div className="flex h-9 items-center justify-between rounded-md border border-[#d4d7df] bg-white px-3 text-[17px] leading-[22px]">
                   <span>4 weeks</span>
                   <ChevronDown className="h-4 w-4 text-[#5c5c5c]" />
@@ -804,14 +804,14 @@ export function SkillGapDesktopScreen() {
                 Showing 8 alerts: <span className="font-semibold">4 Weeks(5/3/26 - 5/24/26)</span>
               </p>
 
-              <div className="scrollbar-slim mt-2 min-h-[520px] space-y-2 overflow-y-auto pr-1">
+              <div className="scrollbar-slim mt-2 max-h-[calc(100vh-300px)] min-h-[420px] space-y-2 overflow-y-auto pr-1 2xl:min-h-[520px]">
                 {alertCards.map((alert) => (
                   <AlertCard key={alert.id} id={alert.id} isActive={selectedAlertId === alert.id} onClick={() => setSelectedAlertId(alert.id)} />
                 ))}
               </div>
             </aside>
 
-            <main className="min-w-0 overflow-visible bg-white">{selectedAlertId === 1 ? <SkillGapDetailPane /> : <EmptyRightPane />}</main>
+            <main className="min-w-0 max-w-full overflow-visible bg-white">{selectedAlertId === 1 ? <SkillGapDetailPane /> : <EmptyRightPane />}</main>
           </div>
         </section>
       </div>

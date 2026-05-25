@@ -153,3 +153,6 @@ select {
     animation-name: none;
   }
 }
+.bg-white{
+  background-color: #ffffff;
+}

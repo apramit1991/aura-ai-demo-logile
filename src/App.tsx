@@ -18,6 +18,8 @@ export type RecommendationData = {
   hours: string;
 }[];
 
+export type AvailabilityValidationState = "valid" | "warning";
+
 function DemoNavigationScreen() {
   const desktopLinks = [
     { label: "Skill Gap - Desktop", to: "/skill-gap-desktop" },
@@ -110,6 +112,7 @@ function AvailabilityDesktopScreen() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
+  const [availabilityValidationState, setAvailabilityValidationState] = useState<AvailabilityValidationState>("valid");
   const isTabletEmbed = new URLSearchParams(window.location.search).get("tablet") === "1";
 
   const hasPopulatedRows = useMemo(
@@ -127,8 +130,12 @@ function AvailabilityDesktopScreen() {
     return { start: start ?? "00:00a/p", end: end ?? "00:00a/p" };
   }
 
-  function handleApplyRecommendation(recommendation: RecommendationData) {
+  function handleApplyRecommendation(
+    recommendation: RecommendationData,
+    options: { validationState?: AvailabilityValidationState } = {},
+  ) {
     setIsSubmitted(false);
+    setAvailabilityValidationState(options.validationState ?? "valid");
     setBaselineRows((currentBaseline) => currentBaseline ?? availabilityRows.map((row) => ({ ...row })));
 
     const recommendationByDay = Object.fromEntries(recommendation.map((item) => [item.day, item]));
@@ -187,12 +194,14 @@ function AvailabilityDesktopScreen() {
     setBaselineRows(null);
     setShowConfirmDialog(false);
     setIsSubmitted(false);
+    setAvailabilityValidationState("valid");
   }
 
   function handleUndoRecommendation() {
     if (!baselineRows) return;
     setAvailabilityRows(baselineRows.map((row) => ({ ...row, auraFilled: false })));
     setBaselineRows(null);
+    setAvailabilityValidationState("valid");
   }
 
   function handleSubmitClick() {
@@ -205,6 +214,7 @@ function AvailabilityDesktopScreen() {
     setBaselineRows(null);
     setShowConfirmDialog(false);
     setIsSubmitted(true);
+    setAvailabilityValidationState("valid");
     setToastVisible(true);
     window.setTimeout(() => setToastVisible(false), 3600);
   }
@@ -273,6 +283,7 @@ function AvailabilityDesktopScreen() {
           onReset={handleReset}
           onSubmit={handleSubmitClick}
           isSubmitted={isSubmitted}
+          validationState={availabilityValidationState}
         />
       ) : (
         <EmptyState />
