@@ -14,7 +14,7 @@ export function RequestForm({ onCycleDate }: RequestFormProps) {
 
   return (
     <section className="bg-white lg:w-[327px] lg:shrink-0 lg:border-r lg:border-[#d0d3da]">
-      <div className="grid content-start gap-4 bg-[#f1f3f9] p-4 lg:min-h-[2000px]">
+      <div className="grid content-start gap-4 bg-[#f1f3f9] p-4 lg:min-h-[860px]">
         <div className="rounded-[14px] bg-[#e9ecf4] p-3">
           <p className="text-[15px] text-[#5c5c5c]">Employee Name</p>
           <p className="text-[17px] text-[#333333]">{employee.name}</p>
