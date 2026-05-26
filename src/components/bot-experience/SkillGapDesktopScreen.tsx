@@ -779,11 +779,11 @@ function EmployeeCard({
             className={cn(
               "mt-3 flex h-6 w-6 shrink-0 items-center justify-center rounded border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
               selected ? "border-primary bg-primary text-white" : "border-slate-300 bg-white text-transparent",
-              requestSent && "border-slate-300 bg-slate-200 text-slate-500",
+              requestSent && "border-slate-400 bg-slate-200 text-slate-600",
               isInteractive && !requestSent ? "cursor-pointer hover:border-primary" : "cursor-not-allowed",
             )}
           >
-            {selected ? <Check className="h-4 w-4" /> : null}
+            {selected || requestSent ? <Check className="h-4 w-4" /> : null}
           </button>
           <img src={employee.avatar} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
           <div className="min-w-0 flex-1">
