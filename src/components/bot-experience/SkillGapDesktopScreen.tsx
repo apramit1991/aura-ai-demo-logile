@@ -326,6 +326,25 @@ function AuraCrossTrainRecommendations() {
   );
 }
 
+function AuraDailyBriefingMessage() {
+  return (
+    <div className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-lg bg-white px-3 py-3 text-[#333333] shadow-sm">
+      <p className="text-[15px] leading-5">Hey, Jane. Here's your daily briefing — tap an item to dig in.</p>
+      <div className="mt-3 space-y-2 text-[14px] leading-5">
+        <div>
+          <p className="font-semibold text-[#111827]">Store 149 – Bakery Dashboard</p>
+          <p className="text-[#5c5c5c]">4-week review (May 3–24, 2026)</p>
+        </div>
+        <p><span className="font-semibold text-[#111827]">Skill gap:</span> 34 hrs, mainly Sunday mornings + evening shifts (Sun–Tue).</p>
+        <p><span className="font-semibold text-[#111827]">Critical needs:</span> Sunday morning, Mon/Tue evenings, plus Fri &amp; Sat.</p>
+        <p><span className="font-semibold text-[#111827]">Pattern:</span> Evening shifts consistently understaffed.</p>
+        <p><span className="font-semibold text-[#111827]">Recommendation:</span> Adjust Sarah Johnson &amp; Michael Chen’s schedules → reduces gap by 85%.</p>
+        <p><span className="font-semibold text-[#111827]">Takeaway:</span> Rebalancing availability strengthens coverage during peak bakery hours.</p>
+      </div>
+    </div>
+  );
+}
+
 function SkillGapAuraAssistant({
   isOpen,
   onOpen,
@@ -490,6 +509,8 @@ function SkillGapAuraAssistant({
         </header>
 
         <div className="scrollbar-slim min-h-0 flex-1 space-y-4 overflow-y-auto bg-[#f7f8fb] px-5 py-4">
+          <AuraDailyBriefingMessage />
+
           {showCriticalSummary ? (
             <div className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-lg border border-[#fca5a5] bg-[#fef2f2] px-3 py-3 text-[#333333] shadow-sm">
               <div className="flex gap-2.5">
@@ -1032,6 +1053,7 @@ function SolutionCard({
   icon: Icon,
   selected = false,
   isAskAuraLayout = false,
+  isTabletEmbed = false,
   metrics,
   employeeCount,
   employees,
@@ -1044,6 +1066,7 @@ function SolutionCard({
   icon: LucideIcon;
   selected?: boolean;
   isAskAuraLayout?: boolean;
+  isTabletEmbed?: boolean;
   metrics: { label: string; value: string; icon: LucideIcon; tone?: "default" | "green" | "amber" }[];
   employeeCount: string;
   employees: RecommendationEmployee[];
@@ -1061,10 +1084,22 @@ function SolutionCard({
   const orderedEmployees = isRequestSent
     ? [...employees].sort((a, b) => (a.name === "Sarah Johnson" ? 1 : b.name === "Sarah Johnson" ? -1 : 0))
     : employees;
+  const hasNeutralSelectedBorder = selected && isAdjustAvailabilityCard;
 
   return (
-    <section className={cn("flex h-[640px] min-w-0 max-w-full flex-col overflow-hidden rounded-[14px] border bg-[#f4f5fb] 2xl:h-[720px]", selected ? "border-2 border-primary" : "border-[#cfd3dc]")}> 
-      <div className={cn("flex h-[60px] shrink-0 items-center justify-between border-b bg-white px-4", selected ? "border-primary" : "border-[#cfd3dc]")}> 
+    <section
+      className={cn(
+        "flex min-w-0 max-w-full flex-col overflow-hidden rounded-[14px] border bg-[#f4f5fb]",
+        isTabletEmbed ? "h-[560px]" : "h-[640px] 2xl:h-[720px]",
+        selected && !hasNeutralSelectedBorder ? "border-2 border-primary" : "border-[#cfd3dc]",
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-[60px] shrink-0 items-center justify-between border-b bg-white px-4",
+          selected && !hasNeutralSelectedBorder ? "border-primary" : "border-[#cfd3dc]",
+        )}
+      >
         <div className="flex min-w-0 items-center gap-4">
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#edf5ff] text-primary">
             <Icon className="h-6 w-6" />
@@ -1087,9 +1122,9 @@ function SolutionCard({
           </button>
         ) : null}
       </div>
-      <div className="grid min-h-[88px] shrink-0 grid-cols-3 gap-0 px-4 py-3 2xl:min-h-[98px] 2xl:px-8 2xl:py-4">
+      <div className={cn("grid shrink-0 grid-cols-3 gap-0 px-4 py-3", isTabletEmbed ? "min-h-[82px]" : "min-h-[88px] 2xl:min-h-[98px] 2xl:px-8 2xl:py-4")}>
         {metrics.map((metric, index) => (
-          <div key={metric.label} className={cn("min-w-0", index > 0 && "border-l border-slate-300 pl-4 2xl:pl-8")}>
+          <div key={metric.label} className={cn("min-w-0", index > 0 && "border-l border-slate-300", index > 0 && (isTabletEmbed ? "pl-3" : "pl-4 2xl:pl-8"))}>
             <Metric {...metric} />
           </div>
         ))}
@@ -1127,7 +1162,7 @@ function SolutionCard({
           </button>
         </div>
       )}
-      <div className="scrollbar-slim grid min-h-0 flex-1 grid-cols-1 content-start gap-4 overflow-y-auto px-4 py-4 2xl:grid-cols-2">
+      <div className={cn("scrollbar-slim grid min-h-0 flex-1 content-start overflow-y-auto px-4 py-4", isTabletEmbed ? "grid-cols-2 gap-3" : "grid-cols-1 gap-4 2xl:grid-cols-2")}>
         {orderedEmployees.map((employee) => (
           <EmployeeCard
             key={employee.name}
@@ -1178,7 +1213,7 @@ function SolutionCard({
   );
 }
 
-function SkillGapDetailPane({ isAskAuraFlow = false }: { isAskAuraFlow?: boolean }) {
+function SkillGapDetailPane({ isAskAuraFlow = false, isTabletEmbed = false }: { isAskAuraFlow?: boolean; isTabletEmbed?: boolean }) {
   const [accordionExpanded, setAccordionExpanded] = useState(true);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [requestSentEmployeeId, setRequestSentEmployeeId] = useState<string | null>(null);
@@ -1215,7 +1250,7 @@ function SkillGapDetailPane({ isAskAuraFlow = false }: { isAskAuraFlow?: boolean
   ] as const;
 
   return (
-    <div className="min-h-full min-w-0 overflow-visible bg-white p-3 pb-6 2xl:p-4 2xl:pb-8">
+    <div className={cn("min-h-full min-w-0 overflow-visible bg-white", isTabletEmbed ? "p-2 pb-5" : "p-3 pb-6 2xl:p-4 2xl:pb-8")}>
       {showSuccessToast ? <SuccessToast onClose={() => setShowSuccessToast(false)} /> : null}
       {isModalOpen ? <RequestAvailabilityModal onClose={() => setIsModalOpen(false)} onSend={handleConfirmSendRequest} /> : null}
       <SkillGapAccordion expanded={accordionExpanded} onToggle={() => setAccordionExpanded((expanded) => !expanded)} />
@@ -1252,12 +1287,18 @@ function SkillGapDetailPane({ isAskAuraFlow = false }: { isAskAuraFlow?: boolean
             ))}
           </div>
         ) : null}
-        <div className="mt-3 grid min-w-0 grid-cols-2 gap-3 overflow-visible bg-[#f4f5fb] 2xl:mt-4 2xl:gap-5">
+        <div
+          className={cn(
+            "mt-3 grid min-w-0 overflow-visible bg-[#f4f5fb] 2xl:mt-4",
+            isTabletEmbed ? "grid-cols-1 gap-3" : "grid-cols-2 gap-3 2xl:gap-5",
+          )}
+        >
           <SolutionCard
             title="Adjust Availability"
             icon={CalendarDays}
             selected={!requestSentEmployeeId}
             isAskAuraLayout={isAskAuraFlow}
+            isTabletEmbed={isTabletEmbed}
             employeeCount="3 Employees"
             metrics={[
               { icon: TrendingUp, label: "Gap Reduction", value: "85%" },
@@ -1273,6 +1314,7 @@ function SkillGapDetailPane({ isAskAuraFlow = false }: { isAskAuraFlow?: boolean
           <SolutionCard
             title="Cross-Train"
             icon={Users}
+            isTabletEmbed={isTabletEmbed}
             employeeCount="4 Employees"
             metrics={[
               { icon: TrendingUp, label: "Gap Reduction", value: "95%" },
@@ -1289,7 +1331,10 @@ function SkillGapDetailPane({ isAskAuraFlow = false }: { isAskAuraFlow?: boolean
 
 export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard" | "askAura" }) {
   const isAskAuraFlow = mode === "askAura";
-  const isEmbedded = new URLSearchParams(window.location.search).get("embed") === "1";
+  const searchParams = new URLSearchParams(window.location.search);
+  const isEmbedded = searchParams.get("embed") === "1";
+  const isTabletEmbed = isEmbedded && searchParams.get("device") === "tablet";
+  const useTabletSkillGapLayout = isTabletEmbed && !isAskAuraFlow;
   const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
   const [isAuraOpen, setIsAuraOpen] = useState(false);
   const [showAskAuraSuccessToast, setShowAskAuraSuccessToast] = useState(false);
@@ -1316,8 +1361,8 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
       profile={{ name: "Smith, Jane", role: "Store Manager", avatar: "SJ", badge: 9, avatarUrl: profileAvatar }}
     >
       {showAskAuraSuccessToast ? <SuccessToast onClose={() => setShowAskAuraSuccessToast(false)} /> : null}
-      <div className="min-w-0 bg-[#f1f3f9] pr-3 2xl:pr-5">
-        <div className="flex h-10 items-center gap-3 px-4">
+      <div className={cn("min-w-0 bg-[#f1f3f9]", useTabletSkillGapLayout ? "pr-2" : "pr-3 2xl:pr-5")}>
+        <div className={cn("flex h-10 items-center gap-3", useTabletSkillGapLayout ? "px-3" : "px-4")}>
           <button type="button" aria-label="Back" className="flex h-8 w-8 items-center justify-center rounded-md border border-[#d4d7de] bg-white text-[#333333]">
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -1333,7 +1378,7 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
             <button type="button" className="px-4 py-2 text-[17px] font-medium leading-[22px] text-[#5c5c5c]">Forecast</button>
           </div>
 
-          <div className="flex min-h-[68px] flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#dfe1e6] px-4 py-2 2xl:gap-x-7 2xl:py-0">
+          <div className={cn("flex min-h-[68px] flex-wrap items-center gap-y-2 border-b border-[#dfe1e6] py-2", useTabletSkillGapLayout ? "gap-x-3 px-3" : "gap-x-4 px-4 2xl:gap-x-7 2xl:py-0")}>
             <div className="flex h-9 overflow-hidden rounded-md border border-[#c9cbd2] bg-white">
               <button type="button" className="flex w-9 items-center justify-center border-r border-[#c9cbd2]">
                 <ChevronLeft className="h-5 w-5 text-[#5c5c5c]" />
@@ -1347,14 +1392,14 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
               </button>
             </div>
 
-            <SelectField label="Division:" value="Division 2" width="w-[clamp(132px,12vw,200px)]" disabled />
-            <SelectField label="Store:" value="111" width="w-[clamp(132px,12vw,200px)]" />
-            <SelectField label="Department:" value="All" width="w-[clamp(132px,12vw,200px)]" />
-            <SelectField label="Labor Task:" value="All" width="w-[clamp(132px,12vw,200px)]" />
+            <SelectField label="Division:" value="Division 2" width={useTabletSkillGapLayout ? "w-[154px]" : "w-[clamp(132px,12vw,200px)]"} disabled />
+            <SelectField label="Store:" value="111" width={useTabletSkillGapLayout ? "w-[132px]" : "w-[clamp(132px,12vw,200px)]"} />
+            <SelectField label="Department:" value="All" width={useTabletSkillGapLayout ? "w-[132px]" : "w-[clamp(132px,12vw,200px)]"} />
+            <SelectField label="Labor Task:" value="All" width={useTabletSkillGapLayout ? "w-[132px]" : "w-[clamp(132px,12vw,200px)]"} />
           </div>
 
-          <div className="grid min-w-0 grid-cols-[minmax(300px,320px)_minmax(0,1fr)] 2xl:grid-cols-[448px_minmax(0,1fr)]">
-            <aside className="min-w-0 border-r border-[#d9dde5] bg-white px-3 py-3 2xl:px-4">
+          <div className={cn("grid min-w-0", useTabletSkillGapLayout ? "grid-cols-[300px_minmax(0,1fr)]" : "grid-cols-[minmax(300px,320px)_minmax(0,1fr)] 2xl:grid-cols-[448px_minmax(0,1fr)]")}>
+            <aside className={cn("min-w-0 border-r border-[#d9dde5] bg-white py-3", useTabletSkillGapLayout ? "px-2" : "px-3 2xl:px-4")}>
               <div className="flex h-10 items-center justify-between">
                 <h2 className="text-[21px] font-normal leading-[30px] text-[#111827]">Skill Gap Alerts</h2>
                 {isAskAuraFlow ? (
@@ -1384,7 +1429,7 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
                 Showing 6 alerts: <span className="font-semibold">4 Weeks(5/3/26 - 5/24/26)</span>
               </p>
 
-              <div className="scrollbar-slim mt-2 max-h-[calc(100vh-300px)] min-h-[420px] space-y-2 overflow-y-auto pr-1 2xl:min-h-[520px]">
+              <div className={cn("scrollbar-slim mt-2 max-h-[calc(100vh-300px)] space-y-2 overflow-y-auto pr-1", useTabletSkillGapLayout ? "min-h-[390px]" : "min-h-[420px] 2xl:min-h-[520px]")}>
                 {alertCards.map((alert, index) => (
                   <AlertCard
                     key={alert.id}
@@ -1399,7 +1444,7 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
             </aside>
 
             <main className="min-w-0 max-w-full overflow-visible bg-white">
-              {selectedAlertId === 1 ? <SkillGapDetailPane isAskAuraFlow={isAskAuraFlow} /> : <EmptyRightPane />}
+              {selectedAlertId === 1 ? <SkillGapDetailPane isAskAuraFlow={isAskAuraFlow} isTabletEmbed={useTabletSkillGapLayout} /> : <EmptyRightPane />}
             </main>
           </div>
         </section>

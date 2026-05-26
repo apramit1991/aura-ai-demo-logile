@@ -48,7 +48,6 @@ function DemoNavigationScreen() {
       description: "Review time-off request flows across device formats.",
       links: [
         { label: "Time Off — Desktop", to: "/time-off-desktop", device: "Desktop", icon: Monitor },
-        { label: "Time Off — Tablet", to: "/time-off-tablet", device: "Tablet", icon: Tablet },
       ],
     },
   ];
@@ -332,6 +331,7 @@ function AvailabilityDesktopScreen() {
         onUndoRecommendation={handleUndoRecommendation}
         hasPopulatedRows={hasPopulatedRows}
         isSubmitted={isSubmitted}
+        hideLauncherTooltip={isTouchMode}
       />
     </AppShell>
   );

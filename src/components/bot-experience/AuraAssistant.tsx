@@ -29,6 +29,7 @@ type AuraAssistantProps = {
   onUndoRecommendation: () => void;
   hasPopulatedRows: boolean;
   isSubmitted: boolean;
+  hideLauncherTooltip?: boolean;
 };
 
 const tooltipContent: Record<AuraState, { title: string; message: string; description: string }> = {
@@ -332,6 +333,7 @@ export function AuraAssistant({
   onUndoRecommendation,
   hasPopulatedRows,
   isSubmitted,
+  hideLauncherTooltip = false,
 }: AuraAssistantProps) {
   const [panelState, setPanelState] = useState<PanelState>("closed");
   const [requestState, setRequestState] = useState<AuraState>("valid");
@@ -524,16 +526,18 @@ export function AuraAssistant({
         )}
       >
         <div className="group relative flex justify-end">
-          <div className="pointer-events-none absolute bottom-[calc(100%+12px)] right-0 w-[286px] translate-y-1 opacity-0 transition-all duration-200 ease-out group-hover:-translate-y-1 group-hover:opacity-100 group-focus-within:-translate-y-1 group-focus-within:opacity-100">
-            <div className="relative rounded-lg border border-[#d8dce6] bg-white px-4 py-3 text-left shadow-xl">
-              <p className="text-[13px] font-semibold tracking-wide text-[#5b2ad9]">{tooltip.title}</p>
-              <p className="mt-1 text-[15px] font-semibold leading-5 text-[#1f2937]">{tooltip.message}</p>
-              {tooltip.description ? (
-                <p className="mt-0.5 text-[13px] text-[#5c5c5c]">{tooltip.description}</p>
-              ) : null}
-              <span className="absolute -bottom-1.5 right-8 h-3 w-3 rotate-45 border-b border-r border-[#d8dce6] bg-white" />
+          {!hideLauncherTooltip ? (
+            <div className="pointer-events-none absolute bottom-[calc(100%+12px)] right-0 w-[286px] translate-y-1 opacity-0 transition-all duration-200 ease-out group-hover:-translate-y-1 group-hover:opacity-100 group-focus-within:-translate-y-1 group-focus-within:opacity-100">
+              <div className="relative rounded-lg border border-[#d8dce6] bg-white px-4 py-3 text-left shadow-xl">
+                <p className="text-[13px] font-semibold tracking-wide text-[#5b2ad9]">{tooltip.title}</p>
+                <p className="mt-1 text-[15px] font-semibold leading-5 text-[#1f2937]">{tooltip.message}</p>
+                {tooltip.description ? (
+                  <p className="mt-0.5 text-[13px] text-[#5c5c5c]">{tooltip.description}</p>
+                ) : null}
+                <span className="absolute -bottom-1.5 right-8 h-3 w-3 rotate-45 border-b border-r border-[#d8dce6] bg-white" />
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <button
             type="button"
