@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeftRight,
   CheckCircle2,
@@ -15,6 +16,7 @@ import { Input } from "../ui/input";
 type AppShellProps = {
   children: ReactNode;
   activeNavLabel?: string;
+  showDemoBackLink?: boolean;
   profile?: {
     name: string;
     role: string;
@@ -24,12 +26,22 @@ type AppShellProps = {
   };
 };
 
-export function AppShell({ children, activeNavLabel, profile = employee }: AppShellProps) {
+export function AppShell({ children, activeNavLabel, showDemoBackLink = false, profile = employee }: AppShellProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#f1f3f9] text-[#333333]">
+      {showDemoBackLink ? (
+        <div className="z-40 flex h-12 shrink-0 items-center justify-center bg-black px-3">
+          <Link
+            to="/demo"
+            className="rounded-sm px-2 py-1 text-[14px] font-medium leading-none text-[#0b70d0] transition hover:underline"
+          >
+            {"\u2190 Back to Demo Screens"}
+          </Link>
+        </div>
+      ) : null}
       <header className="z-30 flex h-auto min-h-14 shrink-0 items-center gap-3 border-b border-transparent bg-[#f1f3f9] px-3 md:h-14 md:px-4">
         <button
           type="button"

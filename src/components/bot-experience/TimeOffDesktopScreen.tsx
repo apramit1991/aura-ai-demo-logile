@@ -1,5 +1,6 @@
-import { Calendar, CheckCircle2, ChevronDown, ChevronLeft, Clock3 } from "lucide-react";
+import { Calendar, Check, CheckCircle2, ChevronDown, ChevronLeft, Clock3, Flag } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "./AppShell";
 import { cn } from "../../lib/utils";
@@ -96,9 +97,12 @@ function ImpactSwatch({ color }: { color: string }) {
 
 export function TimeOffDesktopScreen() {
   const navigate = useNavigate();
+  const [isAllDayEnabled, setIsAllDayEnabled] = useState(false);
+  const selectedTimeOffDays = new Set(["11", "12", "13", "14"]);
+  const selectedTimeOffCount = isAllDayEnabled ? selectedTimeOffDays.size : 0;
 
   return (
-    <AppShell activeNavLabel="Labor Model">
+    <AppShell activeNavLabel="Labor Model" showDemoBackLink>
       <div className="min-w-0 bg-[#f1f3f9] pr-3 2xl:pr-5">
         <div className="flex h-[96px] flex-col justify-end">
           <div className="flex h-[54px] items-center gap-3 px-4">
@@ -149,10 +153,26 @@ export function TimeOffDesktopScreen() {
                   </div>
                   <div className="mt-3 flex items-center gap-2">
                     <span className="text-[15px] leading-5 text-[#5c5c5c]">All Day</span>
-                    <span className="flex h-[28px] w-[62px] items-center rounded-full bg-[#d8d8d8] p-1">
-                      <span className="h-5 w-5 rounded-full bg-white shadow-sm" />
-                      <span className="ml-1 text-[13px] font-medium text-white">OFF</span>
-                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isAllDayEnabled}
+                      onClick={() => setIsAllDayEnabled((enabled) => !enabled)}
+                      className={cn(
+                        "flex h-[28px] w-[62px] items-center rounded-full p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                        isAllDayEnabled ? "bg-primary" : "bg-[#d8d8d8]",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+                          isAllDayEnabled && "translate-x-[34px]",
+                        )}
+                      />
+                      <span className={cn("text-[13px] font-medium text-white", isAllDayEnabled ? "-ml-4" : "ml-1")}>
+                        {isAllDayEnabled ? "ON" : "OFF"}
+                      </span>
+                    </button>
                   </div>
                   <div className="mt-3">
                     <SelectLike label="Select Your Reason" value="Personal Reason" />
@@ -194,7 +214,12 @@ export function TimeOffDesktopScreen() {
                 </SummaryCard>
 
                 <SummaryCard title="My Time off">
-                  <p className="mt-4 text-[22px] font-semibold leading-8 text-[#333333] 2xl:mt-6 2xl:text-[25px] 2xl:leading-[34px]">0Days</p>
+                  <div className="mt-4 flex items-center justify-between 2xl:mt-6">
+                    <p className="text-[22px] font-semibold leading-8 text-[#333333] 2xl:text-[25px] 2xl:leading-[34px]">
+                      {selectedTimeOffCount} {selectedTimeOffCount === 1 ? "Day" : "Days"}
+                    </p>
+                    {isAllDayEnabled ? <Flag className="h-5 w-5 fill-[#f59e0b] text-[#f59e0b]" /> : null}
+                  </div>
                 </SummaryCard>
 
                 <SummaryCard title="My Requests">
@@ -241,9 +266,22 @@ export function TimeOffDesktopScreen() {
                   </div>
                   {calendarWeeks.map((week, weekIndex) => (
                     <div key={weekIndex} className="grid grid-cols-7 border-b border-[#d6d9df] last:border-b-0">
-                      {week.map((day, dayIndex) => (
-                        <div key={`${weekIndex}-${day.label}`} className="min-h-[82px] border-r border-[#d6d9df] bg-white last:border-r-0 2xl:min-h-[101px]">
+                      {week.map((day, dayIndex) => {
+                        const dayNumber = day.label.split(" ")[0];
+                        const isSelectedTimeOffDay = isAllDayEnabled && selectedTimeOffDays.has(dayNumber);
+
+                        return (
+                        <div key={`${weekIndex}-${day.label}`} className="relative min-h-[82px] border-r border-[#d6d9df] bg-white last:border-r-0 2xl:min-h-[101px]">
                           <div className="px-2 pt-2 text-[15px] font-semibold leading-5 text-[#333333]">{day.label}</div>
+                          {isSelectedTimeOffDay ? (
+                            <span
+                              className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white"
+                              aria-label={`Selected time off for ${day.label}`}
+                              role="img"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </span>
+                          ) : null}
                           <div
                             className={cn(
                               "mt-7 h-6 2xl:mt-[45px] 2xl:h-7",
@@ -253,7 +291,8 @@ export function TimeOffDesktopScreen() {
                             )}
                           />
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ))}
                 </div>

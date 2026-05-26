@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { employee, request } from "../../data/mockData";
+import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Select } from "../ui/select";
 
 type RequestFormProps = {
   onCycleDate: () => void;
+  isTouchMode?: boolean;
 };
 
-export function RequestForm({ onCycleDate }: RequestFormProps) {
+export function RequestForm({ onCycleDate, isTouchMode = false }: RequestFormProps) {
   const [rotation, setRotation] = useState(request.rotations[0]);
   const [reason, setReason] = useState(request.reasons[0]);
 
@@ -29,7 +31,10 @@ export function RequestForm({ onCycleDate }: RequestFormProps) {
           <div className="mt-1 flex h-9 overflow-hidden rounded-md border border-[#c9cbd2] bg-white">
             <button
               type="button"
-              className="flex w-9 items-center justify-center border-r border-[#c9cbd2] text-[#5c5c5c] hover:bg-[#f8f9fb]"
+              className={cn(
+                "flex w-9 items-center justify-center border-r border-[#c9cbd2] text-[#5c5c5c]",
+                !isTouchMode && "hover:bg-[#f8f9fb]",
+              )}
               onClick={onCycleDate}
               aria-label="Previous week"
             >
@@ -37,7 +42,10 @@ export function RequestForm({ onCycleDate }: RequestFormProps) {
             </button>
             <button
               type="button"
-              className="flex flex-1 items-center justify-between px-2 text-[17px] hover:bg-[#f8f9fb]"
+              className={cn(
+                "flex flex-1 items-center justify-between px-2 text-[17px]",
+                !isTouchMode && "hover:bg-[#f8f9fb]",
+              )}
               onClick={onCycleDate}
             >
               <span>{request.dateRange}</span>
@@ -45,7 +53,10 @@ export function RequestForm({ onCycleDate }: RequestFormProps) {
             </button>
             <button
               type="button"
-              className="flex w-9 items-center justify-center border-l border-[#c9cbd2] text-[#5c5c5c] hover:bg-[#f8f9fb]"
+              className={cn(
+                "flex w-9 items-center justify-center border-l border-[#c9cbd2] text-[#5c5c5c]",
+                !isTouchMode && "hover:bg-[#f8f9fb]",
+              )}
               onClick={onCycleDate}
               aria-label="Next week"
             >

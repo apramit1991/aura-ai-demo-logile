@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, X } from "lucide-react";
+import { CalendarCheck2, CheckCircle2, Clock3, Monitor, Smartphone, Sparkles, Tablet, X } from "lucide-react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/bot-experience/AppShell";
 import { AvailabilityScreen } from "./components/bot-experience/AvailabilityScreen";
@@ -21,73 +21,112 @@ export type RecommendationData = {
 export type AvailabilityValidationState = "valid" | "warning";
 
 function DemoNavigationScreen() {
-  const desktopLinks = [
-    { label: "Skill Gap - Desktop", to: "/skill-gap-desktop" },
-    { label: "Ask Aura — Desktop", to: "/skill-gap-ask-aura" },
-    { label: "Availability - Desktop", to: "/availability-desktop" },
-    { label: "Time Off - Desktop", to: "/time-off-desktop" },
+  const availabilityMobilePrototypeUrl =
+    "https://www.figma.com/proto/OQoHaBN95m2wt8Wo1Q1F6x/LTSP_UPDATED-FILE-15TH-May-HEB-DEMO-?node-id=2186-90067&t=zVlBh1Zpwbm9JzRl-1";
+  const sections = [
+    {
+      title: "Availability",
+      description: "Manage employee availability preferences and AI-suggested schedules.",
+      links: [
+        { label: "Availability — Desktop", to: "/availability-desktop", device: "Desktop", icon: Monitor },
+        { label: "Availability — Tablet", to: "/availability-tablet", device: "Tablet", icon: Tablet },
+        { label: "Availability — Mobile", to: availabilityMobilePrototypeUrl, device: "Mobile", icon: Smartphone, external: true },
+      ],
+    },
+    {
+      title: "Skill Gap",
+      description: "Review skill shortages, AI recommendations, and Ask Aura assistance.",
+      links: [
+        { label: "Skill Gap AI Recommendation — Desktop", to: "/skill-gap-desktop", device: "Desktop", icon: Monitor },
+        { label: "Skill Gap Ask Aura — Desktop", to: "/skill-gap-ask-aura", device: "Desktop", icon: Monitor },
+        { label: "Skill Gap AI Recommendation — Tablet", to: "/skill-gap-tablet", device: "Tablet", icon: Tablet },
+        { label: "Skill Gap Ask Aura — Tablet", to: "/skill-gap-ask-aura-tablet", device: "Tablet", icon: Tablet },
+      ],
+    },
+    {
+      title: "Time Off",
+      description: "Review time-off request flows across device formats.",
+      links: [
+        { label: "Time Off — Desktop", to: "/time-off-desktop", device: "Desktop", icon: Monitor },
+        { label: "Time Off — Tablet", to: "/time-off-tablet", device: "Tablet", icon: Tablet },
+      ],
+    },
   ];
-
-  const tabletLinks = [
-    { label: "Skill Gap - Tablet", to: "/skill-gap-tablet" },
-    { label: "Availability - Tablet", to: "/availability-tablet" },
-    { label: "Time Off - Tablet", to: "/time-off-tablet" },
-  ];
-
-  const mobileLinks = [{ label: "Mobile Screen", to: "/mobile-screen" }];
 
   return (
-    <main className="mx-auto max-w-3xl p-6 md:p-10">
-      <header className="flex items-center gap-3">
-        <img src={logileLogoUrl} alt="Logile" className="h-8 w-auto" />
-      </header>
-      <h1 className="text-[1.875rem] font-semibold leading-[2.5rem] text-[#1f2937]">Aura AI Demo Screens</h1>
-      <p className="mt-2 text-[#4b5563]">Select a screen to open the prototype demo.</p>
+    <main className="min-h-screen bg-[#F5F7FB] px-5 py-8 md:px-8 md:py-10">
+      <div className="mx-auto max-w-[1040px]">
+        <header>
+          <div>
+            <img src={logileLogoUrl} alt="Logile" className="h-8 w-auto" />
+            <h1 className="mt-4 text-[42px] font-semibold leading-tight text-[#0f172a]">Aura AI Demo Screens</h1>
+            <p className="mt-3 text-[16px] text-[#64748B]">
+              Explore AI-assisted WFM prototype flows across desktop, tablet, and mobile.
+            </p>
+          </div>
+        </header>
 
-      <section className="mt-8 rounded-md border border-[#d1d5db] bg-white p-5">
-        <h2 className="text-lg font-medium text-[#111827]">Desktop</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {desktopLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="rounded-md border border-[#d1d5db] bg-[#f9fafb] px-4 py-3 text-sm font-medium text-[#1f2937] hover:bg-[#f3f4f6]"
-            >
-              {link.label}
-            </Link>
+        <div className="mt-8 space-y-6">
+          {sections.map((section) => (
+            <section key={section.title} className="rounded-2xl border border-[#E2E8F0] bg-white p-6 md:p-7">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eff6ff] text-[#2563EB]">
+                  {section.title === "Availability" ? (
+                    <CalendarCheck2 className="h-5 w-5" />
+                  ) : section.title === "Skill Gap" ? (
+                    <Sparkles className="h-5 w-5" />
+                  ) : (
+                    <Clock3 className="h-5 w-5" />
+                  )}
+                </div>
+                <h2 className="text-[22px] font-semibold text-[#0f172a]">{section.title}</h2>
+              </div>
+              <p className="mt-2 text-[15px] text-[#64748B]">{section.description}</p>
+
+              <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+                {section.links.map((link) => {
+                  const DeviceIcon = link.icon;
+                  const cardClassName =
+                    "group flex min-h-[68px] items-center justify-between rounded-2xl border border-[#E2E8F0] bg-[#f8fafc] px-4 py-3 text-left transition-colors hover:border-[#2563EB] hover:bg-[#eff6ff]";
+                  const cardContent = (
+                    <div className="min-w-0">
+                      <p className="text-[16px] font-semibold text-[#0f172a]">{link.label}</p>
+                      <p className="mt-1 flex items-center gap-1.5 text-[13px] text-[#64748B]">
+                        <DeviceIcon className="h-3.5 w-3.5" />
+                        {link.device}
+                      </p>
+                    </div>
+                  );
+
+                  if ("external" in link && link.external) {
+                    return (
+                      <a
+                        key={`${section.title}-${link.label}`}
+                        href={link.to}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={cardClassName}
+                      >
+                        {cardContent}
+                      </a>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={`${section.title}-${link.label}`}
+                      to={link.to}
+                      className={cardClassName}
+                    >
+                      {cardContent}
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
           ))}
         </div>
-      </section>
-
-      <section className="mt-4 rounded-md border border-[#d1d5db] bg-white p-5">
-        <h2 className="text-lg font-medium text-[#111827]">Tablet</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {tabletLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="rounded-md border border-[#d1d5db] bg-[#f9fafb] px-4 py-3 text-sm font-medium text-[#1f2937] hover:bg-[#f3f4f6]"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-4 rounded-md border border-[#d1d5db] bg-white p-5">
-        <h2 className="text-lg font-medium text-[#111827]">Mobile</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {mobileLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="rounded-md border border-[#d1d5db] bg-[#f9fafb] px-4 py-3 text-sm font-medium text-[#1f2937] hover:bg-[#f3f4f6]"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      </section>
+      </div>
     </main>
   );
 }
@@ -114,7 +153,10 @@ function AvailabilityDesktopScreen() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [availabilityValidationState, setAvailabilityValidationState] = useState<AvailabilityValidationState>("valid");
-  const isTabletEmbed = new URLSearchParams(window.location.search).get("tablet") === "1";
+  const searchParams = new URLSearchParams(window.location.search);
+  const isTabletEmbed = searchParams.get("tablet") === "1";
+  const isEmbedded = searchParams.get("embed") === "1";
+  const isTouchMode = isEmbedded && (searchParams.get("device") === "tablet" || searchParams.get("device") === "mobile");
 
   const hasPopulatedRows = useMemo(
     () => availabilityRows.some((row) => row.hours !== "0h"),
@@ -137,7 +179,7 @@ function AvailabilityDesktopScreen() {
   ) {
     setIsSubmitted(false);
     setAvailabilityValidationState(options.validationState ?? "valid");
-    setBaselineRows((currentBaseline) => currentBaseline ?? availabilityRows.map((row) => ({ ...row })));
+    setBaselineRows(availabilityRows.map((row) => ({ ...row })));
 
     const recommendationByDay = Object.fromEntries(recommendation.map((item) => [item.day, item]));
 
@@ -221,7 +263,7 @@ function AvailabilityDesktopScreen() {
   }
 
   return (
-    <AppShell>
+    <AppShell showDemoBackLink={!isEmbedded}>
       {toastVisible ? (
         <div className="fixed right-6 top-6 z-[70] w-[360px] rounded-lg bg-[#1f8f46] p-4 text-white shadow-[0_18px_45px_rgba(15,23,42,0.22)]">
           <div className="flex items-start gap-3">
@@ -269,11 +311,6 @@ function AvailabilityDesktopScreen() {
         </div>
       ) : null}
 
-      <div className="px-5 pt-5">
-        <Link to="/demo" className="inline-block text-sm font-medium text-[#1d4ed8] hover:underline">
-          {"\u2190 Back to Demo Screens"}
-        </Link>
-      </div>
       <PageHeader activeTab={activeTab} onTabChange={setActiveTab} />
       {activeTab === "availability" ? (
         <AvailabilityScreen
@@ -285,6 +322,7 @@ function AvailabilityDesktopScreen() {
           onSubmit={handleSubmitClick}
           isSubmitted={isSubmitted}
           validationState={availabilityValidationState}
+          isTouchMode={isTouchMode}
         />
       ) : (
         <EmptyState />
@@ -299,17 +337,24 @@ function AvailabilityDesktopScreen() {
   );
 }
 
-function TabletFrame() {
+function TabletFrame({ title, src }: { title: string; src: string }) {
   return (
-    <main className="min-h-screen overflow-auto bg-[radial-gradient(circle_at_top,#f8fafc_0%,#dfe5ee_48%,#c9d2df_100%)] px-4 py-6 md:px-8">
-      <div className="mx-auto w-fit rounded-[44px] border border-slate-950/30 bg-[#111827] p-4 shadow-[0_34px_90px_rgba(15,23,42,0.42)]">
-        <div className="relative h-[768px] w-[1024px] max-w-[calc(100vw-64px)] overflow-hidden rounded-[30px] border border-black/10 bg-white shadow-inner">
+    <main className="min-h-screen overflow-auto bg-[radial-gradient(circle_at_top,#f8fafc_0%,#dfe5ee_48%,#c9d2df_100%)] px-4 py-4 md:px-8 md:py-5">
+      <div className="sticky top-0 z-[100] -mx-4 mb-4 flex h-12 items-center justify-center bg-black md:-mx-8">
+        <div className="w-fit">
+          <Link to="/demo" className="inline-block px-2 py-1 text-[14px] font-medium text-[#0b70d0] hover:underline">
+            {"\u2190 Back to Demo Screens"}
+          </Link>
+        </div>
+      </div>
+      <div className="mx-auto w-fit max-w-full rounded-[44px] border border-slate-950/30 bg-[#111827] p-4 shadow-[0_34px_90px_rgba(15,23,42,0.42)]">
+        <div className="relative h-[900px] w-[1200px] max-w-[calc(100vw-64px)] overflow-hidden rounded-[30px] border border-black/10 bg-white shadow-inner">
           <div className="pointer-events-none sticky left-0 top-0 z-[90] flex h-5 w-full justify-center bg-black/5">
             <span className="mt-2 h-1.5 w-24 rounded-full bg-slate-900/25" />
           </div>
           <iframe
-            title="Availability Tablet Prototype"
-            src="/availability-desktop?tablet=1"
+            title={title}
+            src={src}
             className="-mt-5 h-full w-full border-0 bg-white"
           />
         </div>
@@ -319,7 +364,15 @@ function TabletFrame() {
 }
 
 function AvailabilityTabletScreen() {
-  return <TabletFrame />;
+  return <TabletFrame title="Availability Tablet Prototype" src="/availability-desktop?embed=1&device=tablet&tablet=1" />;
+}
+
+function SkillGapTabletScreen() {
+  return <TabletFrame title="Skill Gap Tablet Prototype" src="/skill-gap-desktop?embed=1&device=tablet" />;
+}
+
+function SkillGapAskAuraTabletScreen() {
+  return <TabletFrame title="Skill Gap Ask Aura Tablet Prototype" src="/skill-gap-ask-aura?embed=1&device=tablet" />;
 }
 
 function PasswordGate({ children }: { children: React.ReactNode }) {
@@ -449,10 +502,12 @@ export default function App() {
         <Route path="/skill-gap-desktop" element={<SkillGapDesktopScreen />} />
         <Route path="/skill-gap-ask-aura" element={<SkillGapDesktopScreen mode="askAura" />} />
         <Route path="/time-off-desktop" element={<TimeOffDesktopScreen />} />
-        <Route path="/skill-gap-tablet" element={<PlaceholderScreen title="Skill Gap - Tablet" />} />
+        <Route path="/skill-gap-tablet" element={<SkillGapTabletScreen />} />
+        <Route path="/skill-gap-ask-aura-tablet" element={<SkillGapAskAuraTabletScreen />} />
         <Route path="/availability-tablet" element={<AvailabilityTabletScreen />} />
         <Route path="/time-off-tablet" element={<PlaceholderScreen title="Time Off - Tablet" />} />
-        <Route path="/mobile-screen" element={<PlaceholderScreen title="Mobile Screen" />} />
+        <Route path="/availability-mobile" element={<PlaceholderScreen title="Availability - Mobile" />} />
+        <Route path="/mobile-screen" element={<Navigate to="/availability-mobile" replace />} />
         <Route path="*" element={<Navigate to="/demo" replace />} />
       </Routes>
     </PasswordGate>

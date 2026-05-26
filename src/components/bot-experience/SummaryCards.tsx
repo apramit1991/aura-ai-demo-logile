@@ -2,6 +2,7 @@ import { request } from "../../data/mockData";
 import type { ReactNode } from "react";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 import type { AvailabilityValidationState } from "../../App";
+import { cn } from "../../lib/utils";
 
 function ValuePill({ children }: { children: ReactNode }) {
   return (
@@ -15,6 +16,7 @@ type SummaryCardsProps = {
   totalHours: number;
   totalDays: number;
   validationState: AvailabilityValidationState;
+  isTouchMode?: boolean;
 };
 
 function WarningIcon() {
@@ -33,13 +35,20 @@ function SuccessIcon() {
   );
 }
 
-export function SummaryCards({ totalHours, totalDays, validationState }: SummaryCardsProps) {
+export function SummaryCards({ totalHours, totalDays, validationState, isTouchMode = false }: SummaryCardsProps) {
   const isValidAvailability = totalHours > 0 && totalDays > 0;
   const isWarningAvailability = validationState === "warning" && isValidAvailability;
   const isSuccessAvailability = isValidAvailability && !isWarningAvailability;
 
   return (
-    <div className="grid max-w-full grid-cols-1 gap-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)_minmax(0,0.9fr)] 2xl:gap-4">
+    <div
+      className={cn(
+        "grid max-w-full gap-3 2xl:gap-4",
+        isTouchMode
+          ? "grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)_minmax(0,0.9fr)]"
+          : "grid-cols-1 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)_minmax(0,0.9fr)]",
+      )}
+    >
       <section className="min-w-0 rounded-[14px] bg-white p-3 2xl:p-4">
         <h3 className="mb-4 text-[21px] font-normal">My Preferences</h3>
         <div className="grid max-w-full gap-3 text-[15px] text-[#5c5c5c]">

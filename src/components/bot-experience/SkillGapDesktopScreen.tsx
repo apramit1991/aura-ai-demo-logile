@@ -35,10 +35,10 @@ import jordanAvatar from "../../assets/skill-gap/jordan-mitchell.png";
 
 const alertCards = [
   { id: 1, title: "Bakery - Baking, 40h", action: "Click on Card for solution" },
-  { id: 2, title: "Curbside - Personal Shopper, 32h", action: "Click on Card for solution" },
-  { id: 3, title: "Deli - Slicing, 28h", action: "Click on Card for solution" },
+  { id: 2, title: "Cake Decoration, 32h", action: "Click on Card for solution" },
+  { id: 3, title: "Bakery Clerk, 28h", action: "Click on Card for solution" },
   { id: 4, title: "Produce - Fresh Cut, 24h", action: "Click on Card for solution" },
-  { id: 5, title: "Meat Market - Butcher, 36h", action: "Click on Card for solution" },
+  { id: 5, title: "Meat Market - Butcher, 23h", action: "Click on Card for solution" },
   { id: 6, title: "Seafood - Service Counter, 22h", action: "Click on Card for solution" },
 ];
 
@@ -81,28 +81,28 @@ const crossTrainEmployees = [
     name: "Jessica Brown",
     avatar: jessicaAvatar,
     badges: ["Customer Service"],
-    current: "Secondary LT: (149)Deli, Deli Opening, +1",
+    current: "Secondary LT: Cake Decoration, Bakery Clerk, +1",
     required: "Availability: Mon-Sun · 52h",
   },
   {
     name: "Ryan Anderson,",
     avatar: ryanAvatar,
     badges: ["Inventory"],
-    current: "Secondary LT: (150)Deli, (149) Deli, Deli Slicing",
+    current: "Secondary LT: Cake Decoration, Bakery Clerk, Bakery Opening",
     required: "Availability: Tue-Sun · 45h",
   },
   {
     name: "Alex Thompson",
     avatar: alexAvatar,
     badges: ["Customer Service"],
-    current: "Secondary LT: (149)Deli, Deli Opening, +1",
+    current: "Secondary LT: Cake Decoration, Bakery Clerk, +1",
     required: "Availability: Mon-Sun · 30h",
   },
   {
     name: "Jordan Mitchell",
     avatar: jordanAvatar,
     badges: ["Bakery, Baking"],
-    current: "Secondary LT: (149)Deli, Deli Opening, +1",
+    current: "Secondary LT: Cake Decoration, Bakery Clerk, +1",
     required: "Availability: Mon-Sun · 30h",
   },
 ];
@@ -139,11 +139,13 @@ function AlertCard({
   index,
   isActive,
   onClick,
+  clickable = true,
 }: {
   card: (typeof alertCards)[number];
   index: number;
   isActive: boolean;
   onClick: () => void;
+  clickable?: boolean;
 }) {
   const isHighPriority = index < 3;
   const baseTone = isHighPriority
@@ -155,11 +157,11 @@ function AlertCard({
   return (
     <button
       type="button"
-      onClick={card.id === 1 ? onClick : undefined}
+      onClick={card.id === 1 && clickable ? onClick : undefined}
       className={cn(
         "grid h-[73px] w-full max-w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-3 rounded-lg border-2 px-3 text-left transition 2xl:gap-4 2xl:px-4",
         isActive ? activeTone : baseTone,
-        card.id === 1 ? "cursor-pointer" : "cursor-default",
+        card.id === 1 && clickable ? "cursor-pointer" : "cursor-default",
       )}
     >
       <AlertCircle className={cn("h-5 w-5", iconTone)} />
@@ -177,11 +179,11 @@ const criticalSkillGapAlerts = [
     description: "Significant skill shortage impacting production coverage.",
   },
   {
-    title: "Curbside - Personal Shopper, 32h",
+    title: "Cake Decoration, 32h",
     description: "High fulfillment coverage risk during peak order windows.",
   },
   {
-    title: "Deli - Slicing, 28h",
+    title: "Bakery Clerk, 28h",
     description: "Critical counter coverage gap affecting service readiness.",
   },
 ];
@@ -269,14 +271,7 @@ function AuraBakeryRecommendations({
       </div>
 
       <div className="px-4 py-3">
-        <p className="text-[13px] leading-5 text-[#64748b]">Options</p>
-        <div className="mt-2 flex gap-2">
-          <span className="rounded-full border border-primary bg-[#e8f2ff] px-3 py-1 text-[13px] font-semibold text-primary">Adjust Availability</span>
-          <span className="rounded-full border border-[#cbd5e1] bg-white px-3 py-1 text-[13px] font-medium text-[#111827]">Cross Training</span>
-          <span className="rounded-full border border-[#cbd5e1] bg-white px-3 py-1 text-[13px] font-medium text-[#111827]">New Hire</span>
-        </div>
-
-        <p className="mt-4 text-[15px] font-medium leading-5 text-primary">Best Option: Adjust Availability</p>
+        <p className="text-[15px] font-medium leading-5 text-primary">Best Option: Adjust Availability</p>
         <p className="mt-1 text-[13px] leading-5 text-[#1f2937]">Adjust employee availability offers the fastest resolution with lowest risk.</p>
       </div>
 
@@ -310,57 +305,142 @@ function AuraBakeryRecommendations({
   );
 }
 
+function AuraCrossTrainRecommendations() {
+  return (
+    <div className="animate-[aura-message-in_180ms_ease-out] rounded-xl border border-[#d8dce6] bg-white shadow-sm">
+      <div className="flex items-center gap-2 border-b border-[#e5e7eb] px-4 py-3">
+        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#e8f2ff] text-primary">
+          <Bot className="h-4 w-4" />
+        </span>
+        <h3 className="text-[18px] font-semibold leading-6 text-primary">Cross-Train Candidates</h3>
+      </div>
+      <div className="space-y-3 px-4 py-4">
+        {crossTrainEmployees.slice(0, 2).map((employee) => (
+          <AuraRecommendationEmployeeCard
+            key={employee.name}
+            employee={employee}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SkillGapAuraAssistant({
   isOpen,
   onOpen,
   onClose,
+  onSendRequest,
 }: {
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
+  onSendRequest: () => void;
 }) {
+  const [showStarterAction, setShowStarterAction] = useState(true);
+  const [showCriticalSummary, setShowCriticalSummary] = useState(false);
+  const [showInsightMessage, setShowInsightMessage] = useState(false);
   const [showBakeryRecommendation, setShowBakeryRecommendation] = useState(false);
+  const [showCrossTrainSuggestion, setShowCrossTrainSuggestion] = useState(false);
   const [isAuraTyping, setIsAuraTyping] = useState(false);
+  const [draftMessage, setDraftMessage] = useState("");
+  const [submittedPrompt, setSubmittedPrompt] = useState<string | null>(null);
   const [selectedEmployeeName, setSelectedEmployeeName] = useState<string | null>(null);
   const typingTimerRef = useRef<number | null>(null);
+  const insightTimerRef = useRef<number | null>(null);
+  const recommendationTimerRef = useRef<number | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
+  function clearAuraTimers() {
+    [typingTimerRef, insightTimerRef, recommendationTimerRef].forEach((timerRef) => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    });
+  }
+
   useEffect(() => {
-    if (!isOpen) return;
-    if (typingTimerRef.current) {
-      window.clearTimeout(typingTimerRef.current);
-      typingTimerRef.current = null;
+    if (!isOpen) {
+      clearAuraTimers();
+      return;
     }
+    clearAuraTimers();
+    setShowStarterAction(true);
+    setShowCriticalSummary(false);
+    setShowInsightMessage(false);
     setShowBakeryRecommendation(false);
+    setShowCrossTrainSuggestion(false);
     setIsAuraTyping(false);
+    setDraftMessage("");
+    setSubmittedPrompt(null);
     setSelectedEmployeeName(null);
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [isAuraTyping, showBakeryRecommendation, selectedEmployeeName, isOpen]);
+  }, [isAuraTyping, showCriticalSummary, showInsightMessage, showBakeryRecommendation, showCrossTrainSuggestion, submittedPrompt, selectedEmployeeName, isOpen]);
 
   useEffect(() => {
     return () => {
-      if (typingTimerRef.current) {
-        window.clearTimeout(typingTimerRef.current);
-      }
+      clearAuraTimers();
     };
   }, []);
 
-  function handleBakeryAlertClick() {
-    if (showBakeryRecommendation || isAuraTyping) return;
+  function handleSummariseCriticalGaps() {
+    if (!showStarterAction || isAuraTyping) return;
+    clearAuraTimers();
+    setShowStarterAction(false);
     setIsAuraTyping(true);
     typingTimerRef.current = window.setTimeout(() => {
       setIsAuraTyping(false);
-      setShowBakeryRecommendation(true);
+      setShowCriticalSummary(true);
       typingTimerRef.current = null;
-    }, 620);
+    }, 560);
+  }
+
+  function handleBakeryAlertClick() {
+    if (!showCriticalSummary || showBakeryRecommendation || isAuraTyping) return;
+    clearAuraTimers();
+    setIsAuraTyping(true);
+    typingTimerRef.current = window.setTimeout(() => {
+      setIsAuraTyping(false);
+      setShowInsightMessage(true);
+      typingTimerRef.current = null;
+    }, 560);
+    recommendationTimerRef.current = window.setTimeout(() => {
+      setShowBakeryRecommendation(true);
+      recommendationTimerRef.current = null;
+    }, 920);
+  }
+
+  function handleChatSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedMessage = draftMessage.trim();
+    if (!trimmedMessage || isAuraTyping) return;
+
+    clearAuraTimers();
+    setSubmittedPrompt(trimmedMessage);
+    setDraftMessage("");
+
+    if (trimmedMessage.toLowerCase().includes("cross train")) {
+      setIsAuraTyping(true);
+      typingTimerRef.current = window.setTimeout(() => {
+        setIsAuraTyping(false);
+        setShowCrossTrainSuggestion(true);
+        typingTimerRef.current = null;
+      }, 620);
+    }
   }
 
   function toggleSarahSelection() {
     setSelectedEmployeeName((current) => (current === "Sarah Johnson" ? null : "Sarah Johnson"));
+  }
+
+  function handleSendRequestClick() {
+    if (!selectedEmployeeName) return;
+    onSendRequest();
   }
 
   return (
@@ -410,34 +490,37 @@ function SkillGapAuraAssistant({
         </header>
 
         <div className="scrollbar-slim min-h-0 flex-1 space-y-4 overflow-y-auto bg-[#f7f8fb] px-5 py-4">
-          <div className="max-w-[94%] rounded-lg border border-[#fca5a5] bg-[#fef2f2] px-3 py-3 text-[#333333] shadow-sm">
-            <div className="flex gap-2.5">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#dc2626]" />
-              <div className="min-w-0">
-                <p className="text-[15px] font-semibold leading-5 text-[#1f2937]">Three critical skill gaps need your attention.</p>
-                <div className="mt-3 space-y-2">
-                  {criticalSkillGapAlerts.map((alert, index) =>
-                    index === 0 ? (
-                      <button
-                        key={alert.title}
-                        type="button"
-                        onClick={handleBakeryAlertClick}
-                        className="w-full rounded-md border border-[#fecaca] bg-white/80 px-3 py-2 text-left transition hover:border-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                      >
-                        <p className="text-[14px] font-semibold leading-5 text-[#111827]">{alert.title}</p>
-                        <p className="mt-0.5 text-[13px] leading-5 text-[#5c5c5c]">{alert.description}</p>
-                      </button>
-                    ) : (
-                      <div key={alert.title} className="rounded-md border border-[#fecaca] bg-white/80 px-3 py-2">
-                        <p className="text-[14px] font-semibold leading-5 text-[#111827]">{alert.title}</p>
-                        <p className="mt-0.5 text-[13px] leading-5 text-[#5c5c5c]">{alert.description}</p>
-                      </div>
-                    ),
-                  )}
+          {showCriticalSummary ? (
+            <div className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-lg border border-[#fca5a5] bg-[#fef2f2] px-3 py-3 text-[#333333] shadow-sm">
+              <div className="flex gap-2.5">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#dc2626]" />
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold leading-5 text-[#1f2937]">Three critical skill gaps need your attention.</p>
+                  <div className="mt-3 space-y-2">
+                    {criticalSkillGapAlerts.map((alert, index) => (
+                      index === 0 ? (
+                        <button
+                          key={alert.title}
+                          type="button"
+                          onClick={handleBakeryAlertClick}
+                          className="w-full rounded-md border border-[#fecaca] bg-white/80 px-3 py-2 text-left transition hover:border-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                        >
+                          <p className="text-[14px] font-semibold leading-5 text-[#111827]">{alert.title}</p>
+                          <p className="mt-0.5 text-[13px] leading-5 text-[#5c5c5c]">{alert.description}</p>
+                        </button>
+                      ) : (
+                        <div key={alert.title} className="rounded-md border border-[#fecaca] bg-white/80 px-3 py-2">
+                          <p className="text-[14px] font-semibold leading-5 text-[#111827]">{alert.title}</p>
+                          <p className="mt-0.5 text-[13px] leading-5 text-[#5c5c5c]">{alert.description}</p>
+                        </div>
+                      )
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : null}
+
           {isAuraTyping ? (
             <div className="animate-[aura-message-in_180ms_ease-out] max-w-[88%] rounded-lg bg-white px-3 py-2 text-[#5c5c5c] shadow-sm">
               <span className="sr-only">AURA AI is typing</span>
@@ -448,6 +531,13 @@ function SkillGapAuraAssistant({
               </span>
             </div>
           ) : null}
+          {showInsightMessage ? (
+            <div className="animate-[aura-message-in_180ms_ease-out] max-w-[92%] rounded-lg bg-white px-3 py-3 text-[#333333] shadow-sm">
+              <p className="text-[15px] leading-5">
+                I found 3 bakery-skilled employees with availability recommendations that can reduce your 34h Baking skill gap by 85%.
+              </p>
+            </div>
+          ) : null}
           {showBakeryRecommendation ? (
             <div className="animate-[aura-message-in_180ms_ease-out]">
               <AuraBakeryRecommendations
@@ -456,29 +546,62 @@ function SkillGapAuraAssistant({
               />
             </div>
           ) : null}
+          {submittedPrompt ? (
+            <div className="ml-auto animate-[aura-message-in_180ms_ease-out] max-w-[84%] rounded-lg bg-primary px-3 py-2 text-[14px] leading-5 text-white shadow-sm">
+              {submittedPrompt}
+            </div>
+          ) : null}
+          {showCrossTrainSuggestion ? (
+            <div className="animate-[aura-message-in_180ms_ease-out] max-w-[92%] rounded-lg bg-white px-3 py-3 text-[#333333] shadow-sm">
+              <p className="text-[15px] leading-5">
+                I found 2 employees who can be Cross Trained to reduce the skill gap by 99%.
+              </p>
+            </div>
+          ) : null}
+          {showCrossTrainSuggestion ? (
+            <AuraCrossTrainRecommendations />
+          ) : null}
           <div ref={scrollAnchorRef} />
         </div>
         <footer className="shrink-0 border-t border-[#e2e5ec] bg-white px-4 py-3">
+          {showStarterAction ? (
+            <div className="mb-3">
+              <button
+                type="button"
+                aria-label="Summarise critical gaps"
+                onClick={handleSummariseCriticalGaps}
+                disabled={isAuraTyping}
+                className="w-full rounded-md border border-[#d8dce6] bg-white px-3 py-2 text-left text-[14px] font-medium text-[#333333] transition hover:border-[#9ebcf0] hover:bg-[#f5f8ff] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:bg-[#f7f8fb] disabled:text-[#9aa1ad]"
+              >
+                Summarise critical gaps
+              </button>
+            </div>
+          ) : null}
           {selectedEmployeeName ? (
             <div className="mb-3 rounded-lg border border-[#bfdbfe] bg-white px-3 py-3 shadow-sm">
               <p className="text-[14px] font-medium leading-5 text-[#1e3a8a]">1 employees selected</p>
               <button
                 type="button"
+                onClick={handleSendRequestClick}
                 className="mt-2 h-10 w-full rounded-md bg-primary px-4 text-[15px] font-semibold text-white transition hover:bg-[#0858b9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               >
                 Send Request
               </button>
             </div>
           ) : null}
-          <form className="flex items-center gap-2 rounded-lg border border-[#c9cbd2] bg-white px-3 py-2" onSubmit={(event) => event.preventDefault()}>
+          <form className="flex items-center gap-2 rounded-lg border border-[#c9cbd2] bg-white px-3 py-2" onSubmit={handleChatSubmit}>
             <input
               className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#888888]"
               placeholder="Ask AURA to review this request"
               aria-label="Ask AURA to review this request"
+              value={draftMessage}
+              onChange={(event) => setDraftMessage(event.target.value)}
+              disabled={isAuraTyping}
             />
             <button
               type="submit"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-white transition hover:bg-[#0858b9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              disabled={isAuraTyping || !draftMessage.trim()}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-white transition hover:bg-[#0858b9] disabled:cursor-not-allowed disabled:bg-[#b7c5d8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               aria-label="Send message to AURA AI"
             >
               <Send className="h-5 w-5" />
@@ -908,6 +1031,7 @@ function SolutionCard({
   title,
   icon: Icon,
   selected = false,
+  isAskAuraLayout = false,
   metrics,
   employeeCount,
   employees,
@@ -919,6 +1043,7 @@ function SolutionCard({
   title: string;
   icon: LucideIcon;
   selected?: boolean;
+  isAskAuraLayout?: boolean;
   metrics: { label: string; value: string; icon: LucideIcon; tone?: "default" | "green" | "amber" }[];
   employeeCount: string;
   employees: RecommendationEmployee[];
@@ -930,6 +1055,7 @@ function SolutionCard({
   const isRequestSent = requestSentEmployeeId === "Sarah Johnson";
   const canSendRequest = selectedEmployeeId === "Sarah Johnson" && !isRequestSent;
   const isAdjustAvailabilityCard = title === "Adjust Availability";
+  const showBottomActionLayout = isAskAuraLayout && isAdjustAvailabilityCard;
   const selectedCount = selectedEmployeeId === "Sarah Johnson" ? 1 : 0;
   const showSelectedIndicator = isAdjustAvailabilityCard && selectedCount > 0;
   const orderedEmployees = isRequestSent
@@ -945,19 +1071,21 @@ function SolutionCard({
           </span>
           <h4 className="min-w-0 truncate text-[21px] font-normal leading-[30px] text-[#333333]">{title}</h4>
         </div>
-        <button
-          type="button"
-          disabled={!canSendRequest}
-          onClick={canSendRequest ? onSendRequest : undefined}
-          className={cn(
-            "h-[31px] shrink-0 rounded-md px-4 text-[17px] font-medium leading-[22px] transition",
-            canSendRequest && "cursor-pointer bg-primary text-white hover:bg-[#0858b9]",
-            !canSendRequest && !isRequestSent && "cursor-not-allowed bg-[#e5e5e5] text-[#8a8a8a]",
-            isRequestSent && "cursor-not-allowed border border-[#d1d5db] bg-[#e5e7eb] text-[#6b7280]",
-          )}
-        >
-          {isRequestSent ? "Pending Approval" : "Send Request"}
-        </button>
+        {!showBottomActionLayout ? (
+          <button
+            type="button"
+            disabled={!canSendRequest}
+            onClick={canSendRequest ? onSendRequest : undefined}
+            className={cn(
+              "h-[31px] shrink-0 rounded-md px-4 text-[17px] font-medium leading-[22px] transition",
+              canSendRequest && "cursor-pointer bg-primary text-white hover:bg-[#0858b9]",
+              !canSendRequest && !isRequestSent && "cursor-not-allowed bg-[#e5e5e5] text-[#8a8a8a]",
+              isRequestSent && "cursor-not-allowed border border-[#d1d5db] bg-[#e5e7eb] text-[#6b7280]",
+            )}
+          >
+            {isRequestSent ? "Pending Approval" : "Send Request"}
+          </button>
+        ) : null}
       </div>
       <div className="grid min-h-[88px] shrink-0 grid-cols-3 gap-0 px-4 py-3 2xl:min-h-[98px] 2xl:px-8 2xl:py-4">
         {metrics.map((metric, index) => (
@@ -966,7 +1094,7 @@ function SolutionCard({
           </div>
         ))}
       </div>
-      {showSelectedIndicator ? (
+      {showSelectedIndicator && !showBottomActionLayout ? (
         <div className="mx-4 shrink-0 rounded-md bg-white px-4 py-2.5">
           <p aria-live="polite" className="flex items-center gap-2 text-[16px] font-medium leading-6 text-[#334155]">
             <Users aria-hidden="true" className="h-5 w-5 text-[#475569]" />
@@ -1010,11 +1138,47 @@ function SolutionCard({
           />
         ))}
       </div>
+      {showBottomActionLayout ? (
+        <div className="shrink-0 border-t border-[#cfd3dc] bg-white px-4 py-3">
+          {showSelectedIndicator ? (
+            <div className="rounded-md bg-[#f4f5fb] px-4 py-2.5">
+              <p aria-live="polite" className="flex items-center gap-2 text-[16px] font-medium leading-6 text-[#334155]">
+                <Users aria-hidden="true" className="h-5 w-5 text-[#475569]" />
+                {selectedCount} of 3 Employees Selected
+              </p>
+              <p className="mt-2 text-[16px] font-normal leading-6 text-[#334155]">Reduce the skill Gap 85%</p>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
+                <div
+                  role="progressbar"
+                  aria-label="Skill gap reduction progress"
+                  aria-valuenow={85}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  className="h-full w-[85%] rounded-full bg-[#34b233]"
+                />
+              </div>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            disabled={!canSendRequest}
+            onClick={canSendRequest ? onSendRequest : undefined}
+            className={cn(
+              "mt-3 h-[34px] w-full rounded-md px-4 text-[17px] font-medium leading-[22px] transition",
+              canSendRequest && "cursor-pointer bg-primary text-white hover:bg-[#0858b9]",
+              !canSendRequest && !isRequestSent && "cursor-not-allowed bg-[#e5e5e5] text-[#8a8a8a]",
+              isRequestSent && "cursor-not-allowed border border-[#d1d5db] bg-[#e5e7eb] text-[#6b7280]",
+            )}
+          >
+            {isRequestSent ? "Pending Approval" : "Send Request"}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
 
-function SkillGapDetailPane() {
+function SkillGapDetailPane({ isAskAuraFlow = false }: { isAskAuraFlow?: boolean }) {
   const [accordionExpanded, setAccordionExpanded] = useState(true);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [requestSentEmployeeId, setRequestSentEmployeeId] = useState<string | null>(null);
@@ -1044,6 +1208,12 @@ function SkillGapDetailPane() {
     setShowSuccessToast(true);
   }
 
+  const recommendationChips = [
+    { id: "adjust", label: "Adjust Availability", active: true },
+    { id: "cross", label: "Cross Training", active: false },
+    { id: "hire", label: "New Hire", active: false },
+  ] as const;
+
   return (
     <div className="min-h-full min-w-0 overflow-visible bg-white p-3 pb-6 2xl:p-4 2xl:pb-8">
       {showSuccessToast ? <SuccessToast onClose={() => setShowSuccessToast(false)} /> : null}
@@ -1067,11 +1237,27 @@ function SkillGapDetailPane() {
             <span className="min-w-0 whitespace-normal">offers the fastest resolution with lowest risk.</span>
           </p>
         </div>
+        {isAskAuraFlow ? (
+          <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2 xl:grid-cols-3 2xl:mt-4">
+            {recommendationChips.map((chip) => (
+              <span
+                key={chip.id}
+                className={cn(
+                  "flex h-8 items-center justify-center rounded-full border px-3 text-center text-[13px] font-semibold whitespace-nowrap",
+                  chip.active ? "border-primary bg-[#e8f2ff] text-primary" : "border-[#cbd5e1] bg-white text-[#111827]",
+                )}
+              >
+                {chip.label}
+              </span>
+            ))}
+          </div>
+        ) : null}
         <div className="mt-3 grid min-w-0 grid-cols-2 gap-3 overflow-visible bg-[#f4f5fb] 2xl:mt-4 2xl:gap-5">
           <SolutionCard
             title="Adjust Availability"
             icon={CalendarDays}
             selected={!requestSentEmployeeId}
+            isAskAuraLayout={isAskAuraFlow}
             employeeCount="3 Employees"
             metrics={[
               { icon: TrendingUp, label: "Gap Reduction", value: "85%" },
@@ -1102,16 +1288,34 @@ function SkillGapDetailPane() {
 }
 
 export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard" | "askAura" }) {
+  const isAskAuraFlow = mode === "askAura";
+  const isEmbedded = new URLSearchParams(window.location.search).get("embed") === "1";
   const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
   const [isAuraOpen, setIsAuraOpen] = useState(false);
-  const isAskAuraFlow = mode === "askAura";
+  const [showAskAuraSuccessToast, setShowAskAuraSuccessToast] = useState(false);
+
+  useEffect(() => {
+    if (!showAskAuraSuccessToast) return;
+    const timeoutId = window.setTimeout(() => setShowAskAuraSuccessToast(false), 3600);
+    return () => window.clearTimeout(timeoutId);
+  }, [showAskAuraSuccessToast]);
 
   function handleAskAura() {
     setIsAuraOpen(true);
   }
 
+  function handleAskAuraSendRequest() {
+    setIsAuraOpen(false);
+    setShowAskAuraSuccessToast(true);
+  }
+
   return (
-    <AppShell activeNavLabel="Home" profile={{ name: "Smith, Jane", role: "Store Manager", avatar: "SJ", badge: 9, avatarUrl: profileAvatar }}>
+    <AppShell
+      activeNavLabel="Home"
+      showDemoBackLink={!isEmbedded}
+      profile={{ name: "Smith, Jane", role: "Store Manager", avatar: "SJ", badge: 9, avatarUrl: profileAvatar }}
+    >
+      {showAskAuraSuccessToast ? <SuccessToast onClose={() => setShowAskAuraSuccessToast(false)} /> : null}
       <div className="min-w-0 bg-[#f1f3f9] pr-3 2xl:pr-5">
         <div className="flex h-10 items-center gap-3 px-4">
           <button type="button" aria-label="Back" className="flex h-8 w-8 items-center justify-center rounded-md border border-[#d4d7de] bg-white text-[#333333]">
@@ -1188,12 +1392,15 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
                     index={index}
                     isActive={selectedAlertId === alert.id}
                     onClick={() => setSelectedAlertId(alert.id)}
+                    clickable={!(isAskAuraFlow && alert.id === 1)}
                   />
                 ))}
               </div>
             </aside>
 
-            <main className="min-w-0 max-w-full overflow-visible bg-white">{selectedAlertId === 1 ? <SkillGapDetailPane /> : <EmptyRightPane />}</main>
+            <main className="min-w-0 max-w-full overflow-visible bg-white">
+              {selectedAlertId === 1 ? <SkillGapDetailPane isAskAuraFlow={isAskAuraFlow} /> : <EmptyRightPane />}
+            </main>
           </div>
         </section>
       </div>
@@ -1202,6 +1409,7 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
           isOpen={isAuraOpen}
           onOpen={() => setIsAuraOpen(true)}
           onClose={() => setIsAuraOpen(false)}
+          onSendRequest={handleAskAuraSendRequest}
         />
       ) : null}
     </AppShell>

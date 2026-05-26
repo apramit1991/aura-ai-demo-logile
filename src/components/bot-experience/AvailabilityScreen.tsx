@@ -14,6 +14,7 @@ type AvailabilityScreenProps = {
   onSubmit: () => void;
   isSubmitted: boolean;
   validationState: AvailabilityValidationState;
+  isTouchMode?: boolean;
 };
 
 export function AvailabilityScreen({
@@ -25,6 +26,7 @@ export function AvailabilityScreen({
   onSubmit,
   isSubmitted,
   validationState,
+  isTouchMode = false,
 }: AvailabilityScreenProps) {
   const totalDays = rows.filter((row) => row.hours !== "0h").length;
   const totalHours = rows.reduce((sum, row) => sum + Number.parseInt(row.hours, 10), 0);
@@ -44,9 +46,14 @@ export function AvailabilityScreen({
       </div>
 
       <div className="grid min-w-0 lg:grid-cols-[minmax(300px,327px)_minmax(0,1fr)]">
-        <RequestForm onCycleDate={onCycleDate} />
+        <RequestForm onCycleDate={onCycleDate} isTouchMode={isTouchMode} />
         <section className="min-w-0 p-3 2xl:p-4">
-          <SummaryCards totalHours={totalHours} totalDays={totalDays} validationState={validationState} />
+          <SummaryCards
+            totalHours={totalHours}
+            totalDays={totalDays}
+            validationState={validationState}
+            isTouchMode={isTouchMode}
+          />
 
           <div id="my-availability-section" className="mt-7 flex items-center justify-between">
             <h2 className="text-[21px] font-normal">My Availability</h2>
@@ -57,6 +64,7 @@ export function AvailabilityScreen({
             rows={rows}
             onDeleteRow={onDeleteRow}
             validationState={validationState}
+            isTouchMode={isTouchMode}
           />
         </section>
       </div>
