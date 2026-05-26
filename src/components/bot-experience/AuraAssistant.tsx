@@ -220,7 +220,7 @@ function RecommendationCard({
             <div className="flex flex-wrap gap-x-4 gap-y-1 border-y border-[#d8cfa2] py-2 text-[14px] font-semibold text-[#333333]">
               <span className="inline-flex items-center gap-1">
                 <Clock3 className="h-3.5 w-3.5" />
-                43 hrs total
+                45 hrs total
               </span>
               <span className="inline-flex items-center gap-1">
                 <CalendarDays className="h-3.5 w-3.5" />
@@ -263,7 +263,7 @@ function RecommendationCard({
           <div className="flex flex-wrap gap-x-4 gap-y-1 border-y border-[#d8cfa2] py-2 text-[14px] font-semibold text-[#333333]">
             <span className="inline-flex items-center gap-1">
               <Clock3 className="h-3.5 w-3.5" />
-              43 hrs total
+              45 hrs total
             </span>
             <span className="inline-flex items-center gap-1">
               <CalendarDays className="h-3.5 w-3.5" />

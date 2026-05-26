@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
+  Bot,
   AlertCircle,
   AlertTriangle,
   Calendar,
@@ -15,6 +16,7 @@ import {
   Info,
   Calendar as CalendarIcon,
   Search,
+  Send,
   Sparkles,
   TrendingUp,
   Users,
@@ -38,9 +40,6 @@ const alertCards = [
   { id: 4, title: "Produce - Fresh Cut, 24h", action: "Click on Card for solution" },
   { id: 5, title: "Meat Market - Butcher, 36h", action: "Click on Card for solution" },
   { id: 6, title: "Seafood - Service Counter, 22h", action: "Click on Card for solution" },
-  { id: 7, title: "BLOOMS - Floral Design, 18h", action: "Click on Card for solution" },
-  { id: 8, title: "Meal Simple - Prep Cook, 26h", action: "Click on Card for solution" },
-  { id: 9, title: "Pharmacy - Pick Up, 20h", action: "Click on Card" },
 ];
 
 const skillGapRows = [
@@ -135,25 +134,359 @@ function SelectField({ label, value, width, disabled = false }: { label: string;
   );
 }
 
-function AlertCard({ id, isActive, onClick }: { id: number; isActive: boolean; onClick: () => void }) {
-  const card = alertCards[id - 1];
+function AlertCard({
+  card,
+  index,
+  isActive,
+  onClick,
+}: {
+  card: (typeof alertCards)[number];
+  index: number;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const isHighPriority = index < 3;
+  const baseTone = isHighPriority
+    ? "border-[#fca5a5] bg-[#fef2f2]"
+    : "border-[#fdba74] bg-[#fff7ed]";
+  const iconTone = isHighPriority ? "text-[#dc2626]" : "text-[#d97706]";
+  const activeTone = isHighPriority ? "bg-white border-[#f87171]" : "bg-white border-[#f59e0b]";
 
   return (
     <button
       type="button"
-      onClick={id === 1 ? onClick : undefined}
+      onClick={card.id === 1 ? onClick : undefined}
       className={cn(
-        "grid h-[73px] w-full max-w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-3 rounded-lg border-2 border-[#ff8b8f] px-3 text-left transition 2xl:gap-4 2xl:px-4",
-        isActive ? "bg-white" : "bg-[#fff2f2]",
-        id === 1 ? "cursor-pointer" : "cursor-default",
+        "grid h-[73px] w-full max-w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-3 rounded-lg border-2 px-3 text-left transition 2xl:gap-4 2xl:px-4",
+        isActive ? activeTone : baseTone,
+        card.id === 1 ? "cursor-pointer" : "cursor-default",
       )}
     >
-      <AlertCircle className="h-5 w-5 text-[#ff1d25]" />
+      <AlertCircle className={cn("h-5 w-5", iconTone)} />
       <span className="min-w-0">
         <span className="block truncate text-[16px] font-semibold leading-[22px] text-[#111827] 2xl:text-[17px]">{card.title}</span>
         <span className="block text-[15px] font-normal leading-5 text-primary">{card.action}</span>
       </span>
     </button>
+  );
+}
+
+const criticalSkillGapAlerts = [
+  {
+    title: "Bakery - Baking, 40h",
+    description: "Significant skill shortage impacting production coverage.",
+  },
+  {
+    title: "Curbside - Personal Shopper, 32h",
+    description: "High fulfillment coverage risk during peak order windows.",
+  },
+  {
+    title: "Deli - Slicing, 28h",
+    description: "Critical counter coverage gap affecting service readiness.",
+  },
+];
+
+function AuraRecommendationEmployeeCard({
+  employee,
+  selected = false,
+  selectable = false,
+  onSelect,
+}: {
+  employee: RecommendationEmployee;
+  selected?: boolean;
+  selectable?: boolean;
+  onSelect?: () => void;
+}) {
+  return (
+    <article
+      className={cn(
+        "rounded-md border bg-white px-3 py-3 transition",
+        selected ? "border-primary bg-[#e8f2ff]" : "border-[#d8dce6]",
+        selectable && "cursor-pointer hover:border-primary/70",
+      )}
+      onClick={selectable ? onSelect : undefined}
+    >
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          aria-label={`Select ${employee.name}`}
+          aria-checked={selected}
+          disabled={!selectable}
+          role="checkbox"
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect?.();
+          }}
+          className={cn(
+            "mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition",
+            selected ? "border-primary bg-primary text-white" : "border-[#c9cbd2] bg-white",
+            selectable ? "cursor-pointer hover:border-primary" : "cursor-default",
+          )}
+        >
+          {selected ? <Check className="h-3.5 w-3.5" /> : null}
+        </button>
+        <img src={employee.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[16px] font-semibold leading-5 text-[#111827]">{employee.name}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {employee.badges.map((badge) => (
+              <span key={badge} className="rounded-full bg-[#d7e9ff] px-2.5 py-0.5 text-[13px] font-medium leading-5 text-[#1f2937]">
+                {badge}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 space-y-2 text-[13px] leading-5 text-[#334155]">
+        <p><span className="font-semibold text-[#111827]">Current:</span> {employee.current}</p>
+        <p><span className="font-semibold text-[#111827]">Required:</span> {employee.required}</p>
+        {employee.proposed ? (
+          <p className="rounded-md border border-blue-100 bg-blue-50 px-2 py-1.5 text-primary">
+            <span className="font-semibold">AI Recommendation:</span> {employee.proposed}
+          </p>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function AuraBakeryRecommendations({
+  selectedEmployeeName,
+  onToggleSarah,
+}: {
+  selectedEmployeeName: string | null;
+  onToggleSarah: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-[#d8dce6] bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-[#e5e7eb] px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#e8f2ff] text-primary">
+            <Bot className="h-4 w-4" />
+          </span>
+          <h3 className="text-[18px] font-semibold leading-6 text-primary">Aura Recommendations for Bakery - Baking</h3>
+        </div>
+      </div>
+
+      <div className="px-4 py-3">
+        <p className="text-[13px] leading-5 text-[#64748b]">Options</p>
+        <div className="mt-2 flex gap-2">
+          <span className="rounded-full border border-primary bg-[#e8f2ff] px-3 py-1 text-[13px] font-semibold text-primary">Adjust Availability</span>
+          <span className="rounded-full border border-[#cbd5e1] bg-white px-3 py-1 text-[13px] font-medium text-[#111827]">Cross Training</span>
+          <span className="rounded-full border border-[#cbd5e1] bg-white px-3 py-1 text-[13px] font-medium text-[#111827]">New Hire</span>
+        </div>
+
+        <p className="mt-4 text-[15px] font-medium leading-5 text-primary">Best Option: Adjust Availability</p>
+        <p className="mt-1 text-[13px] leading-5 text-[#1f2937]">Adjust employee availability offers the fastest resolution with lowest risk.</p>
+      </div>
+
+      <div className="border-t border-[#e5e7eb] px-4 py-4">
+        <h4 className="text-[18px] font-semibold leading-6 text-[#111827]">Recommended Employees</h4>
+        {selectedEmployeeName ? (
+          <div className="mt-3 rounded-none bg-[#f4f5fb] px-3 py-3">
+            <p className="flex items-center gap-2 text-[14px] font-medium leading-5 text-[#334155]">
+              <Users className="h-4 w-4 text-[#475569]" />
+              1 of 3 Employees Selected
+            </p>
+            <p className="mt-3 text-[13px] font-semibold leading-5 text-[#334155]">Reduce the skill Gap 85%</p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
+              <div className="h-full w-[85%] rounded-full bg-[#34b233]" />
+            </div>
+          </div>
+        ) : null}
+        <div className="mt-3 space-y-3">
+          {adjustEmployees.map((employee) => (
+            <AuraRecommendationEmployeeCard
+              key={employee.name}
+              employee={employee}
+              selected={selectedEmployeeName === employee.name}
+              selectable={employee.name === "Sarah Johnson"}
+              onSelect={employee.name === "Sarah Johnson" ? onToggleSarah : undefined}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkillGapAuraAssistant({
+  isOpen,
+  onOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+}) {
+  const [showBakeryRecommendation, setShowBakeryRecommendation] = useState(false);
+  const [isAuraTyping, setIsAuraTyping] = useState(false);
+  const [selectedEmployeeName, setSelectedEmployeeName] = useState<string | null>(null);
+  const typingTimerRef = useRef<number | null>(null);
+  const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (typingTimerRef.current) {
+      window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+    setShowBakeryRecommendation(false);
+    setIsAuraTyping(false);
+    setSelectedEmployeeName(null);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [isAuraTyping, showBakeryRecommendation, selectedEmployeeName, isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) {
+        window.clearTimeout(typingTimerRef.current);
+      }
+    };
+  }, []);
+
+  function handleBakeryAlertClick() {
+    if (showBakeryRecommendation || isAuraTyping) return;
+    setIsAuraTyping(true);
+    typingTimerRef.current = window.setTimeout(() => {
+      setIsAuraTyping(false);
+      setShowBakeryRecommendation(true);
+      typingTimerRef.current = null;
+    }, 620);
+  }
+
+  function toggleSarahSelection() {
+    setSelectedEmployeeName((current) => (current === "Sarah Johnson" ? null : "Sarah Johnson"));
+  }
+
+  return (
+    <>
+      <div
+        className={cn(
+          "fixed bottom-4 right-4 z-50 transition-all duration-300 sm:bottom-6 sm:right-6",
+          isOpen && "pointer-events-none translate-y-2 opacity-0",
+        )}
+      >
+        <button
+          type="button"
+          aria-label="Open AURA AI assistant"
+          onClick={onOpen}
+          className="relative inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-[#33C7EA] to-[#2A2DBB] px-5 text-[15px] font-semibold text-white shadow-[0_12px_28px_rgba(42,45,187,0.35),0_0_24px_rgba(51,199,234,0.28)] outline-none ring-1 ring-white/30 transition-all duration-200 hover:scale-[1.03] focus-visible:ring-4 focus-visible:ring-[#7edff4]"
+        >
+          <Sparkles className="h-4 w-4 fill-white/20" />
+          <span>AURA AI</span>
+        </button>
+      </div>
+
+      <aside
+        className={cn(
+          "fixed bottom-3 right-3 top-3 z-50 flex w-[calc(100vw-24px)] max-w-[clamp(360px,28vw,420px)] origin-bottom-right flex-col overflow-hidden rounded-xl border border-[#d8dce6] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] transition-all duration-300 ease-out sm:bottom-5 sm:right-5 sm:top-16",
+          isOpen ? "translate-x-0 scale-100 opacity-100" : "pointer-events-none translate-x-[calc(100%+32px)] scale-95 opacity-0",
+        )}
+        aria-hidden={!isOpen}
+      >
+        <header className="flex items-start justify-between border-b border-[#e2e5ec] bg-gradient-to-r from-[#f8fbff] to-[#f6f0ff] px-5 py-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#0868db] to-[#7c3aed] text-white shadow-md">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-[19px] font-semibold leading-6 text-[#1f2937]">AURA AI</h2>
+              <p className="text-[13px] font-medium text-[#5c5c5c]">WFM Intelligence Copilot</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-white hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            aria-label="Close AURA AI assistant"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+
+        <div className="scrollbar-slim min-h-0 flex-1 space-y-4 overflow-y-auto bg-[#f7f8fb] px-5 py-4">
+          <div className="max-w-[94%] rounded-lg border border-[#fca5a5] bg-[#fef2f2] px-3 py-3 text-[#333333] shadow-sm">
+            <div className="flex gap-2.5">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#dc2626]" />
+              <div className="min-w-0">
+                <p className="text-[15px] font-semibold leading-5 text-[#1f2937]">Three critical skill gaps need your attention.</p>
+                <div className="mt-3 space-y-2">
+                  {criticalSkillGapAlerts.map((alert, index) =>
+                    index === 0 ? (
+                      <button
+                        key={alert.title}
+                        type="button"
+                        onClick={handleBakeryAlertClick}
+                        className="w-full rounded-md border border-[#fecaca] bg-white/80 px-3 py-2 text-left transition hover:border-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                      >
+                        <p className="text-[14px] font-semibold leading-5 text-[#111827]">{alert.title}</p>
+                        <p className="mt-0.5 text-[13px] leading-5 text-[#5c5c5c]">{alert.description}</p>
+                      </button>
+                    ) : (
+                      <div key={alert.title} className="rounded-md border border-[#fecaca] bg-white/80 px-3 py-2">
+                        <p className="text-[14px] font-semibold leading-5 text-[#111827]">{alert.title}</p>
+                        <p className="mt-0.5 text-[13px] leading-5 text-[#5c5c5c]">{alert.description}</p>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          {isAuraTyping ? (
+            <div className="animate-[aura-message-in_180ms_ease-out] max-w-[88%] rounded-lg bg-white px-3 py-2 text-[#5c5c5c] shadow-sm">
+              <span className="sr-only">AURA AI is typing</span>
+              <span className="flex h-5 items-center gap-1" aria-hidden="true">
+                <span className="aura-typing-dot" />
+                <span className="aura-typing-dot [animation-delay:140ms]" />
+                <span className="aura-typing-dot [animation-delay:280ms]" />
+              </span>
+            </div>
+          ) : null}
+          {showBakeryRecommendation ? (
+            <div className="animate-[aura-message-in_180ms_ease-out]">
+              <AuraBakeryRecommendations
+                selectedEmployeeName={selectedEmployeeName}
+                onToggleSarah={toggleSarahSelection}
+              />
+            </div>
+          ) : null}
+          <div ref={scrollAnchorRef} />
+        </div>
+        <footer className="shrink-0 border-t border-[#e2e5ec] bg-white px-4 py-3">
+          {selectedEmployeeName ? (
+            <div className="mb-3 rounded-lg border border-[#bfdbfe] bg-white px-3 py-3 shadow-sm">
+              <p className="text-[14px] font-medium leading-5 text-[#1e3a8a]">1 employees selected</p>
+              <button
+                type="button"
+                className="mt-2 h-10 w-full rounded-md bg-primary px-4 text-[15px] font-semibold text-white transition hover:bg-[#0858b9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              >
+                Send Request
+              </button>
+            </div>
+          ) : null}
+          <form className="flex items-center gap-2 rounded-lg border border-[#c9cbd2] bg-white px-3 py-2" onSubmit={(event) => event.preventDefault()}>
+            <input
+              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#888888]"
+              placeholder="Ask AURA to review this request"
+              aria-label="Ask AURA to review this request"
+            />
+            <button
+              type="submit"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-white transition hover:bg-[#0858b9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label="Send message to AURA AI"
+            >
+              <Send className="h-5 w-5" />
+            </button>
+          </form>
+        </footer>
+      </aside>
+    </>
   );
 }
 
@@ -287,7 +620,7 @@ function EmployeeCard({
       className={cn(
         "rounded-xl border bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.14)] transition",
         selected ? "border-primary bg-blue-50/30 ring-1 ring-primary/20" : "border-slate-200",
-        requestSent && "border-green-300 bg-green-50/40",
+        requestSent && "border-slate-300 bg-slate-50 ring-0 opacity-90",
       )}
     >
       <div className="space-y-3">
@@ -302,7 +635,8 @@ function EmployeeCard({
             className={cn(
               "mt-3 flex h-6 w-6 shrink-0 items-center justify-center rounded border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
               selected ? "border-primary bg-primary text-white" : "border-slate-300 bg-white text-transparent",
-              isInteractive && !requestSent ? "cursor-pointer hover:border-primary" : "cursor-default",
+              requestSent && "border-slate-300 bg-slate-200 text-slate-500",
+              isInteractive && !requestSent ? "cursor-pointer hover:border-primary" : "cursor-not-allowed",
             )}
           >
             {selected ? <Check className="h-4 w-4" /> : null}
@@ -310,7 +644,11 @@ function EmployeeCard({
           <img src={employee.avatar} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
           <div className="min-w-0 flex-1">
             <p className="whitespace-normal break-words text-[16px] font-semibold leading-snug text-slate-900">{employee.name}</p>
-            {requestSent ? <p className="mt-1 text-[13px] font-semibold leading-4 text-green-700">Request Sent</p> : null}
+            {requestSent ? (
+              <span className="mt-1 inline-flex rounded-full border border-[#d1d5db] bg-[#f3f4f6] px-2 py-0.5 text-[12px] font-medium leading-4 text-[#6b7280]">
+                Pending Approval
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -333,7 +671,7 @@ function EmployeeCard({
           <div className="flex gap-2.5">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <div className="min-w-0">
-              <p className="text-[14px] font-semibold leading-snug text-primary">Proposed</p>
+              <p className="text-[14px] font-semibold leading-snug text-primary">AI Recommendation</p>
               <p className="mt-1 whitespace-normal break-words text-[14px] font-medium leading-snug text-blue-950">{employee.proposed}</p>
             </div>
           </div>
@@ -591,6 +929,12 @@ function SolutionCard({
 }) {
   const isRequestSent = requestSentEmployeeId === "Sarah Johnson";
   const canSendRequest = selectedEmployeeId === "Sarah Johnson" && !isRequestSent;
+  const isAdjustAvailabilityCard = title === "Adjust Availability";
+  const selectedCount = selectedEmployeeId === "Sarah Johnson" ? 1 : 0;
+  const showSelectedIndicator = isAdjustAvailabilityCard && selectedCount > 0;
+  const orderedEmployees = isRequestSent
+    ? [...employees].sort((a, b) => (a.name === "Sarah Johnson" ? 1 : b.name === "Sarah Johnson" ? -1 : 0))
+    : employees;
 
   return (
     <section className={cn("flex h-[640px] min-w-0 max-w-full flex-col overflow-hidden rounded-[14px] border bg-[#f4f5fb] 2xl:h-[720px]", selected ? "border-2 border-primary" : "border-[#cfd3dc]")}> 
@@ -609,10 +953,10 @@ function SolutionCard({
             "h-[31px] shrink-0 rounded-md px-4 text-[17px] font-medium leading-[22px] transition",
             canSendRequest && "cursor-pointer bg-primary text-white hover:bg-[#0858b9]",
             !canSendRequest && !isRequestSent && "cursor-not-allowed bg-[#e5e5e5] text-[#8a8a8a]",
-            isRequestSent && "cursor-not-allowed bg-green-100 text-green-700",
+            isRequestSent && "cursor-not-allowed border border-[#d1d5db] bg-[#e5e7eb] text-[#6b7280]",
           )}
         >
-          {isRequestSent ? "Request Sent" : "Send Request"}
+          {isRequestSent ? "Pending Approval" : "Send Request"}
         </button>
       </div>
       <div className="grid min-h-[88px] shrink-0 grid-cols-3 gap-0 px-4 py-3 2xl:min-h-[98px] 2xl:px-8 2xl:py-4">
@@ -622,21 +966,41 @@ function SolutionCard({
           </div>
         ))}
       </div>
-      <div className="mx-4 flex h-16 shrink-0 items-center justify-between rounded-md bg-white px-4">
-        <p className="flex items-center gap-2 text-[16px] leading-5 text-slate-900">
-          <Users className="h-5 w-5" />
-          {employeeCount}
-        </p>
-        <button
-          type="button"
-          aria-label={`Search ${title} employees`}
-          className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 bg-white transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          <Search className="h-5 w-5 text-slate-900" />
-        </button>
-      </div>
+      {showSelectedIndicator ? (
+        <div className="mx-4 shrink-0 rounded-md bg-white px-4 py-2.5">
+          <p aria-live="polite" className="flex items-center gap-2 text-[16px] font-medium leading-6 text-[#334155]">
+            <Users aria-hidden="true" className="h-5 w-5 text-[#475569]" />
+            {selectedCount} of 3 Employees Selected
+          </p>
+          <p className="mt-2 text-[16px] font-normal leading-6 text-[#334155]">Reduce the skill Gap 85%</p>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
+            <div
+              role="progressbar"
+              aria-label="Skill gap reduction progress"
+              aria-valuenow={85}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              className="h-full w-[85%] rounded-full bg-[#34b233]"
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="mx-4 flex h-16 shrink-0 items-center justify-between rounded-md bg-white px-4">
+          <p className="flex items-center gap-2 text-[16px] leading-5 text-slate-900">
+            <Users className="h-5 w-5" />
+            {employeeCount}
+          </p>
+          <button
+            type="button"
+            aria-label={`Search ${title} employees`}
+            className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 bg-white transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <Search className="h-5 w-5 text-slate-900" />
+          </button>
+        </div>
+      )}
       <div className="scrollbar-slim grid min-h-0 flex-1 grid-cols-1 content-start gap-4 overflow-y-auto px-4 py-4 2xl:grid-cols-2">
-        {employees.map((employee) => (
+        {orderedEmployees.map((employee) => (
           <EmployeeCard
             key={employee.name}
             employee={employee}
@@ -676,7 +1040,7 @@ function SkillGapDetailPane() {
   function handleConfirmSendRequest() {
     setIsModalOpen(false);
     setRequestSentEmployeeId("Sarah Johnson");
-    setSelectedEmployeeId("Sarah Johnson");
+    setSelectedEmployeeId(null);
     setShowSuccessToast(true);
   }
 
@@ -707,7 +1071,7 @@ function SkillGapDetailPane() {
           <SolutionCard
             title="Adjust Availability"
             icon={CalendarDays}
-            selected
+            selected={!requestSentEmployeeId}
             employeeCount="3 Employees"
             metrics={[
               { icon: TrendingUp, label: "Gap Reduction", value: "85%" },
@@ -737,8 +1101,14 @@ function SkillGapDetailPane() {
   );
 }
 
-export function SkillGapDesktopScreen() {
+export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard" | "askAura" }) {
   const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
+  const [isAuraOpen, setIsAuraOpen] = useState(false);
+  const isAskAuraFlow = mode === "askAura";
+
+  function handleAskAura() {
+    setIsAuraOpen(true);
+  }
 
   return (
     <AppShell activeNavLabel="Home" profile={{ name: "Smith, Jane", role: "Store Manager", avatar: "SJ", badge: 9, avatarUrl: profileAvatar }}>
@@ -783,10 +1153,16 @@ export function SkillGapDesktopScreen() {
             <aside className="min-w-0 border-r border-[#d9dde5] bg-white px-3 py-3 2xl:px-4">
               <div className="flex h-10 items-center justify-between">
                 <h2 className="text-[21px] font-normal leading-[30px] text-[#111827]">Skill Gap Alerts</h2>
-                <button type="button" className="flex h-10 items-center gap-2 rounded-md border border-primary bg-white px-4 text-[17px] font-medium leading-[22px] text-primary">
-                  <Sparkles className="h-4 w-4" />
-                  Ask
-                </button>
+                {isAskAuraFlow ? (
+                  <button
+                    type="button"
+                    onClick={handleAskAura}
+                    className="flex h-10 items-center gap-2 rounded-md border border-primary bg-white px-4 text-[17px] font-medium leading-[22px] text-primary transition hover:bg-[#f5f8ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Ask Aura
+                  </button>
+                ) : null}
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3 2xl:grid-cols-[189px_200px] 2xl:gap-4">
@@ -794,19 +1170,25 @@ export function SkillGapDesktopScreen() {
                   <span>4 weeks</span>
                   <ChevronDown className="h-4 w-4 text-[#5c5c5c]" />
                 </div>
-                <div className="flex h-9 items-center justify-between rounded-md border border-[#d4d7df] bg-white px-3 text-[17px] leading-[22px]">
-                  <span>All Labor Task</span>
+                <div className="flex h-9 items-center justify-between rounded-md border border-[#d4d7df] bg-white px-3 text-[17px] leading-normal">
+                  <span className="flex h-full items-center whitespace-nowrap">All Labor Task</span>
                   <ChevronDown className="h-4 w-4 text-[#5c5c5c]" />
                 </div>
               </div>
 
               <p className="mt-4 text-[15px] leading-5 text-[#374151]">
-                Showing 8 alerts: <span className="font-semibold">4 Weeks(5/3/26 - 5/24/26)</span>
+                Showing 6 alerts: <span className="font-semibold">4 Weeks(5/3/26 - 5/24/26)</span>
               </p>
 
               <div className="scrollbar-slim mt-2 max-h-[calc(100vh-300px)] min-h-[420px] space-y-2 overflow-y-auto pr-1 2xl:min-h-[520px]">
-                {alertCards.map((alert) => (
-                  <AlertCard key={alert.id} id={alert.id} isActive={selectedAlertId === alert.id} onClick={() => setSelectedAlertId(alert.id)} />
+                {alertCards.map((alert, index) => (
+                  <AlertCard
+                    key={alert.id}
+                    card={alert}
+                    index={index}
+                    isActive={selectedAlertId === alert.id}
+                    onClick={() => setSelectedAlertId(alert.id)}
+                  />
                 ))}
               </div>
             </aside>
@@ -815,6 +1197,13 @@ export function SkillGapDesktopScreen() {
           </div>
         </section>
       </div>
+      {isAskAuraFlow ? (
+        <SkillGapAuraAssistant
+          isOpen={isAuraOpen}
+          onOpen={() => setIsAuraOpen(true)}
+          onClose={() => setIsAuraOpen(false)}
+        />
+      ) : null}
     </AppShell>
   );
 }

@@ -23,6 +23,7 @@ export type AvailabilityValidationState = "valid" | "warning";
 function DemoNavigationScreen() {
   const desktopLinks = [
     { label: "Skill Gap - Desktop", to: "/skill-gap-desktop" },
+    { label: "Ask Aura — Desktop", to: "/skill-gap-ask-aura" },
     { label: "Availability - Desktop", to: "/availability-desktop" },
     { label: "Time Off - Desktop", to: "/time-off-desktop" },
   ];
@@ -446,6 +447,7 @@ export default function App() {
         <Route path="/demo" element={<DemoNavigationScreen />} />
         <Route path="/availability-desktop" element={<AvailabilityDesktopScreen />} />
         <Route path="/skill-gap-desktop" element={<SkillGapDesktopScreen />} />
+        <Route path="/skill-gap-ask-aura" element={<SkillGapDesktopScreen mode="askAura" />} />
         <Route path="/time-off-desktop" element={<TimeOffDesktopScreen />} />
         <Route path="/skill-gap-tablet" element={<PlaceholderScreen title="Skill Gap - Tablet" />} />
         <Route path="/availability-tablet" element={<AvailabilityTabletScreen />} />
