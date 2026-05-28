@@ -11,7 +11,6 @@ type RequestFormProps = {
 };
 
 export function RequestForm({ onCycleDate, isTouchMode = false }: RequestFormProps) {
-  const [rotation, setRotation] = useState(request.rotations[0]);
   const [reason, setReason] = useState(request.reasons[0]);
 
   return (
@@ -62,22 +61,6 @@ export function RequestForm({ onCycleDate, isTouchMode = false }: RequestFormPro
             >
               <ChevronRight className="h-5 w-5" />
             </button>
-          </div>
-
-          <div className="mt-3">
-            <Select
-              label={
-                <span>
-                  Rotation<span className="text-[#e22d20]">*</span>
-                </span>
-              }
-              value={rotation}
-              onChange={(event) => setRotation(event.target.value)}
-            >
-              {request.rotations.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </Select>
           </div>
 
           <div className="mt-3">

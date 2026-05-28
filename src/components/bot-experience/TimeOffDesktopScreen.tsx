@@ -1,8 +1,9 @@
-import { AlertTriangle, Calendar, Check, CheckCircle2, ChevronDown, ChevronLeft, Clock3, Flag, Send, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Calendar, Check, CheckCircle2, ChevronDown, ChevronLeft, Clock3, Flag, Maximize2, Minimize2, Paperclip, Plus, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "./AppShell";
 import { cn } from "../../lib/utils";
+import sendButtonIcon from "../../assets/Send Button.svg";
 
 type CalendarDay = {
   label: string;
@@ -112,12 +113,12 @@ function ImpactSwatch({ color }: { color: string }) {
 
 function TimeOffTypingIndicator() {
   return (
-    <div className="max-w-[88%] rounded-lg bg-white px-3 py-2 text-[#5c5c5c] shadow-sm">
+    <div className="max-w-[88%] rounded-lg bg-[#E6F0FB] px-3 py-2 text-[#5c5c5c] shadow-sm">
       <span className="sr-only">AURA AI is typing</span>
       <span className="flex h-5 items-center gap-1" aria-hidden="true">
         <span className="aura-typing-dot" />
-        <span className="aura-typing-dot [animation-delay:140ms]" />
-        <span className="aura-typing-dot [animation-delay:280ms]" />
+        <span className="aura-typing-dot [animation-delay:420ms]" />
+        <span className="aura-typing-dot [animation-delay:840ms]" />
       </span>
     </div>
   );
@@ -224,6 +225,9 @@ function TimeOffAppliedCard({ windowId }: { windowId: TimeOffWindowId }) {
 
 function TimeOffAuraAssistant({ onApplyWindow }: { onApplyWindow: (windowId: TimeOffWindowId) => void }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [panelState, setPanelState] = useState<"closed" | "open" | "closing">("closed");
+  const [shouldNudgeLauncher, setShouldNudgeLauncher] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [draftMessage, setDraftMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [appliedWindow, setAppliedWindow] = useState<TimeOffWindowId | null>(null);
@@ -236,18 +240,47 @@ function TimeOffAuraAssistant({ onApplyWindow }: { onApplyWindow: (windowId: Tim
   ]);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const typingTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const nudgeTimerRef = useRef<number | null>(null);
+  const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const isPanelVisible = panelState !== "closed";
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, isTyping, isOpen]);
+  }, [messages, isTyping, isOpen, panelState]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (nudgeTimerRef.current) {
+      window.clearTimeout(nudgeTimerRef.current);
+      nudgeTimerRef.current = null;
+    }
+    setShouldNudgeLauncher(false);
+    setPanelState("open");
+    setIsFullscreen(false);
+  }, [isOpen]);
 
   useEffect(() => {
     return () => {
       if (typingTimerRef.current) {
         window.clearTimeout(typingTimerRef.current);
       }
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+      if (nudgeTimerRef.current) {
+        window.clearTimeout(nudgeTimerRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    resizeComposer();
+  }, [draftMessage, isOpen, panelState]);
 
   function getAssistantResponse(input: string): TimeOffAuraMessage {
     const normalized = input.toLowerCase();
@@ -303,6 +336,21 @@ function TimeOffAuraAssistant({ onApplyWindow }: { onApplyWindow: (windowId: Tim
     }, 620);
   }
 
+  function resizeComposer() {
+    const textarea = composerTextareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "56px";
+    const nextHeight = Math.min(textarea.scrollHeight, 180);
+    textarea.style.height = `${Math.max(56, nextHeight)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > 180 ? "auto" : "hidden";
+  }
+
+  function handleComposerKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  }
+
   function handleApplyWindow(windowId: TimeOffWindowId) {
     setAppliedWindow(windowId);
     onApplyWindow(windowId);
@@ -317,12 +365,34 @@ function TimeOffAuraAssistant({ onApplyWindow }: { onApplyWindow: (windowId: Tim
     ]);
   }
 
+  function handleClose() {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+    if (nudgeTimerRef.current) {
+      window.clearTimeout(nudgeTimerRef.current);
+    }
+    setPanelState("closing");
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      setPanelState("closed");
+      setIsFullscreen(false);
+      setIsOpen(false);
+      setShouldNudgeLauncher(true);
+      nudgeTimerRef.current = window.setTimeout(() => {
+        setShouldNudgeLauncher(false);
+        nudgeTimerRef.current = null;
+      }, 420);
+    }, 260);
+  }
+
   return (
     <>
       <div
         className={cn(
           "fixed bottom-4 right-4 z-50 transition-all duration-300 sm:bottom-6 sm:right-6",
           isOpen && "pointer-events-none translate-y-2 opacity-0",
+          !isOpen && shouldNudgeLauncher && "aura-launcher-nudge",
         )}
       >
         <button
@@ -338,29 +408,48 @@ function TimeOffAuraAssistant({ onApplyWindow }: { onApplyWindow: (windowId: Tim
 
       <aside
         className={cn(
-          "fixed bottom-3 right-3 top-3 z-50 flex w-[calc(100vw-24px)] max-w-[clamp(360px,28vw,420px)] origin-bottom-right flex-col overflow-hidden rounded-xl border border-[#d8dce6] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] transition-all duration-300 ease-out sm:bottom-5 sm:right-5 sm:top-16",
-          isOpen ? "translate-x-0 scale-100 opacity-100" : "pointer-events-none translate-x-[calc(100%+32px)] scale-95 opacity-0",
+          "fixed z-50 flex w-[calc(100vw-24px)] max-w-[clamp(360px,28vw,420px)] origin-bottom-right flex-col overflow-hidden border border-[#d8dce6] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] transition-all duration-300 ease-out",
+          isFullscreen
+            ? "bottom-0 right-0 top-0 w-full max-w-[clamp(360px,28vw,420px)] rounded-none sm:bottom-0 sm:right-0 sm:top-0"
+            : "bottom-3 right-3 top-3 rounded-xl sm:bottom-5 sm:right-5 sm:top-16",
+          panelState === "open" && "aura-panel-open translate-x-0 scale-100 opacity-100",
+          panelState === "closing" && "aura-panel-closing pointer-events-none",
+          panelState === "closed" && "pointer-events-none translate-x-[calc(100%+32px)] scale-95 opacity-0",
         )}
-        aria-hidden={!isOpen}
+        aria-hidden={!isPanelVisible}
       >
-        <header className="flex items-start justify-between border-b border-[#e2e5ec] bg-gradient-to-r from-[#f8fbff] to-[#f6f0ff] px-5 py-4">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#0868db] to-[#7c3aed] text-white shadow-md">
-              <Sparkles className="h-5 w-5" />
+        <header className="flex h-[60px] items-center justify-between border-b border-[#e5e7eb] bg-white px-5">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#e9f5ff] text-[#0868db]">
+              <Sparkles className="h-3.5 w-3.5" />
             </span>
-            <div>
-              <h2 className="text-[19px] font-semibold leading-6 text-[#1f2937]">AURA AI</h2>
-              <p className="text-[13px] font-medium text-[#5c5c5c]">WFM Intelligence Copilot</p>
-            </div>
+            <h2 className="text-[16px] font-semibold leading-5 text-[#1f2937]">AURA</h2>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-white hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-            aria-label="Close AURA AI assistant"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label="Add new"
+            >
+              <Plus className="h-4.5 w-4.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsFullscreen((current) => !current)}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label="Close AURA assistant"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+          </div>
         </header>
 
         <div className="scrollbar-slim min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#f7f8fb] px-5 py-4">
@@ -371,12 +460,12 @@ function TimeOffAuraAssistant({ onApplyWindow }: { onApplyWindow: (windowId: Tim
                 "animate-[aura-message-in_180ms_ease-out] rounded-lg px-3 py-2 text-[14px] leading-5 shadow-sm",
                 message.role === "assistant"
                   ? cn(
-                      "max-w-[92%] bg-white text-[#333333]",
+                      "max-w-[92%] bg-[#E6F0FB] text-[#333333]",
                       message.variant === "lowConflict" && "bg-[#f0f1f6] p-4",
                       message.variant === "warning" && "border border-[#fcd34d] bg-[#fff7ed] p-3",
                       message.variant === "appliedTimeOff" && "bg-transparent p-0 shadow-none",
                     )
-                  : "ml-auto max-w-[84%] bg-primary text-white",
+                  : "ml-auto max-w-[84%] bg-[#F4F5FA] text-[#111827]",
               )}
             >
               {message.variant === "warning" ? <TimeOffWarningCard /> : null}
@@ -393,22 +482,32 @@ function TimeOffAuraAssistant({ onApplyWindow }: { onApplyWindow: (windowId: Tim
         </div>
 
         <footer className="shrink-0 border-t border-[#e2e5ec] bg-white px-4 py-3">
-          <form className="flex items-center gap-2 rounded-lg border border-[#c9cbd2] bg-white px-3 py-2" onSubmit={handleSubmit}>
-            <input
-              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#888888]"
-              placeholder="Ask AURA to review this request"
-              aria-label="Ask AURA to review this request"
+          <form className="flex min-h-[56px] items-end gap-3 rounded-[40px] border border-[#c9cbd2] bg-white px-3 py-2 shadow-sm transition-[min-height] duration-200" onSubmit={handleSubmit}>
+            <button
+              type="button"
+              className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#5c5c5c] transition hover:bg-[#f3f6fb] hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label="Attach file"
+            >
+              <Paperclip className="h-5 w-5" />
+            </button>
+            <textarea
+              ref={composerTextareaRef}
+              rows={1}
+              className="min-h-[56px] max-h-[180px] min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent py-4 text-[16px] leading-[1.4] text-[#111827] outline-none placeholder:text-[#888888]"
+              placeholder="Ask AURA"
+              aria-label="Ask AURA"
               value={draftMessage}
               onChange={(event) => setDraftMessage(event.target.value)}
+              onKeyDown={handleComposerKeyDown}
               disabled={isTyping}
             />
             <button
               type="submit"
-              disabled={isTyping || !draftMessage.trim()}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-white transition hover:bg-[#0858b9] disabled:cursor-not-allowed disabled:bg-[#b7c5d8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              aria-label="Send message to AURA AI"
+              disabled
+              className="mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label="Send message"
             >
-              <Send className="h-5 w-5" />
+              <img src={sendButtonIcon} alt="" className="h-12 w-12" aria-hidden="true" />
             </button>
           </form>
         </footer>

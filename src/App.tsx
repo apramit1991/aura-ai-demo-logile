@@ -37,10 +37,7 @@ function DemoNavigationScreen() {
       title: "Skill Gap",
       description: "Review skill shortages, AI recommendations, and Ask Aura assistance.",
       links: [
-        { label: "Skill Gap AI Recommendation — Desktop", to: "/skill-gap-desktop", device: "Desktop", icon: Monitor },
         { label: "Skill Gap Ask Aura — Desktop", to: "/skill-gap-ask-aura", device: "Desktop", icon: Monitor },
-        { label: "Skill Gap AI Recommendation — Tablet", to: "/skill-gap-tablet", device: "Tablet", icon: Tablet },
-        { label: "Skill Gap Ask Aura — Tablet", to: "/skill-gap-ask-aura-tablet", device: "Tablet", icon: Tablet },
       ],
     },
     {
@@ -151,6 +148,7 @@ function AvailabilityDesktopScreen() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
+  const [managerToastVisible, setManagerToastVisible] = useState(false);
   const [availabilityValidationState, setAvailabilityValidationState] = useState<AvailabilityValidationState>("valid");
   const searchParams = new URLSearchParams(window.location.search);
   const isTabletEmbed = searchParams.get("tablet") === "1";
@@ -261,6 +259,12 @@ function AvailabilityDesktopScreen() {
     window.setTimeout(() => setToastVisible(false), 3600);
   }
 
+  function handleSendToManager(finalRows: RecommendationData) {
+    handleApplyRecommendation(finalRows, { validationState: "valid" });
+    setManagerToastVisible(true);
+    window.setTimeout(() => setManagerToastVisible(false), 3600);
+  }
+
   return (
     <AppShell showDemoBackLink={!isEmbedded}>
       {toastVisible ? (
@@ -274,6 +278,25 @@ function AvailabilityDesktopScreen() {
             <button
               type="button"
               onClick={() => setToastVisible(false)}
+              className="rounded p-1 text-white/80 hover:bg-white/10 hover:text-white"
+              aria-label="Close success toast"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {managerToastVisible ? (
+        <div className="fixed right-6 top-6 z-[72] w-[360px] rounded-lg bg-[#1f8f46] p-4 text-white shadow-[0_18px_45px_rgba(15,23,42,0.22)]">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-white" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold">Request sent successfully</p>
+              <p className="mt-1 text-[13px] text-white/90">Your availability request has been sent to your manager.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setManagerToastVisible(false)}
               className="rounded p-1 text-white/80 hover:bg-white/10 hover:text-white"
               aria-label="Close success toast"
             >
@@ -329,6 +352,7 @@ function AvailabilityDesktopScreen() {
       <AuraAssistant
         onApplyRecommendation={handleApplyRecommendation}
         onUndoRecommendation={handleUndoRecommendation}
+        onSendToManager={handleSendToManager}
         hasPopulatedRows={hasPopulatedRows}
         isSubmitted={isSubmitted}
         hideLauncherTooltip={isTouchMode}

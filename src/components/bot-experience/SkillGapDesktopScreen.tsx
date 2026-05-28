@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  Bot,
   AlertCircle,
   AlertTriangle,
   Calendar,
@@ -15,8 +14,11 @@ import {
   HelpCircle,
   Info,
   Calendar as CalendarIcon,
+  Maximize2,
+  Minimize2,
+  Paperclip,
+  Plus,
   Search,
-  Send,
   Sparkles,
   TrendingUp,
   Users,
@@ -32,6 +34,7 @@ import jessicaAvatar from "../../assets/skill-gap/jessica-brown.png";
 import ryanAvatar from "../../assets/skill-gap/ryan-anderson.png";
 import alexAvatar from "../../assets/skill-gap/alex-thompson.png";
 import jordanAvatar from "../../assets/skill-gap/jordan-mitchell.png";
+import sendButtonIcon from "../../assets/Send Button.svg";
 
 const alertCards = [
   { id: 1, title: "Bakery - Baking, 40h", action: "Click on Card for solution" },
@@ -188,160 +191,109 @@ const criticalSkillGapAlerts = [
   },
 ];
 
-function AuraRecommendationEmployeeCard({
+type AskAuraAvailabilityEmployee = {
+  name: "Sarah Johnson" | "Emily Carter";
+  avatar: string;
+  skillLevel: string;
+  impact: string;
+};
+
+type AskAuraPhase =
+  | "awaitCriticalGapPrompt"
+  | "awaitCriticalCardClick"
+  | "awaitSendPrompt"
+  | "awaitSendConfirm"
+  | "awaitClosePrompt"
+  | "done";
+
+type AskAuraMessage =
+  | { id: number; role: "assistant" | "user"; kind: "text"; text: string }
+  | { id: number; role: "assistant"; kind: "criticalGapCards" }
+  | { id: number; role: "assistant"; kind: "availabilityCards" };
+
+type AskAuraMessagePayload =
+  | { role: "assistant" | "user"; kind: "text"; text: string }
+  | { role: "assistant"; kind: "criticalGapCards" }
+  | { role: "assistant"; kind: "availabilityCards" };
+
+const askAuraAvailabilityEmployees: AskAuraAvailabilityEmployee[] = [
+  { name: "Sarah Johnson", avatar: sarahAvatar, skillLevel: "Secondary skill", impact: "85% gap reduction" },
+  { name: "Emily Carter", avatar: emilyAvatar, skillLevel: "Tertiary skill", impact: "100% reduction with Sarah Johnson" },
+];
+
+function normalizePrompt(value: string) {
+  return value.toLowerCase().replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function matchesCriticalGapPrompt(value: string) {
+  const prompt = normalizePrompt(value);
+  return prompt.includes("critical skill gaps") || (prompt.includes("yes") && prompt.includes("skill gap"));
+}
+
+function matchesSendPrompt(value: string) {
+  const prompt = normalizePrompt(value);
+  return prompt.includes("sending the request for availability") || (prompt.includes("send") && prompt.includes("availability"));
+}
+
+function matchesYesPrompt(value: string) {
+  const prompt = normalizePrompt(value);
+  return prompt === "yes" || prompt === "yes please";
+}
+
+function matchesNoThanksPrompt(value: string) {
+  const prompt = normalizePrompt(value);
+  return prompt === "no thanks" || prompt === "no thanks.";
+}
+
+function AskAuraEmployeeCard({
   employee,
-  selected = false,
-  selectable = false,
-  onSelect,
+  selected,
+  disabled = false,
+  onToggle,
+  subtitle,
+  status,
 }: {
-  employee: RecommendationEmployee;
-  selected?: boolean;
-  selectable?: boolean;
-  onSelect?: () => void;
+  employee: { name: string; avatar: string };
+  selected: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+  subtitle: string;
+  status?: string;
 }) {
   return (
     <article
       className={cn(
-        "rounded-md border bg-white px-3 py-3 transition",
-        selected ? "border-primary bg-[#e8f2ff]" : "border-[#d8dce6]",
-        selectable && "cursor-pointer hover:border-primary/70",
+        "rounded-lg border px-3 py-3 transition",
+        disabled ? "border-[#d1d5db] bg-[#f3f4f6]" : selected ? "border-primary bg-[#e8f2ff]" : "border-[#d8dce6] bg-white",
       )}
-      onClick={selectable ? onSelect : undefined}
     >
       <div className="flex items-start gap-3">
         <button
           type="button"
           aria-label={`Select ${employee.name}`}
           aria-checked={selected}
-          disabled={!selectable}
           role="checkbox"
-          onClick={(event) => {
-            event.stopPropagation();
-            onSelect?.();
-          }}
+          disabled={disabled}
+          onClick={onToggle}
           className={cn(
             "mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition",
-            selected ? "border-primary bg-primary text-white" : "border-[#c9cbd2] bg-white",
-            selectable ? "cursor-pointer hover:border-primary" : "cursor-default",
+            disabled ? "cursor-not-allowed border-slate-400 bg-slate-200 text-slate-600" : selected ? "border-primary bg-primary text-white" : "border-[#c9cbd2] bg-white",
           )}
         >
-          {selected ? <Check className="h-3.5 w-3.5" /> : null}
+          {(selected || disabled) ? <Check className="h-3.5 w-3.5" /> : null}
         </button>
         <img src={employee.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
         <div className="min-w-0 flex-1">
           <p className="text-[16px] font-semibold leading-5 text-[#111827]">{employee.name}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {employee.badges.map((badge) => (
-              <span key={badge} className="rounded-full bg-[#d7e9ff] px-2.5 py-0.5 text-[13px] font-medium leading-5 text-[#1f2937]">
-                {badge}
-              </span>
-            ))}
-          </div>
+          <p className="mt-1 text-[13px] leading-5 text-[#334155]">{subtitle}</p>
+          {status ? (
+            <span className="mt-2 inline-flex rounded-full border border-[#d1d5db] bg-[#e5e7eb] px-2 py-0.5 text-[12px] font-medium leading-4 text-[#6b7280]">
+              {status}
+            </span>
+          ) : null}
         </div>
-      </div>
-      <div className="mt-3 space-y-2 text-[13px] leading-5 text-[#334155]">
-        <p><span className="font-semibold text-[#111827]">Current:</span> {employee.current}</p>
-        <p><span className="font-semibold text-[#111827]">Required:</span> {employee.required}</p>
-        {employee.proposed ? (
-          <p className="rounded-md border border-blue-100 bg-blue-50 px-2 py-1.5 text-primary">
-            <span className="font-semibold">AI Recommendation:</span> {employee.proposed}
-          </p>
-        ) : null}
       </div>
     </article>
-  );
-}
-
-function AuraBakeryRecommendations({
-  selectedEmployeeName,
-  onToggleSarah,
-}: {
-  selectedEmployeeName: string | null;
-  onToggleSarah: () => void;
-}) {
-  return (
-    <div className="rounded-xl border border-[#d8dce6] bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-[#e5e7eb] px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#e8f2ff] text-primary">
-            <Bot className="h-4 w-4" />
-          </span>
-          <h3 className="text-[18px] font-semibold leading-6 text-primary">Aura Recommendations for Bakery - Baking</h3>
-        </div>
-      </div>
-
-      <div className="px-4 py-3">
-        <p className="text-[15px] font-medium leading-5 text-primary">Best Option: Adjust Availability</p>
-        <p className="mt-1 text-[13px] leading-5 text-[#1f2937]">Adjust employee availability offers the fastest resolution with lowest risk.</p>
-      </div>
-
-      <div className="border-t border-[#e5e7eb] px-4 py-4">
-        <h4 className="text-[18px] font-semibold leading-6 text-[#111827]">Recommended Employees</h4>
-        {selectedEmployeeName ? (
-          <div className="mt-3 rounded-none bg-[#f4f5fb] px-3 py-3">
-            <p className="flex items-center gap-2 text-[14px] font-medium leading-5 text-[#334155]">
-              <Users className="h-4 w-4 text-[#475569]" />
-              1 of 3 Employees Selected
-            </p>
-            <p className="mt-3 text-[13px] font-semibold leading-5 text-[#334155]">Reduce the skill Gap 85%</p>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
-              <div className="h-full w-[85%] rounded-full bg-[#34b233]" />
-            </div>
-          </div>
-        ) : null}
-        <div className="mt-3 space-y-3">
-          {adjustEmployees.map((employee) => (
-            <AuraRecommendationEmployeeCard
-              key={employee.name}
-              employee={employee}
-              selected={selectedEmployeeName === employee.name}
-              selectable={employee.name === "Sarah Johnson"}
-              onSelect={employee.name === "Sarah Johnson" ? onToggleSarah : undefined}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AuraCrossTrainRecommendations() {
-  return (
-    <div className="animate-[aura-message-in_180ms_ease-out] rounded-xl border border-[#d8dce6] bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b border-[#e5e7eb] px-4 py-3">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#e8f2ff] text-primary">
-          <Bot className="h-4 w-4" />
-        </span>
-        <h3 className="text-[18px] font-semibold leading-6 text-primary">Cross-Train Candidates</h3>
-      </div>
-      <div className="space-y-3 px-4 py-4">
-        {crossTrainEmployees.slice(0, 2).map((employee) => (
-          <AuraRecommendationEmployeeCard
-            key={employee.name}
-            employee={employee}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function AuraDailyBriefingMessage() {
-  return (
-    <div className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-lg bg-white px-3 py-3 text-[#333333] shadow-sm">
-      <p className="text-[15px] leading-5">Hey, Jane. Here's your daily briefing — tap an item to dig in.</p>
-      <div className="mt-3 space-y-2 text-[14px] leading-5">
-        <div>
-          <p className="font-semibold text-[#111827]">Store 149 – Bakery Dashboard</p>
-          <p className="text-[#5c5c5c]">4-week review (May 3–24, 2026)</p>
-        </div>
-        <p><span className="font-semibold text-[#111827]">Skill gap:</span> 34 hrs, mainly Sunday mornings + evening shifts (Sun–Tue).</p>
-        <p><span className="font-semibold text-[#111827]">Critical needs:</span> Sunday morning, Mon/Tue evenings, plus Fri &amp; Sat.</p>
-        <p><span className="font-semibold text-[#111827]">Pattern:</span> Evening shifts consistently understaffed.</p>
-        <p><span className="font-semibold text-[#111827]">Recommendation:</span> Adjust Sarah Johnson &amp; Michael Chen’s schedules → reduces gap by 85%.</p>
-        <p><span className="font-semibold text-[#111827]">Takeaway:</span> Rebalancing availability strengthens coverage during peak bakery hours.</p>
-      </div>
-    </div>
   );
 }
 
@@ -349,117 +301,232 @@ function SkillGapAuraAssistant({
   isOpen,
   onOpen,
   onClose,
-  onSendRequest,
+  onSendAvailabilityRequests,
 }: {
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
-  onSendRequest: () => void;
+  onSendAvailabilityRequests: (employees: string[]) => void;
 }) {
-  const [showStarterAction, setShowStarterAction] = useState(true);
-  const [showCriticalSummary, setShowCriticalSummary] = useState(false);
-  const [showInsightMessage, setShowInsightMessage] = useState(false);
-  const [showBakeryRecommendation, setShowBakeryRecommendation] = useState(false);
-  const [showCrossTrainSuggestion, setShowCrossTrainSuggestion] = useState(false);
+  const [panelState, setPanelState] = useState<"closed" | "open" | "closing">("closed");
+  const [shouldNudgeLauncher, setShouldNudgeLauncher] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [messages, setMessages] = useState<AskAuraMessage[]>([]);
+  const [phase, setPhase] = useState<AskAuraPhase>("awaitCriticalGapPrompt");
   const [isAuraTyping, setIsAuraTyping] = useState(false);
   const [draftMessage, setDraftMessage] = useState("");
-  const [submittedPrompt, setSubmittedPrompt] = useState<string | null>(null);
-  const [selectedEmployeeName, setSelectedEmployeeName] = useState<string | null>(null);
+  const [selectedCriticalGapCard, setSelectedCriticalGapCard] = useState<string | null>(null);
+  const [selectedAvailabilityEmployees, setSelectedAvailabilityEmployees] = useState<Set<string>>(new Set());
+  const [sentAvailabilityEmployees, setSentAvailabilityEmployees] = useState<Set<string>>(new Set());
   const typingTimerRef = useRef<number | null>(null);
-  const insightTimerRef = useRef<number | null>(null);
-  const recommendationTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const nudgeTimerRef = useRef<number | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const nextMessageIdRef = useRef(1);
+  const hasStartedConversationRef = useRef(false);
+  const isPanelVisible = panelState !== "closed";
 
-  function clearAuraTimers() {
-    [typingTimerRef, insightTimerRef, recommendationTimerRef].forEach((timerRef) => {
-      if (timerRef.current) {
-        window.clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    });
+  function clearTypingTimer() {
+    if (typingTimerRef.current) {
+      window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+  }
+
+  function appendMessage(message: AskAuraMessagePayload) {
+    const next = { ...message, id: nextMessageIdRef.current++ } as AskAuraMessage;
+    setMessages((current) => [...current, next]);
+  }
+
+  function queueAssistant(messagesToAppend: AskAuraMessagePayload | AskAuraMessagePayload[], delay = 900) {
+    clearTypingTimer();
+    setIsAuraTyping(true);
+    typingTimerRef.current = window.setTimeout(() => {
+      const payload = Array.isArray(messagesToAppend) ? messagesToAppend : [messagesToAppend];
+      payload.forEach((message) => appendMessage(message));
+      setIsAuraTyping(false);
+      typingTimerRef.current = null;
+    }, delay);
+  }
+
+  function clearPanelTimers() {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (nudgeTimerRef.current) {
+      window.clearTimeout(nudgeTimerRef.current);
+      nudgeTimerRef.current = null;
+    }
   }
 
   useEffect(() => {
     if (!isOpen) {
-      clearAuraTimers();
+      clearTypingTimer();
+      setPanelState("closed");
       return;
     }
-    clearAuraTimers();
-    setShowStarterAction(true);
-    setShowCriticalSummary(false);
-    setShowInsightMessage(false);
-    setShowBakeryRecommendation(false);
-    setShowCrossTrainSuggestion(false);
-    setIsAuraTyping(false);
+    clearPanelTimers();
+    setPanelState("open");
+    setIsFullscreen(false);
+    setShouldNudgeLauncher(false);
     setDraftMessage("");
-    setSubmittedPrompt(null);
-    setSelectedEmployeeName(null);
+    if (!hasStartedConversationRef.current) {
+      hasStartedConversationRef.current = true;
+      nextMessageIdRef.current = 1;
+      setPhase("awaitCriticalGapPrompt");
+      setSelectedCriticalGapCard(null);
+      setSelectedAvailabilityEmployees(new Set());
+      setSentAvailabilityEmployees(new Set());
+      queueAssistant({
+        role: "assistant",
+        kind: "text",
+        text: "Hello Jane, how would you like to get started? Would you like me to check upcoming skill gaps?",
+      });
+    }
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [isAuraTyping, showCriticalSummary, showInsightMessage, showBakeryRecommendation, showCrossTrainSuggestion, submittedPrompt, selectedEmployeeName, isOpen]);
+  }, [isAuraTyping, messages, isOpen]);
 
   useEffect(() => {
     return () => {
-      clearAuraTimers();
+      clearTypingTimer();
+      clearPanelTimers();
     };
   }, []);
 
-  function handleSummariseCriticalGaps() {
-    if (!showStarterAction || isAuraTyping) return;
-    clearAuraTimers();
-    setShowStarterAction(false);
-    setIsAuraTyping(true);
-    typingTimerRef.current = window.setTimeout(() => {
-      setIsAuraTyping(false);
-      setShowCriticalSummary(true);
-      typingTimerRef.current = null;
-    }, 560);
+  useEffect(() => {
+    resizeComposer();
+  }, [draftMessage, isOpen, panelState]);
+
+  function handleClose() {
+    clearPanelTimers();
+    setPanelState("closing");
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      setPanelState("closed");
+      setIsFullscreen(false);
+      setShouldNudgeLauncher(true);
+      onClose();
+      nudgeTimerRef.current = window.setTimeout(() => {
+        setShouldNudgeLauncher(false);
+        nudgeTimerRef.current = null;
+      }, 420);
+    }, 260);
   }
 
-  function handleBakeryAlertClick() {
-    if (!showCriticalSummary || showBakeryRecommendation || isAuraTyping) return;
-    clearAuraTimers();
-    setIsAuraTyping(true);
-    typingTimerRef.current = window.setTimeout(() => {
-      setIsAuraTyping(false);
-      setShowInsightMessage(true);
-      typingTimerRef.current = null;
-    }, 560);
-    recommendationTimerRef.current = window.setTimeout(() => {
-      setShowBakeryRecommendation(true);
-      recommendationTimerRef.current = null;
-    }, 920);
+  function submitDraftMessage(messageOverride?: string) {
+    const trimmedMessage = (messageOverride ?? draftMessage).trim();
+    if (!trimmedMessage || isAuraTyping) return;
+
+    appendMessage({ role: "user", kind: "text", text: trimmedMessage });
+    setDraftMessage("");
+
+    if (phase === "awaitCriticalGapPrompt") {
+      if (!matchesCriticalGapPrompt(trimmedMessage)) {
+        queueAssistant({ role: "assistant", kind: "text", text: "Please ask me for the critical skill gaps to get started." });
+        return;
+      }
+      setPhase("awaitCriticalCardClick");
+      queueAssistant([
+        { role: "assistant", kind: "text", text: "These are the three critical skill gaps. Click on a card to view the resolution." },
+        { role: "assistant", kind: "criticalGapCards" },
+      ]);
+      return;
+    }
+
+    if (phase === "awaitCriticalCardClick") {
+      queueAssistant({ role: "assistant", kind: "text", text: "Please click the Bakery - Baking card to view the resolution recommendations." });
+      return;
+    }
+
+    if (phase === "awaitSendPrompt") {
+      if (!matchesSendPrompt(trimmedMessage)) {
+        queueAssistant({ role: "assistant", kind: "text", text: "If you want, ask me to start by sending the availability request." });
+        return;
+      }
+      setPhase("awaitSendConfirm");
+      queueAssistant({
+        role: "assistant",
+        kind: "text",
+        text: "Sure — should I send the availability request for both Sarah Johnson and Emily Carter?",
+      });
+      return;
+    }
+
+    if (phase === "awaitSendConfirm") {
+      if (!matchesYesPrompt(trimmedMessage)) {
+        queueAssistant({ role: "assistant", kind: "text", text: "Please confirm with 'Yes' if you want me to send both requests." });
+        return;
+      }
+      const sent = new Set(["Sarah Johnson", "Emily Carter"]);
+      setSentAvailabilityEmployees(sent);
+      setSelectedAvailabilityEmployees(sent);
+      onSendAvailabilityRequests(["Sarah Johnson", "Emily Carter"]);
+      setPhase("awaitClosePrompt");
+      queueAssistant({
+        role: "assistant",
+        kind: "text",
+        text: "Done — that’s sent. Do you want to proceed with solving the other 2 critical gaps as well?",
+      });
+      return;
+    }
+
+    if (phase === "awaitClosePrompt") {
+      if (!matchesNoThanksPrompt(trimmedMessage)) {
+        queueAssistant({ role: "assistant", kind: "text", text: "If you're done, you can reply with 'No, thanks.'." });
+        return;
+      }
+      setPhase("done");
+      queueAssistant({ role: "assistant", kind: "text", text: "Have a good day." });
+      return;
+    }
   }
 
   function handleChatSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmedMessage = draftMessage.trim();
-    if (!trimmedMessage || isAuraTyping) return;
-
-    clearAuraTimers();
-    setSubmittedPrompt(trimmedMessage);
-    setDraftMessage("");
-
-    if (trimmedMessage.toLowerCase().includes("cross train")) {
-      setIsAuraTyping(true);
-      typingTimerRef.current = window.setTimeout(() => {
-        setIsAuraTyping(false);
-        setShowCrossTrainSuggestion(true);
-        typingTimerRef.current = null;
-      }, 620);
-    }
+    submitDraftMessage();
   }
 
-  function toggleSarahSelection() {
-    setSelectedEmployeeName((current) => (current === "Sarah Johnson" ? null : "Sarah Johnson"));
+  function resizeComposer() {
+    const textarea = composerTextareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "56px";
+    const nextHeight = Math.min(textarea.scrollHeight, 180);
+    textarea.style.height = `${Math.max(56, nextHeight)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > 180 ? "auto" : "hidden";
   }
 
-  function handleSendRequestClick() {
-    if (!selectedEmployeeName) return;
-    onSendRequest();
+  function handleComposerKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    submitDraftMessage(event.currentTarget.value);
+  }
+
+  function toggleAvailabilityEmployee(employeeName: string) {
+    if (sentAvailabilityEmployees.has(employeeName)) return;
+    setSelectedAvailabilityEmployees((current) => {
+      const next = new Set(current);
+      if (next.has(employeeName)) next.delete(employeeName);
+      else next.add(employeeName);
+      return next;
+    });
+  }
+
+  function handleCriticalCardSelect(cardTitle: string) {
+    setSelectedCriticalGapCard(cardTitle);
+    if (cardTitle !== "Bakery - Baking, 40h") return;
+    if (messages.some((message) => message.kind === "availabilityCards")) return;
+    setPhase("awaitSendPrompt");
+    queueAssistant([
+      { role: "assistant", kind: "text", text: "Here are a few recommendations." },
+      { role: "assistant", kind: "availabilityCards" },
+      { role: "assistant", kind: "text", text: "My preferred combination for full coverage is Sarah Johnson at 100% allocation and Emily Carter at 10% support. This can create 100% fulfilment for the Baking gap." },
+    ]);
   }
 
   return (
@@ -468,6 +535,7 @@ function SkillGapAuraAssistant({
         className={cn(
           "fixed bottom-4 right-4 z-50 transition-all duration-300 sm:bottom-6 sm:right-6",
           isOpen && "pointer-events-none translate-y-2 opacity-0",
+          !isOpen && shouldNudgeLauncher && "aura-launcher-nudge",
         )}
       >
         <button
@@ -483,149 +551,171 @@ function SkillGapAuraAssistant({
 
       <aside
         className={cn(
-          "fixed bottom-3 right-3 top-3 z-50 flex w-[calc(100vw-24px)] max-w-[clamp(360px,28vw,420px)] origin-bottom-right flex-col overflow-hidden rounded-xl border border-[#d8dce6] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] transition-all duration-300 ease-out sm:bottom-5 sm:right-5 sm:top-16",
-          isOpen ? "translate-x-0 scale-100 opacity-100" : "pointer-events-none translate-x-[calc(100%+32px)] scale-95 opacity-0",
+          "fixed z-50 flex w-[calc(100vw-24px)] max-w-[clamp(360px,28vw,420px)] origin-bottom-right flex-col overflow-hidden border border-[#d8dce6] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] transition-all duration-300 ease-out",
+          isFullscreen
+            ? "bottom-0 right-0 top-0 w-full max-w-[clamp(360px,28vw,420px)] rounded-none sm:bottom-0 sm:right-0 sm:top-0"
+            : "bottom-3 right-3 top-3 rounded-xl sm:bottom-5 sm:right-5 sm:top-16",
+          panelState === "open" && "aura-panel-open translate-x-0 scale-100 opacity-100",
+          panelState === "closing" && "aura-panel-closing pointer-events-none",
+          panelState === "closed" && "pointer-events-none translate-x-[calc(100%+32px)] scale-95 opacity-0",
         )}
-        aria-hidden={!isOpen}
+        aria-hidden={!isPanelVisible}
       >
-        <header className="flex items-start justify-between border-b border-[#e2e5ec] bg-gradient-to-r from-[#f8fbff] to-[#f6f0ff] px-5 py-4">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#0868db] to-[#7c3aed] text-white shadow-md">
-              <Sparkles className="h-5 w-5" />
+        <header className="flex h-[60px] items-center justify-between border-b border-[#e5e7eb] bg-white px-5">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#e9f5ff] text-[#0868db]">
+              <Sparkles className="h-3.5 w-3.5" />
             </span>
-            <div>
-              <h2 className="text-[19px] font-semibold leading-6 text-[#1f2937]">AURA AI</h2>
-              <p className="text-[13px] font-medium text-[#5c5c5c]">WFM Intelligence Copilot</p>
-            </div>
+            <h2 className="text-[16px] font-semibold leading-5 text-[#1f2937]">AURA</h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-white hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-            aria-label="Close AURA AI assistant"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label="Add new"
+            >
+              <Plus className="h-4.5 w-4.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsFullscreen((current) => !current)}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label="Close AURA assistant"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+          </div>
         </header>
 
         <div className="scrollbar-slim min-h-0 flex-1 space-y-4 overflow-y-auto bg-[#f7f8fb] px-5 py-4">
-          <AuraDailyBriefingMessage />
-
-          {showCriticalSummary ? (
-            <div className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-lg border border-[#fca5a5] bg-[#fef2f2] px-3 py-3 text-[#333333] shadow-sm">
-              <div className="flex gap-2.5">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#dc2626]" />
-                <div className="min-w-0">
-                  <p className="text-[15px] font-semibold leading-5 text-[#1f2937]">Three critical skill gaps need your attention.</p>
-                  <div className="mt-3 space-y-2">
-                    {criticalSkillGapAlerts.map((alert, index) => (
-                      index === 0 ? (
-                        <button
-                          key={alert.title}
-                          type="button"
-                          onClick={handleBakeryAlertClick}
-                          className="w-full rounded-md border border-[#fecaca] bg-white/80 px-3 py-2 text-left transition hover:border-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                        >
-                          <p className="text-[14px] font-semibold leading-5 text-[#111827]">{alert.title}</p>
-                          <p className="mt-0.5 text-[13px] leading-5 text-[#5c5c5c]">{alert.description}</p>
-                        </button>
-                      ) : (
-                        <div key={alert.title} className="rounded-md border border-[#fecaca] bg-white/80 px-3 py-2">
-                          <p className="text-[14px] font-semibold leading-5 text-[#111827]">{alert.title}</p>
-                          <p className="mt-0.5 text-[13px] leading-5 text-[#5c5c5c]">{alert.description}</p>
-                        </div>
-                      )
-                    ))}
-                  </div>
+          {messages.map((message) => (
+            message.kind === "text" ? (
+              <div
+                key={message.id}
+                className={cn(
+                  "animate-[aura-message-in_180ms_ease-out] rounded-lg px-3 py-2 text-[14px] leading-5 shadow-sm",
+                  message.role === "assistant" ? "max-w-[92%] bg-[#E6F0FB] text-[#333333]" : "ml-auto max-w-[84%] bg-[#F4F5FA] text-[#111827]",
+                )}
+              >
+                {message.text}
+              </div>
+            ) : message.kind === "criticalGapCards" ? (
+              <div key={message.id} className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-lg border border-[#fca5a5] bg-[#fef2f2] px-3 py-3 shadow-sm">
+                <div className="space-y-2">
+                  {[
+                    "Bakery - Baking, 40h",
+                    "Bakery - Cake Decoration, 32h",
+                    "Bakery Clerk, 28h",
+                  ].map((title) => (
+                    <button
+                      key={title}
+                      type="button"
+                      onClick={() => handleCriticalCardSelect(title)}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                        selectedCriticalGapCard === title ? "border-[#ef4444] bg-white" : "border-[#fecaca] bg-white/80 hover:border-[#ef4444] hover:bg-white",
+                      )}
+                    >
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-[#dc2626]" />
+                      <p className="text-[14px] font-semibold leading-5 text-[#111827]">{title}</p>
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : message.kind === "availabilityCards" ? (
+              <div key={message.id} className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-xl border border-[#d8dce6] bg-white shadow-sm">
+                <div className="border-b border-[#e5e7eb] px-4 py-3">
+                  <p className="text-[15px] font-semibold leading-5 text-primary">Availability movement — solves in 2 days</p>
+                  <p className="mt-2 text-[13px] leading-5 text-[#1f2937]">Sarah Johnson has Bakery as a secondary skill. If approved, this can solve 85% of the Baking gap.</p>
+                  <p className="mt-1 text-[13px] leading-5 text-[#1f2937]">Emily Carter has Bakery as a tertiary skill. If approved, this can help achieve 100% reduction when combined with Sarah Johnson.</p>
+                </div>
+                <div className="space-y-3 px-4 py-4">
+                  {askAuraAvailabilityEmployees.map((employee) => (
+                    <AskAuraEmployeeCard
+                      key={employee.name}
+                      employee={employee}
+                      selected={selectedAvailabilityEmployees.has(employee.name)}
+                      disabled={sentAvailabilityEmployees.has(employee.name)}
+                      onToggle={() => toggleAvailabilityEmployee(employee.name)}
+                      subtitle={`${employee.skillLevel} • ${employee.impact}`}
+                      status={sentAvailabilityEmployees.has(employee.name) ? "Pending Approval" : undefined}
+                    />
+                  ))}
+                  {sentAvailabilityEmployees.size === 0 && selectedAvailabilityEmployees.size > 0 ? (
+                    <div className="rounded-md border border-[#d8dce6] bg-[#f8fafc] px-3 py-3">
+                      <p className="text-[13px] font-semibold leading-5 text-[#334155]">
+                        {selectedAvailabilityEmployees.has("Sarah Johnson") && selectedAvailabilityEmployees.has("Emily Carter")
+                          ? "100% skill gap reduced"
+                          : selectedAvailabilityEmployees.has("Sarah Johnson")
+                            ? "85% skill gap reduced"
+                            : "0% skill gap reduced"}
+                      </p>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
+                        <div
+                          className="h-full rounded-full bg-[#34b233] transition-all duration-500 ease-out"
+                          style={{
+                            width: selectedAvailabilityEmployees.has("Sarah Johnson") && selectedAvailabilityEmployees.has("Emily Carter")
+                              ? "100%"
+                              : selectedAvailabilityEmployees.has("Sarah Johnson")
+                                ? "85%"
+                                : "0%",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null
+          ))}
 
           {isAuraTyping ? (
-            <div className="animate-[aura-message-in_180ms_ease-out] max-w-[88%] rounded-lg bg-white px-3 py-2 text-[#5c5c5c] shadow-sm">
+            <div className="animate-[aura-message-in_180ms_ease-out] max-w-[88%] rounded-lg bg-[#E6F0FB] px-3 py-2 text-[#5c5c5c] shadow-sm">
               <span className="sr-only">AURA AI is typing</span>
               <span className="flex h-5 items-center gap-1" aria-hidden="true">
                 <span className="aura-typing-dot" />
-                <span className="aura-typing-dot [animation-delay:140ms]" />
-                <span className="aura-typing-dot [animation-delay:280ms]" />
+                <span className="aura-typing-dot [animation-delay:420ms]" />
+                <span className="aura-typing-dot [animation-delay:840ms]" />
               </span>
             </div>
-          ) : null}
-          {showInsightMessage ? (
-            <div className="animate-[aura-message-in_180ms_ease-out] max-w-[92%] rounded-lg bg-white px-3 py-3 text-[#333333] shadow-sm">
-              <p className="text-[15px] leading-5">
-                I found 3 bakery-skilled employees with availability recommendations that can reduce your 34h Baking skill gap by 85%.
-              </p>
-            </div>
-          ) : null}
-          {showBakeryRecommendation ? (
-            <div className="animate-[aura-message-in_180ms_ease-out]">
-              <AuraBakeryRecommendations
-                selectedEmployeeName={selectedEmployeeName}
-                onToggleSarah={toggleSarahSelection}
-              />
-            </div>
-          ) : null}
-          {submittedPrompt ? (
-            <div className="ml-auto animate-[aura-message-in_180ms_ease-out] max-w-[84%] rounded-lg bg-primary px-3 py-2 text-[14px] leading-5 text-white shadow-sm">
-              {submittedPrompt}
-            </div>
-          ) : null}
-          {showCrossTrainSuggestion ? (
-            <div className="animate-[aura-message-in_180ms_ease-out] max-w-[92%] rounded-lg bg-white px-3 py-3 text-[#333333] shadow-sm">
-              <p className="text-[15px] leading-5">
-                I found 2 employees who can be Cross Trained to reduce the skill gap by 99%.
-              </p>
-            </div>
-          ) : null}
-          {showCrossTrainSuggestion ? (
-            <AuraCrossTrainRecommendations />
           ) : null}
           <div ref={scrollAnchorRef} />
         </div>
         <footer className="shrink-0 border-t border-[#e2e5ec] bg-white px-4 py-3">
-          {showStarterAction ? (
-            <div className="mb-3">
-              <button
-                type="button"
-                aria-label="Summarise critical gaps"
-                onClick={handleSummariseCriticalGaps}
-                disabled={isAuraTyping}
-                className="w-full rounded-md border border-[#d8dce6] bg-white px-3 py-2 text-left text-[14px] font-medium text-[#333333] transition hover:border-[#9ebcf0] hover:bg-[#f5f8ff] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:bg-[#f7f8fb] disabled:text-[#9aa1ad]"
-              >
-                Summarise critical gaps
-              </button>
-            </div>
-          ) : null}
-          {selectedEmployeeName ? (
-            <div className="mb-3 rounded-lg border border-[#bfdbfe] bg-white px-3 py-3 shadow-sm">
-              <p className="text-[14px] font-medium leading-5 text-[#1e3a8a]">1 employees selected</p>
-              <button
-                type="button"
-                onClick={handleSendRequestClick}
-                className="mt-2 h-10 w-full rounded-md bg-primary px-4 text-[15px] font-semibold text-white transition hover:bg-[#0858b9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              >
-                Send Request
-              </button>
-            </div>
-          ) : null}
-          <form className="flex items-center gap-2 rounded-lg border border-[#c9cbd2] bg-white px-3 py-2" onSubmit={handleChatSubmit}>
-            <input
-              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#888888]"
-              placeholder="Ask AURA to review this request"
-              aria-label="Ask AURA to review this request"
+          <form className="flex min-h-[56px] items-end gap-3 rounded-[40px] border border-[#c9cbd2] bg-white px-3 py-2 shadow-sm transition-[min-height] duration-200" onSubmit={handleChatSubmit}>
+            <button
+              type="button"
+              className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#5c5c5c] transition hover:bg-[#f3f6fb] hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label="Attach file"
+            >
+              <Paperclip className="h-5 w-5" />
+            </button>
+            <textarea
+              ref={composerTextareaRef}
+              rows={1}
+              className="min-h-[56px] max-h-[180px] min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent py-4 text-[16px] leading-[1.4] text-[#111827] outline-none placeholder:text-[#888888]"
+              placeholder="Ask AURA"
+              aria-label="Ask AURA"
               value={draftMessage}
               onChange={(event) => setDraftMessage(event.target.value)}
+              onKeyDown={handleComposerKeyDown}
               disabled={isAuraTyping}
             />
             <button
               type="submit"
-              disabled={isAuraTyping || !draftMessage.trim()}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-white transition hover:bg-[#0858b9] disabled:cursor-not-allowed disabled:bg-[#b7c5d8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              aria-label="Send message to AURA AI"
+              disabled
+              className="mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label="Send message"
             >
-              <Send className="h-5 w-5" />
+              <img src={sendButtonIcon} alt="" className="h-12 w-12" aria-hidden="true" />
             </button>
           </form>
         </footer>
@@ -825,7 +915,15 @@ function EmployeeCard({
   );
 }
 
-function SuccessToast({ onClose }: { onClose: () => void }) {
+function SuccessToast({
+  onClose,
+  title = "Request sent successfully",
+  message = "Sarah Johnson's availability adjustment request has been sent.",
+}: {
+  onClose: () => void;
+  title?: string;
+  message?: string;
+}) {
   return (
     <div
       role="status"
@@ -835,8 +933,8 @@ function SuccessToast({ onClose }: { onClose: () => void }) {
       <div className="flex items-start gap-3">
         <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold leading-5">Request sent successfully</p>
-          <p className="mt-1 text-[13px] leading-5 text-white/90">Sarah Johnson's availability adjustment request has been sent.</p>
+          <p className="text-[15px] font-semibold leading-5">{title}</p>
+          <p className="mt-1 text-[13px] leading-5 text-white/90">{message}</p>
         </div>
         <button
           type="button"
@@ -1349,8 +1447,7 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
     setIsAuraOpen(true);
   }
 
-  function handleAskAuraSendRequest() {
-    setIsAuraOpen(false);
+  function handleAskAuraSendRequest(_employees: string[]) {
     setShowAskAuraSuccessToast(true);
   }
 
@@ -1360,7 +1457,13 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
       showDemoBackLink={!isEmbedded}
       profile={{ name: "Smith, Jane", role: "Store Manager", avatar: "SJ", badge: 9, avatarUrl: profileAvatar }}
     >
-      {showAskAuraSuccessToast ? <SuccessToast onClose={() => setShowAskAuraSuccessToast(false)} /> : null}
+      {showAskAuraSuccessToast ? (
+        <SuccessToast
+          onClose={() => setShowAskAuraSuccessToast(false)}
+          title="Requests sent successfully"
+          message="Availability requests have been sent for Sarah Johnson and Emily Carter."
+        />
+      ) : null}
       <div className={cn("min-w-0 bg-[#f1f3f9]", useTabletSkillGapLayout ? "pr-2" : "pr-3 2xl:pr-5")}>
         <div className={cn("flex h-10 items-center gap-3", useTabletSkillGapLayout ? "px-3" : "px-4")}>
           <button type="button" aria-label="Back" className="flex h-8 w-8 items-center justify-center rounded-md border border-[#d4d7de] bg-white text-[#333333]">
@@ -1402,16 +1505,6 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
             <aside className={cn("min-w-0 border-r border-[#d9dde5] bg-white py-3", useTabletSkillGapLayout ? "px-2" : "px-3 2xl:px-4")}>
               <div className="flex h-10 items-center justify-between">
                 <h2 className="text-[21px] font-normal leading-[30px] text-[#111827]">Skill Gap Alerts</h2>
-                {isAskAuraFlow ? (
-                  <button
-                    type="button"
-                    onClick={handleAskAura}
-                    className="flex h-10 items-center gap-2 rounded-md border border-primary bg-white px-4 text-[17px] font-medium leading-[22px] text-primary transition hover:bg-[#f5f8ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Ask Aura
-                  </button>
-                ) : null}
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3 2xl:grid-cols-[189px_200px] 2xl:gap-4">
@@ -1454,7 +1547,7 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
           isOpen={isAuraOpen}
           onOpen={() => setIsAuraOpen(true)}
           onClose={() => setIsAuraOpen(false)}
-          onSendRequest={handleAskAuraSendRequest}
+          onSendAvailabilityRequests={handleAskAuraSendRequest}
         />
       ) : null}
     </AppShell>
