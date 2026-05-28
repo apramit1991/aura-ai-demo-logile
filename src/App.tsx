@@ -37,7 +37,10 @@ function DemoNavigationScreen() {
       title: "Skill Gap",
       description: "Review skill shortages, AI recommendations, and Ask Aura assistance.",
       links: [
+        { label: "Skill Gap AI Recommendation — Desktop", to: "/skill-gap-desktop", device: "Desktop", icon: Monitor },
         { label: "Skill Gap Ask Aura — Desktop", to: "/skill-gap-ask-aura", device: "Desktop", icon: Monitor },
+        { label: "Skill Gap AI Recommendation — Tablet", to: "/skill-gap-tablet", device: "Tablet", icon: Tablet },
+        { label: "Skill Gap Ask Aura — Tablet", to: "/skill-gap-ask-aura-tablet", device: "Tablet", icon: Tablet },
       ],
     },
     {
