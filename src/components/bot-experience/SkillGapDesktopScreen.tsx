@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { AppShell } from "./AppShell";
 import { AuraChatHistoryView } from "./AuraChatHistoryView";
+import { PageHeader } from "./PageHeader";
+import { Tabs } from "../ui/tabs";
 import { cn } from "../../lib/utils";
 import profileAvatar from "../../assets/skill-gap/profile.png";
 import sarahAvatar from "../../assets/skill-gap/sarah-johnson.png";
@@ -1647,7 +1649,9 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
   const isEmbedded = searchParams.get("embed") === "1";
   const isTabletEmbed = isEmbedded && searchParams.get("device") === "tablet";
   const useTabletSkillGapLayout = isTabletEmbed && !isAskAuraFlow;
+  const useDesktopSkillGapChrome = !useTabletSkillGapLayout;
   const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
+  const [activeSkillGapTab, setActiveSkillGapTab] = useState("alert");
   const [isAuraOpen, setIsAuraOpen] = useState(false);
   const [askAuraToast, setAskAuraToast] = useState<{ title: string; message: string } | null>(null);
 
@@ -1690,23 +1694,53 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
         />
       ) : null}
       <div className={cn("min-w-0 bg-[#f6f6f6]", useTabletSkillGapLayout ? "pr-2" : "pr-3 2xl:pr-5")}>
-        <div className={cn("flex h-10 items-center gap-2", useTabletSkillGapLayout ? "px-3" : "px-4")}>
-          <button type="button" aria-label="Back" className="flex h-[28px] w-[28px] items-center justify-center rounded-md border border-[#dcdcdc] bg-white text-[#5c5c5c]">
-            <ChevronLeft className="h-[18px] w-[18px]" />
-          </button>
-          <h1 className="text-[21px] font-medium leading-7 text-[#333333]">Skill Gap</h1>
-          <HelpCircle className="h-3.5 w-3.5 text-[#5c5c5c]" />
-        </div>
+        {useDesktopSkillGapChrome ? (
+          <PageHeader
+            activeTab={activeSkillGapTab}
+            onTabChange={setActiveSkillGapTab}
+            title="Skill Gap"
+            tabs={[
+              { id: "alert", label: "Alert" },
+              { id: "forecast", label: "Forecast" },
+            ]}
+          />
+        ) : (
+          <>
+            <div className="flex h-10 items-center gap-2 px-3">
+              <button type="button" aria-label="Back" className="flex h-[28px] w-[28px] items-center justify-center rounded-md border border-[#dcdcdc] bg-white text-[#5c5c5c]">
+                <ChevronLeft className="h-[18px] w-[18px]" />
+              </button>
+              <h1 className="text-[21px] font-medium leading-7 text-[#333333]">Skill Gap</h1>
+              <HelpCircle className="h-3.5 w-3.5 text-[#5c5c5c]" />
+            </div>
+            <div className="px-4">
+              <Tabs
+                activeTab={activeSkillGapTab}
+                onChange={setActiveSkillGapTab}
+                tabs={[
+                  { id: "alert", label: "Alert" },
+                  { id: "forecast", label: "Forecast" },
+                ]}
+              />
+            </div>
+          </>
+        )}
 
-        <section className="min-w-0 rounded-t-md border border-[#e7e7e7] bg-white">
-          <div className="flex h-[50px] items-center gap-5 border-b border-[#e7e7e7] px-4">
-            <button type="button" className="rounded-md bg-[#0a68db1a] px-4 py-1.5 text-[17px] font-medium leading-[22px] text-primary">
-              Alert
-            </button>
-            <button type="button" className="px-4 py-1.5 text-[17px] font-medium leading-[22px] text-[#5c5c5c]">Forecast</button>
-          </div>
+        <section className={cn("min-w-0 overflow-hidden rounded-t-md border", useDesktopSkillGapChrome ? "border-[#d0d3da] bg-[#f1f3f9] md:mr-3 2xl:mr-5" : "border-[#e7e7e7] bg-white")}>
+          {useTabletSkillGapLayout ? (
+            <div className="px-4">
+              <Tabs
+                activeTab={activeSkillGapTab}
+                onChange={setActiveSkillGapTab}
+                tabs={[
+                  { id: "alert", label: "Alert" },
+                  { id: "forecast", label: "Forecast" },
+                ]}
+              />
+            </div>
+          ) : null}
 
-          <div className={cn("flex min-h-[68px] flex-wrap items-center gap-y-2 border-b border-[#dcdcdc] py-2", useTabletSkillGapLayout ? "gap-x-3 px-3" : "gap-x-4 px-4 2xl:gap-x-7 2xl:py-0")}>
+          <div className={cn("flex min-h-[68px] flex-wrap items-center gap-y-2 border-b border-[#dcdcdc] bg-white py-2", useTabletSkillGapLayout ? "gap-x-3 px-3" : "gap-x-4 px-4 2xl:gap-x-7 2xl:py-0")}>
             <div className="flex h-9 overflow-hidden rounded-md border border-[#c9cbd2] bg-white">
               <button type="button" className="flex w-9 items-center justify-center border-r border-[#c9cbd2]">
                 <ChevronLeft className="h-5 w-5 text-[#5c5c5c]" />

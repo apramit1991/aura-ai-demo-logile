@@ -51,9 +51,9 @@ function DemoNavigationScreen() {
       title: "Availability",
       description: "Manage employee availability preferences and AI-suggested schedules.",
       links: [
-        { label: "Availability — Desktop", to: "/availability-desktop", device: "Desktop", icon: Monitor },
+        { label: "Availability Employee— Desktop", to: "/availability-desktop", device: "Desktop", icon: Monitor },
         { label: "Availability Manager — Desktop", to: "/availability-manager", device: "Desktop", icon: Monitor },
-        { label: "Availability — Tablet", to: "/availability-tablet", device: "Tablet", icon: Tablet },
+        { label: "Availability Employee — Tablet", to: "/availability-tablet", device: "Tablet", icon: Tablet },
         { label: "Availability — Mobile", to: availabilityMobilePrototypeUrl, device: "Mobile", icon: Smartphone, external: true },
       ],
     },

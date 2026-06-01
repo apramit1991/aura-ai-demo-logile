@@ -242,3 +242,7 @@ select {
 .bg-white{
   background-color: #ffffff;
 }
+
+.bg-\[\#F4F5FA\] {
+  background-color: rgb(246 246 246);
+}
