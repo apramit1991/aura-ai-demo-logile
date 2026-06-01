@@ -31,6 +31,7 @@ import { SkillGapDesktopScreen } from "./components/bot-experience/SkillGapDeskt
 import { TimeOffDesktopScreen } from "./components/bot-experience/TimeOffDesktopScreen";
 import { ManagerDesktopScreen } from "./components/bot-experience/ManagerDesktopScreen";
 import { ComponentShowcase } from "./components/ui/ComponentShowcase";
+import { Tabs } from "./components/ui/tabs";
 import logileLogoUrl from "./assets/logile-logo.png";
 import { availabilityDays, employee, request } from "./data/mockData";
 import { AvailabilityRow } from "./types/availability";
@@ -415,6 +416,7 @@ function TabletFrame({ title, src }: { title: string; src: string }) {
 }
 
 function AvailabilityTabletScreen() {
+  const [activeTabletTab, setActiveTabletTab] = useState("availability");
   const [rows, setRows] = useState<AvailabilityRow[]>(availabilityDays);
   const [baselineRows, setBaselineRows] = useState<AvailabilityRow[] | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -590,20 +592,22 @@ function AvailabilityTabletScreen() {
             <CircleHelp className="h-4.5 w-4.5 text-[#5c5c5c]" />
           </div>
 
-          <div className="flex h-[38px] items-end">
-            <button type="button" className="relative z-10 h-[38px] rounded-t-[8px] border border-b-white border-[#d7d9e0] bg-white px-4 text-[19px] font-semibold leading-6 text-[#0066d9]">
-              Availability
-            </button>
-            <button type="button" className="h-[38px] px-5 text-[19px] font-normal leading-6 text-[#5c5c5c]">
-              Time Off
-            </button>
+          <div className="relative z-10">
+            <Tabs
+              activeTab={activeTabletTab}
+              onChange={setActiveTabletTab}
+              tabs={[
+                { id: "availability", label: "Availability" },
+                { id: "time-off", label: "Time Off" },
+              ]}
+            />
           </div>
 
-          <div className="overflow-hidden rounded-t-[7px] rounded-b-[8px] border border-[#d7d9e0] bg-white">
-            <div className="flex h-[46px] items-center border-b border-[#d7d9e0] px-4">
-              <h2 className="text-[19px] font-semibold leading-6 text-[#0066d9]">Create Availability Request</h2>
+          <div className="-mt-px overflow-hidden rounded-t-md rounded-b-[8px] border border-[#d0d3da] bg-[#f1f3f9]">
+            <div className="flex h-[48px] items-center border-b border-[#d0d3da] bg-white px-5">
+              <h2 className="text-[19px] font-medium leading-6 text-[#0066d9]">Create Availability Request</h2>
             </div>
-            <button type="button" className="flex h-[46px] w-full items-center gap-2 border-b border-[#d7d9e0] px-3 text-left">
+            <button type="button" className="flex h-[46px] w-full items-center gap-2 border-b border-[#d0d3da] bg-white px-3 text-left">
               <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#b8bcc5] text-[#6b7280]">
                 <ChevronLeft className="h-3.5 w-3.5 rotate-180" />
               </span>

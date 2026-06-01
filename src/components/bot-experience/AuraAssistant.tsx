@@ -17,6 +17,15 @@ import { cn } from "../../lib/utils";
 import { AvailabilityValidationState, RecommendationData } from "../../App";
 import { AuraChatHistoryView } from "./AuraChatHistoryView";
 import sendButtonIcon from "../../assets/Send Button.svg";
+import tabletVoiceInitialRequest from "../../assets/audio/availability-tablet/initial-request.wav";
+import tabletVoiceYes from "../../assets/audio/availability-tablet/yes.wav";
+import tabletVoiceDurationDetails from "../../assets/audio/availability-tablet/duration-details.wav";
+import tabletVoiceChangeQuestion from "../../assets/audio/availability-tablet/change-question.wav";
+import tabletVoiceFirstOption from "../../assets/audio/availability-tablet/first-option.wav";
+import tabletVoiceSendManager from "../../assets/audio/availability-tablet/send-manager.wav";
+import tabletVoiceSubmit from "../../assets/audio/availability-tablet/submit.wav";
+import tabletVoiceThanks from "../../assets/audio/availability-tablet/thanks.wav";
+import tabletVoiceNoThanks from "../../assets/audio/availability-tablet/no-thanks.wav";
 
 type AuraState = "empty" | "partial" | "valid" | "error";
 type PanelState = "closed" | "open" | "closing";
@@ -57,6 +66,18 @@ const voiceDemoTiming = {
   shortGap: 1900,
   mediumGap: 2200,
   longGap: 2500,
+};
+
+const tabletVoicePromptAudio = {
+  initialRequest: tabletVoiceInitialRequest,
+  yes: tabletVoiceYes,
+  durationDetails: tabletVoiceDurationDetails,
+  changeQuestion: tabletVoiceChangeQuestion,
+  firstOption: tabletVoiceFirstOption,
+  sendManager: tabletVoiceSendManager,
+  submit: tabletVoiceSubmit,
+  thanks: tabletVoiceThanks,
+  noThanks: tabletVoiceNoThanks,
 };
 
 const tooltipContent: Record<AuraState, { title: string; message: string; description: string }> = {
@@ -412,6 +433,7 @@ export function AuraAssistant({
   const replyTimerRef = useRef<number | null>(null);
   const scriptedStepTimerRef = useRef<number | null>(null);
   const demoTimersRef = useRef<number[]>([]);
+  const demoAudioRef = useRef<HTMLAudioElement | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const nudgeTimerRef = useRef<number | null>(null);
   const nextMessageIdRef = useRef(1);
@@ -448,6 +470,11 @@ export function AuraAssistant({
   function clearDemoTimers() {
     demoTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
     demoTimersRef.current = [];
+    if (demoAudioRef.current) {
+      demoAudioRef.current.pause();
+      demoAudioRef.current.currentTime = 0;
+      demoAudioRef.current = null;
+    }
   }
 
   function scheduleDemoStep(callback: () => void, delay: number) {
@@ -470,13 +497,20 @@ export function AuraAssistant({
     }, startsAt + typingDelay);
   }
 
-  function scheduleDemoVoiceUser(text: string, startsAt: number, onSubmitted?: () => void) {
+  function scheduleDemoVoiceUser(text: string, startsAt: number, audioSrc?: string, onSubmitted?: () => void) {
     const words = text.split(" ");
     const chunkSize = words.length <= 3 ? 1 : 3;
     const transcriptStartsAt = startsAt + voiceDemoTiming.listeningDelay;
     scheduleDemoStep(() => {
       setVoiceDemoStatus("listening");
       setLiveTranscript("");
+      if (audioSrc) {
+        const audio = new Audio(audioSrc);
+        demoAudioRef.current = audio;
+        audio.play().catch(() => {
+          demoAudioRef.current = null;
+        });
+      }
     }, startsAt);
 
     scheduleDemoStep(() => {
@@ -498,6 +532,10 @@ export function AuraAssistant({
       onSubmitted?.();
       setVoiceDemoStatus("idle");
       setLiveTranscript("");
+      if (demoAudioRef.current) {
+        demoAudioRef.current.pause();
+        demoAudioRef.current = null;
+      }
     }, completionDelay);
 
     return completionDelay;
@@ -523,15 +561,15 @@ export function AuraAssistant({
     let t = 700;
     scheduleDemoAssistant("Hello James, how are you? What can I do for you today?", t);
     t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
-    t = scheduleDemoVoiceUser("Hey, I wanted to see if something can be done as I am not available on Tuesday and Thursday.", t);
+    t = scheduleDemoVoiceUser("Hey, I wanted to see if something can be done as I am not available on Tuesday and Thursday.", t, tabletVoicePromptAudio.initialRequest);
     t += voiceDemoTiming.shortGap;
     scheduleDemoAssistant("Sure. Do you want me to update your availability and suggest an option that could still work within the rules?", t);
     t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
-    t = scheduleDemoVoiceUser("Yes.", t);
+    t = scheduleDemoVoiceUser("Yes.", t, tabletVoicePromptAudio.yes);
     t += voiceDemoTiming.shortGap;
     scheduleDemoAssistant("What duration will you be unavailable for? Will it be the full day or only part of the day?", t);
     t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
-    t = scheduleDemoVoiceUser("Tuesday will be the whole day, and on Thursday I won’t be available for 6 hours.", t);
+    t = scheduleDemoVoiceUser("Tuesday will be the whole day, and on Thursday I won’t be available for 6 hours.", t, tabletVoicePromptAudio.durationDetails);
     t += voiceDemoTiming.shortGap;
     scheduleDemoAssistant("Great, sounds like you’ve got plans. Here is your current availability.", t);
     t += voiceDemoTiming.assistantTyping + voiceDemoTiming.shortGap;
@@ -547,13 +585,13 @@ export function AuraAssistant({
       voiceDemoTiming.assistantCardTyping,
     );
     t += voiceDemoTiming.assistantCardTyping + voiceDemoTiming.mediumGap;
-    t = scheduleDemoVoiceUser("Okay, yes I am aware. Tell me how this changes as per what I said.", t);
+    t = scheduleDemoVoiceUser("Okay, yes I am aware. Tell me how this changes as per what I said.", t, tabletVoicePromptAudio.changeQuestion);
     t += voiceDemoTiming.shortGap;
     scheduleDemoAssistant("You might not meet the full requirement for this week. This change may create a gap in coverage during this time period.", t);
     t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
     scheduleDemoAssistant("If you can work Sunday 9:00a–2:00p, your request has a 95% chance of approval. Without this adjustment, the chance of manager approval may reduce to 30%.", t);
     t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
-    t = scheduleDemoVoiceUser("Okay, let’s go with the first option. I will work something out.", t);
+    t = scheduleDemoVoiceUser("Okay, let’s go with the first option. I will work something out.", t, tabletVoicePromptAudio.firstOption);
     t += voiceDemoTiming.shortGap;
     scheduleDemoAssistant("Sure, that looks good. Here is your final availability matrix for this week.", t);
     t += voiceDemoTiming.assistantTyping + voiceDemoTiming.shortGap;
@@ -569,7 +607,7 @@ export function AuraAssistant({
       voiceDemoTiming.assistantCardTyping,
     );
     t += voiceDemoTiming.assistantCardTyping + voiceDemoTiming.mediumGap;
-    t = scheduleDemoVoiceUser("Yup, this looks good. Send it to my manager.", t);
+    t = scheduleDemoVoiceUser("Yup, this looks good. Send it to my manager.", t, tabletVoicePromptAudio.sendManager);
     t += voiceDemoTiming.shortGap;
     scheduleDemoAssistant(
       {
@@ -582,7 +620,7 @@ export function AuraAssistant({
     t += voiceDemoTiming.assistantTyping + voiceDemoTiming.longGap;
     scheduleDemoStep(() => setIsAutoSubmittingDemo(true), t);
     t += 900;
-    t = scheduleDemoVoiceUser("Submit", t, () => {
+    t = scheduleDemoVoiceUser("Submit", t, tabletVoicePromptAudio.submit, () => {
       setShowSendConfirmationActions(false);
       setIsAutoSubmittingDemo(false);
       onSendToManager(scriptedFinalRows);
@@ -596,11 +634,11 @@ export function AuraAssistant({
       t,
     );
     t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
-    t = scheduleDemoVoiceUser("Great, thanks.", t);
+    t = scheduleDemoVoiceUser("Great, thanks.", t, tabletVoicePromptAudio.thanks);
     t += voiceDemoTiming.shortGap;
     scheduleDemoAssistant("Will there be anything else?", t);
     t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
-    t = scheduleDemoVoiceUser("No thanks.", t);
+    t = scheduleDemoVoiceUser("No thanks.", t, tabletVoicePromptAudio.noThanks);
     t += voiceDemoTiming.shortGap;
     scheduleDemoAssistant("Have a good day.", t);
     scheduleDemoStep(() => {
