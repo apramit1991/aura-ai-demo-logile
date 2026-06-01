@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CalendarDays,
+  ChevronLeft,
   ChevronUp,
   Clock3,
   Maximize2,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AvailabilityValidationState, RecommendationData } from "../../App";
+import { AuraChatHistoryView } from "./AuraChatHistoryView";
 import sendButtonIcon from "../../assets/Send Button.svg";
 
 type AuraState = "empty" | "partial" | "valid" | "error";
@@ -376,6 +378,7 @@ export function AuraAssistant({
   const [messages, setMessages] = useState<AuraMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [draftMessage, setDraftMessage] = useState("");
+  const [panelView, setPanelView] = useState<"activeChat" | "history">("activeChat");
   const [shouldNudgeLauncher, setShouldNudgeLauncher] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [scriptedPhase, setScriptedPhase] = useState<ScriptedPhase>(0);
@@ -451,6 +454,7 @@ export function AuraAssistant({
     setPanelState("open");
     setIsFullscreen(false);
     setDraftMessage("");
+    setPanelView("activeChat");
 
     if (messages.length === 0) {
       setScriptedPhase(0);
@@ -741,27 +745,45 @@ export function AuraAssistant({
       >
         <header className="flex h-[60px] items-center justify-between border-b border-[#e5e7eb] bg-white px-5">
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#e9f5ff] text-[#0868db]">
-              <Sparkles className="h-3.5 w-3.5" />
-            </span>
-            <h2 className="text-[16px] font-semibold leading-5 text-[#1f2937]">AURA</h2>
+            <button
+              type="button"
+              onClick={() => setPanelView((current) => (current === "history" ? "activeChat" : "history"))}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label={panelView === "history" ? "Return to active chat" : "Open chat history"}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            {panelView === "history" ? (
+              <h2 className="text-[16px] font-semibold leading-5 text-[#1f2937]">Your Chats</h2>
+            ) : (
+              <>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#e9f5ff] text-[#0868db]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                </span>
+                <h2 className="text-[16px] font-semibold leading-5 text-[#1f2937]">AURA</h2>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              aria-label="Add new"
-            >
-              <Plus className="h-4.5 w-4.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsFullscreen((current) => !current)}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            >
-              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-            </button>
+            {panelView === "activeChat" ? (
+              <>
+                <button
+                  type="button"
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  aria-label="Add new"
+                >
+                  <Plus className="h-4.5 w-4.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen((current) => !current)}
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                >
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </button>
+              </>
+            ) : null}
             <button
               type="button"
               onClick={closeAssistant}
@@ -773,6 +795,10 @@ export function AuraAssistant({
           </div>
         </header>
 
+        {panelView === "history" ? (
+          <AuraChatHistoryView onSelectChat={() => setPanelView("activeChat")} />
+        ) : (
+          <>
         <div className="scrollbar-slim flex-1 space-y-3 overflow-y-auto bg-[#f7f8fb] px-5 py-4">
           {messages.map((message) => (
             <div
@@ -887,6 +913,8 @@ export function AuraAssistant({
             </button>
           </form>
         </div>
+          </>
+        )}
       </aside>
     </>
   );

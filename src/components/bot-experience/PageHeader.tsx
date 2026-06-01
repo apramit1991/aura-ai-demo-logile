@@ -5,9 +5,19 @@ import { Tabs } from "../ui/tabs";
 type PageHeaderProps = {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  title?: string;
+  tabs?: { id: string; label: string }[];
 };
 
-export function PageHeader({ activeTab, onTabChange }: PageHeaderProps) {
+export function PageHeader({ 
+  activeTab, 
+  onTabChange, 
+  title = "LTSP: Create Request",
+  tabs = [
+    { id: "availability", label: "Availability" },
+    { id: "time-off", label: "Time Off" },
+  ]
+}: PageHeaderProps) {
   return (
     <div className="pt-2 md:pr-5">
       <div className="flex min-h-[54px] flex-wrap items-center gap-3 px-4">
@@ -15,7 +25,7 @@ export function PageHeader({ activeTab, onTabChange }: PageHeaderProps) {
           <ChevronLeft className="h-[22px] w-[22px]" />
         </Button>
         <h1 className="text-[25px] font-semibold leading-[34px] text-[#333333]">
-          LTSP: Create Request
+          {title}
         </h1>
         <CircleHelp className="h-5 w-5 text-[#5c5c5c]" />
       </div>
@@ -23,10 +33,7 @@ export function PageHeader({ activeTab, onTabChange }: PageHeaderProps) {
         <Tabs
           activeTab={activeTab}
           onChange={onTabChange}
-          tabs={[
-            { id: "availability", label: "Availability" },
-            { id: "time-off", label: "Time Off" },
-          ]}
+          tabs={tabs}
         />
       </div>
     </div>

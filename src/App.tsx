@@ -8,6 +8,8 @@ import { EmptyState } from "./components/bot-experience/EmptyState";
 import { PageHeader } from "./components/bot-experience/PageHeader";
 import { SkillGapDesktopScreen } from "./components/bot-experience/SkillGapDesktopScreen";
 import { TimeOffDesktopScreen } from "./components/bot-experience/TimeOffDesktopScreen";
+import { ManagerDesktopScreen } from "./components/bot-experience/ManagerDesktopScreen";
+import { ComponentShowcase } from "./components/ui/ComponentShowcase";
 import logileLogoUrl from "./assets/logile-logo.png";
 import { availabilityDays } from "./data/mockData";
 import { AvailabilityRow } from "./types/availability";
@@ -29,6 +31,7 @@ function DemoNavigationScreen() {
       description: "Manage employee availability preferences and AI-suggested schedules.",
       links: [
         { label: "Availability — Desktop", to: "/availability-desktop", device: "Desktop", icon: Monitor },
+        { label: "Availability Manager — Desktop", to: "/availability-manager", device: "Desktop", icon: Monitor },
         { label: "Availability — Tablet", to: "/availability-tablet", device: "Tablet", icon: Tablet },
         { label: "Availability — Mobile", to: availabilityMobilePrototypeUrl, device: "Mobile", icon: Smartphone, external: true },
       ],
@@ -526,12 +529,14 @@ export default function App() {
         <Route path="/" element={<Navigate to="/demo" replace />} />
         <Route path="/demo" element={<DemoNavigationScreen />} />
         <Route path="/availability-desktop" element={<AvailabilityDesktopScreen />} />
+        <Route path="/availability-manager" element={<ManagerDesktopScreen />} />
         <Route path="/skill-gap-desktop" element={<SkillGapDesktopScreen />} />
         <Route path="/skill-gap-ask-aura" element={<SkillGapDesktopScreen mode="askAura" />} />
         <Route path="/time-off-desktop" element={<TimeOffDesktopScreen />} />
         <Route path="/skill-gap-tablet" element={<SkillGapTabletScreen />} />
         <Route path="/skill-gap-ask-aura-tablet" element={<SkillGapAskAuraTabletScreen />} />
         <Route path="/availability-tablet" element={<AvailabilityTabletScreen />} />
+        <Route path="/components" element={<ComponentShowcase />} />
         <Route path="/time-off-tablet" element={<PlaceholderScreen title="Time Off - Tablet" />} />
         <Route path="/availability-mobile" element={<PlaceholderScreen title="Availability - Mobile" />} />
         <Route path="/mobile-screen" element={<Navigate to="/availability-mobile" replace />} />

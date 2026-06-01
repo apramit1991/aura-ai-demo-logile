@@ -31,7 +31,7 @@ export function AppShell({ children, activeNavLabel, showDemoBackLink = false, p
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#f1f3f9] text-[#333333]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#f6f6f6] text-[#333333]">
       {showDemoBackLink ? (
         <div className="z-40 flex h-12 shrink-0 items-center justify-center bg-black px-3">
           <Link
@@ -42,7 +42,7 @@ export function AppShell({ children, activeNavLabel, showDemoBackLink = false, p
           </Link>
         </div>
       ) : null}
-      <header className="z-30 flex h-auto min-h-14 shrink-0 items-center gap-3 border-b border-transparent bg-[#f1f3f9] px-3 md:h-14 md:px-4">
+      <header className="z-30 flex h-auto min-h-14 shrink-0 items-center gap-3 border-b border-[#e7e7e7] bg-[#f6f6f6] px-3 md:h-14 md:px-4">
         <button
           type="button"
           className="flex h-10 w-9 items-center justify-center rounded-md text-[#333333] transition hover:bg-white"
@@ -136,7 +136,7 @@ export function AppShell({ children, activeNavLabel, showDemoBackLink = false, p
       ) : null}
 
       <div className="flex min-h-0 flex-1">
-        <aside className="z-20 hidden h-full w-20 shrink-0 overflow-y-auto scrollbar-hidden border-r border-transparent bg-[#f1f3f9] pb-4 md:block">
+        <aside className="z-20 hidden h-full w-20 shrink-0 overflow-y-auto scrollbar-hidden border-r border-[#e7e7e7] bg-[#f6f6f6] pb-4 md:block">
           <div className="flex h-11 items-center justify-center gap-1 text-[17px] font-medium text-primary">
             <ArrowLeftRight className="h-[18px] w-[18px]" />
             IMS

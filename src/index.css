@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  /* Tailwind token bridge */
   --background: 228 25% 96%;
   --foreground: 0 0% 20%;
   --border: 225 12% 83%;
@@ -12,6 +13,54 @@
   --primary-foreground: 0 0% 100%;
   --muted: 226 30% 95%;
   --muted-foreground: 0 0% 36%;
+
+  /* Figma design tokens — exact values from Bot Experience file */
+  --fig-primary: #0a68db;
+  --fig-primary-hover: #0858b9;
+  --fig-primary-light: rgba(10, 104, 219, 0.10);
+
+  --fig-text: #333333;
+  --fig-text-muted: #5c5c5c;
+  --fig-text-dark: #111827;
+  --fig-text-slate: #525866;
+  --fig-text-subtle: #6a7080;
+
+  --fig-surface: #f1f3f9;
+  --fig-surface-card: #ffffff;
+  --fig-surface-hover: #f8f9fb;
+  --fig-surface-muted: #f4f5fa;
+
+  --fig-border: #dcdcdc;
+  --fig-border-light: #e5e7eb;
+  --fig-border-medium: #c9cbd2;
+
+  --fig-danger: #e22d20;
+  --fig-danger-bg: #fef2f2;
+  --fig-danger-border: #fca5a5;
+
+  --fig-success: #2b9a1f;
+  --fig-success-bg: #f3fcf1;
+  --fig-success-border: #86efac;
+
+  --fig-warning: #f59e0b;
+  --fig-warning-bg: #fffbeb;
+  --fig-warning-border: #fcd34d;
+
+  --fig-info: #0a68db;
+  --fig-info-bg: #eff6ff;
+  --fig-info-border: #bfdbfe;
+
+  /* Radii */
+  --fig-radius-sm: 6px;
+  --fig-radius-md: 8px;
+  --fig-radius-lg: 12px;
+  --fig-radius-xl: 16px;
+  --fig-radius-pill: 1000px;
+
+  /* Shadows */
+  --fig-shadow-sm: 0 1px 3px rgba(15,23,42,0.08);
+  --fig-shadow-md: 0 4px 16px rgba(15,23,42,0.12);
+  --fig-shadow-lg: 0 8px 32px rgba(15,23,42,0.16);
 }
 
 * {
