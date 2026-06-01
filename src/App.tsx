@@ -1,5 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarCheck2, CheckCircle2, Clock3, Monitor, Smartphone, Sparkles, Tablet, X } from "lucide-react";
+import {
+  Bell,
+  Calendar,
+  CalendarCheck2,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ClipboardList,
+  Clock3,
+  Copy,
+  Mail,
+  Menu,
+  MessageSquare,
+  Monitor,
+  RotateCcw,
+  Search,
+  Smartphone,
+  Sparkles,
+  Tablet,
+  X,
+  CircleHelp,
+} from "lucide-react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/bot-experience/AppShell";
 import { AvailabilityScreen } from "./components/bot-experience/AvailabilityScreen";
@@ -11,7 +32,7 @@ import { TimeOffDesktopScreen } from "./components/bot-experience/TimeOffDesktop
 import { ManagerDesktopScreen } from "./components/bot-experience/ManagerDesktopScreen";
 import { ComponentShowcase } from "./components/ui/ComponentShowcase";
 import logileLogoUrl from "./assets/logile-logo.png";
-import { availabilityDays } from "./data/mockData";
+import { availabilityDays, employee, request } from "./data/mockData";
 import { AvailabilityRow } from "./types/availability";
 
 export type RecommendationData = {
@@ -394,7 +415,355 @@ function TabletFrame({ title, src }: { title: string; src: string }) {
 }
 
 function AvailabilityTabletScreen() {
-  return <TabletFrame title="Availability Tablet Prototype" src="/availability-desktop?embed=1&device=tablet&tablet=1" />;
+  const [rows, setRows] = useState<AvailabilityRow[]>(availabilityDays);
+  const [baselineRows, setBaselineRows] = useState<AvailabilityRow[] | null>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showTabletToast, setShowTabletToast] = useState(false);
+  const totalDays = rows.filter((row) => row.hours !== "0h").length;
+  const totalHours = rows.reduce((sum, row) => sum + Number.parseInt(row.hours, 10), 0);
+  const hasPopulatedRows = rows.some((row) => row.hours !== "0h");
+
+  function handleClearAll() {
+    setRows(availabilityDays.map((row) => ({ ...row, auraFilled: false })));
+    setBaselineRows(null);
+    setIsSubmitted(false);
+    setShowTabletToast(false);
+  }
+
+  function handleResetRow(day: string) {
+    setRows((current) =>
+      current.map((row) =>
+        row.day === day
+          ? {
+              ...row,
+              start: "00:00a/p",
+              end: "00:00a/p",
+              hours: "0h",
+              auraFilled: false,
+            }
+          : row,
+      ),
+    );
+  }
+
+  function parseRecommendationTime(timeStr: string) {
+    const [start, end] = timeStr.split(" - ").map((part) => part.trim());
+    return { start: start ?? "00:00a/p", end: end ?? "00:00a/p" };
+  }
+
+  function handleApplyRecommendation(recommendation: RecommendationData) {
+    setIsSubmitted(false);
+    setBaselineRows(rows.map((row) => ({ ...row })));
+    const recommendationByDay = Object.fromEntries(recommendation.map((item) => [item.day, item]));
+
+    setRows((current) =>
+      current.map((row) => {
+        const matched = recommendationByDay[row.day];
+        if (!matched) {
+          return {
+            ...row,
+            start: "00:00a/p",
+            end: "00:00a/p",
+            hours: "0h",
+            auraFilled: false,
+          };
+        }
+
+        const times = parseRecommendationTime(matched.time);
+        return {
+          ...row,
+          start: times.start,
+          end: times.end,
+          hours: matched.hours,
+          auraFilled: true,
+        };
+      }),
+    );
+  }
+
+  function handleUndoRecommendation() {
+    if (!baselineRows) return;
+    setRows(baselineRows.map((row) => ({ ...row, auraFilled: false })));
+    setBaselineRows(null);
+    setIsSubmitted(false);
+  }
+
+  function handleTabletSendToManager(recommendation: RecommendationData) {
+    handleApplyRecommendation(recommendation);
+    setIsSubmitted(true);
+    setShowTabletToast(true);
+    window.setTimeout(() => setShowTabletToast(false), 3600);
+  }
+
+  return (
+    <main className="min-h-screen overflow-auto bg-[radial-gradient(circle_at_top,#f8fafc_0%,#dfe5ee_48%,#c9d2df_100%)] px-4 py-4 md:px-8 md:py-5">
+      <div className="sticky top-0 z-[100] -mx-4 mb-4 flex h-12 items-center justify-center bg-black md:-mx-8">
+        <div className="w-fit">
+          <Link to="/demo" className="inline-block px-2 py-1 text-[14px] font-medium text-[#0b70d0] hover:underline">
+            {"\u2190 Back to Demo Screens"}
+          </Link>
+        </div>
+      </div>
+
+      <div className="mx-auto w-fit max-w-full rounded-[44px] border border-slate-950/30 bg-[#111827] p-4 shadow-[0_34px_90px_rgba(15,23,42,0.42)]">
+        <div className="relative h-[900px] w-[1024px] max-w-[calc(100vw-64px)] overflow-hidden rounded-[30px] border border-black/10 bg-white shadow-inner">
+          <div className="pointer-events-none sticky left-0 top-0 z-[90] flex h-5 w-full justify-center bg-black/5">
+            <span className="mt-2 h-1.5 w-24 rounded-full bg-slate-900/25" />
+          </div>
+
+          <div className="relative -mt-5 h-[calc(100%+20px)] overflow-hidden bg-[#f1f2f7]">
+            {showTabletToast ? (
+              <div
+                className="absolute right-6 top-6 z-[80] w-[360px] rounded-lg bg-[#1f8f46] p-4 text-white shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                role="status"
+                aria-live="polite"
+              >
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-white" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-semibold">Request sent successfully</p>
+                    <p className="mt-1 text-[13px] text-white/90">Your availability request has been sent to your manager.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowTabletToast(false)}
+                    className="rounded p-1 text-white/80 hover:bg-white/10 hover:text-white"
+                    aria-label="Close success toast"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            <div className="h-full overflow-y-auto bg-[#f1f2f7] pb-24 text-[#333333]">
+        <header className="flex h-[58px] items-center gap-4 bg-[#f1f2f7] px-4">
+          <button type="button" className="flex h-9 w-9 items-center justify-center rounded-md text-[#333333]" aria-label="Open menu">
+            <Menu className="h-6 w-6" />
+          </button>
+
+          <img src={logileLogoUrl} alt="Logile WFM" className="h-[23px] w-[128px] object-contain" />
+
+          <label className="relative ml-9 flex h-10 w-[228px] items-center">
+            <Search className="absolute left-3 h-[18px] w-[18px] text-[#5c5c5c]" />
+            <input
+              type="search"
+              placeholder="Search..."
+              className="h-10 w-full rounded-[7px] border border-[#d7d9e0] bg-white pl-9 pr-3 text-[18px] text-[#333333] outline-none placeholder:text-[#8b8f98]"
+            />
+          </label>
+
+          <div className="ml-auto flex items-center gap-4 text-[#4f545d]">
+            {[
+              { icon: Calendar, label: "Calendar" },
+              { icon: ClipboardList, label: "Tasks" },
+              { icon: Mail, label: "Messages" },
+              { icon: MessageSquare, label: "Comments" },
+            ].map(({ icon: Icon, label }) => (
+              <button key={label} type="button" className="flex h-9 w-9 items-center justify-center rounded-md" aria-label={label}>
+                <Icon className="h-[21px] w-[21px]" />
+              </button>
+            ))}
+            <button type="button" className="relative flex h-9 w-9 items-center justify-center rounded-md" aria-label="Notifications">
+              <Bell className="h-[21px] w-[21px]" />
+              <span className="absolute -right-1 top-0 rounded-full bg-[#e22d20] px-1.5 text-[12px] font-medium leading-4 text-white">99+</span>
+            </button>
+          </div>
+
+          <button type="button" className="ml-1 flex h-10 w-[196px] items-center gap-2 rounded-md border border-[#d4d7de] bg-white px-2" aria-label="Open profile menu">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#cfe8bf] text-[12px] font-bold text-[#2f6a28]">
+              {employee.avatar}
+            </span>
+            <span className="min-w-0 flex-1 text-left leading-tight">
+              <span className="block truncate text-[15px] font-semibold text-[#333333]">{employee.name}</span>
+              <span className="block text-[15px] font-semibold text-[#5c5c5c]">{employee.role}</span>
+            </span>
+            <ChevronDown className="h-5 w-5 shrink-0 text-[#5c5c5c]" />
+          </button>
+        </header>
+
+        <section className="px-[30px] pb-6">
+          <div className="flex h-[48px] items-center gap-3">
+            <button type="button" className="flex h-[34px] w-[34px] items-center justify-center rounded-md border border-[#d4d7de] bg-white text-[#5c5c5c]" aria-label="Back">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <h1 className="text-[26px] font-semibold leading-8 text-[#333333]">LTSP: Create Request</h1>
+            <CircleHelp className="h-4.5 w-4.5 text-[#5c5c5c]" />
+          </div>
+
+          <div className="flex h-[38px] items-end">
+            <button type="button" className="relative z-10 h-[38px] rounded-t-[8px] border border-b-white border-[#d7d9e0] bg-white px-4 text-[19px] font-semibold leading-6 text-[#0066d9]">
+              Availability
+            </button>
+            <button type="button" className="h-[38px] px-5 text-[19px] font-normal leading-6 text-[#5c5c5c]">
+              Time Off
+            </button>
+          </div>
+
+          <div className="overflow-hidden rounded-t-[7px] rounded-b-[8px] border border-[#d7d9e0] bg-white">
+            <div className="flex h-[46px] items-center border-b border-[#d7d9e0] px-4">
+              <h2 className="text-[19px] font-semibold leading-6 text-[#0066d9]">Create Availability Request</h2>
+            </div>
+            <button type="button" className="flex h-[46px] w-full items-center gap-2 border-b border-[#d7d9e0] px-3 text-left">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#b8bcc5] text-[#6b7280]">
+                <ChevronLeft className="h-3.5 w-3.5 rotate-180" />
+              </span>
+              <span className="border-b border-[#0066d9] pb-0.5 text-[17px] font-semibold leading-5 text-[#0066d9]">Apply Filters</span>
+            </button>
+
+            <div className="bg-[#f1f2f7] px-4 pb-4 pt-4">
+              <div className="grid grid-cols-[1fr_1.02fr_1fr] gap-4">
+                <AvailabilityTabletSummaryCard title="My Preferences">
+                  <AvailabilityTabletMetric label="Hours per week" value="30" emphasis />
+                  <AvailabilityTabletMetric label="Day per week" value="5" />
+                </AvailabilityTabletSummaryCard>
+
+                <AvailabilityTabletSummaryCard title="Work Group Rules">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    {request.rules.map((item) => (
+                      <AvailabilityTabletInlineRule key={item.label} label={item.label} value={item.value} />
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-[#e0e2e7] pt-3 text-[15px] text-[#5c5c5c]">
+                    <span>Weekly Range:</span>
+                    <span className="text-[22px] font-normal text-[#0066d9]">4-30 <span className="text-[11px] text-[#5c5c5c]">hrs</span></span>
+                  </div>
+                </AvailabilityTabletSummaryCard>
+
+                <AvailabilityTabletSummaryCard title="My Availability">
+                  <div className="space-y-3 text-[15px] text-[#5c5c5c]">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p>Total Hours</p>
+                        <p className="mt-1 text-[20px] font-semibold text-[#333333]">{totalHours}h</p>
+                      </div>
+                      {isSubmitted ? (
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b8e4c8] bg-[#ecfdf3] text-[#1f8f55]">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-t border-[#e0e2e7] pt-3">
+                      <div>
+                        <p>Total Days</p>
+                        <p className="mt-1 text-[20px] font-semibold text-[#333333]">{totalDays} Days</p>
+                      </div>
+                      {isSubmitted ? (
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b8e4c8] bg-[#ecfdf3] text-[#1f8f55]">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </AvailabilityTabletSummaryCard>
+              </div>
+
+              <div className="mt-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-[21px] font-semibold leading-7 text-[#333333]">My Availability</h2>
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    className="h-9 rounded-[7px] border border-[#0066d9] bg-white px-3 text-[17px] font-normal leading-5 text-[#0066d9]"
+                  >
+                    Clear All
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button type="button" className="h-[39px] min-w-[80px] rounded-[7px] bg-[#555555] px-5 text-[17px] font-semibold text-white">
+                    Save
+                  </button>
+                  <button type="button" className="h-[39px] min-w-[82px] rounded-[7px] bg-[#0066d9] px-5 text-[17px] font-semibold text-white">
+                    Submit
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-[14px]">
+                {rows.map((row) => (
+                  <AvailabilityTabletRow key={row.day} row={row} onReset={handleResetRow} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+            </div>
+
+            <AuraAssistant
+              onApplyRecommendation={handleApplyRecommendation}
+              onUndoRecommendation={handleUndoRecommendation}
+              onSendToManager={handleTabletSendToManager}
+              hasPopulatedRows={hasPopulatedRows}
+              isSubmitted={isSubmitted}
+              hideLauncherTooltip
+              placement="inside-frame"
+              demoMode="tabletVoiceTranscript"
+            />
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function AvailabilityTabletSummaryCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="min-h-[176px] rounded-[14px] border border-[#cfd3dc] bg-white px-3 py-3">
+      <h3 className="mb-4 text-[20px] font-semibold leading-6 text-[#333333]">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function AvailabilityTabletMetric({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
+  return (
+    <div className="mb-3 grid grid-cols-[1fr_auto] items-center gap-4 text-[15px] text-[#5c5c5c]">
+      <span>{label} :</span>
+      <span className={emphasis ? "text-[20px] font-bold text-[#0066d9]" : "text-[20px] font-normal text-[#7a7d83]"}>{value}</span>
+    </div>
+  );
+}
+
+function AvailabilityTabletInlineRule({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline gap-1 text-[15px] text-[#5c5c5c]">
+      <span className="whitespace-nowrap">{label}:</span>
+      <span className="text-[22px] font-normal leading-6 text-[#0066d9]">{value}</span>
+    </div>
+  );
+}
+
+function AvailabilityTabletRow({ row, onReset }: { row: AvailabilityRow; onReset: (day: string) => void }) {
+  const isPopulated = row.hours !== "0h";
+
+  return (
+    <div className="grid min-h-[60px] grid-cols-[124px_174px_56px_36px_36px_1fr] items-center gap-3 rounded-[8px] bg-white px-4">
+      <div className="flex items-center gap-3 text-[17px] font-semibold leading-5 text-[#333333]">
+        <Calendar className="h-[19px] w-[19px] text-[#5c5c5c]" />
+        <span>{row.day}</span>
+      </div>
+      <div className="flex h-9 items-center justify-center rounded-[7px] border border-[#c9cbd2] bg-white px-2 text-[17px] leading-5 text-[#888888]">
+        {row.start} - {row.end}
+      </div>
+      <div className="flex items-center gap-1 text-[17px] font-semibold leading-5 text-[#333333]">
+        <Clock3 className="h-4 w-4 text-[#b8bcc5]" />
+        {row.hours}
+      </div>
+      <button type="button" className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c]" aria-label={`Copy time range for ${row.day}`}>
+        <Copy className="h-[19px] w-[19px]" />
+      </button>
+      <button
+        type="button"
+        onClick={isPopulated ? () => onReset(row.day) : undefined}
+        disabled={!isPopulated}
+        className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] disabled:text-[#5c5c5c]"
+        aria-label={`Reset row for ${row.day}`}
+      >
+        <RotateCcw className="h-[19px] w-[19px]" />
+      </button>
+      <span />
+    </div>
+  );
 }
 
 function SkillGapTabletScreen() {

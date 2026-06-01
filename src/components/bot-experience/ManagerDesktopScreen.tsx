@@ -6,14 +6,13 @@ import { AppShell } from "./AppShell";
 import { PageHeader } from "./PageHeader";
 import { AuraChatHistoryView } from "./AuraChatHistoryView";
 import {
-  AlertCircle,
-  AlertTriangle,
   Calendar as CalendarIcon,
   Check,
-  CheckCircle2,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   ChevronUp,
+  Clock3,
   Filter,
   Grip,
   LayoutList,
@@ -23,14 +22,16 @@ import {
   Paperclip,
   Plus,
   Sparkles,
+  UserRound,
+  Info,
   X,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import sendButtonIcon from "../../assets/Send Button.svg";
 
 type ManagerPanelState = "closed" | "open" | "closing";
-type ManagerPhase = "initial" | "awaitOptimization" | "awaitFair" | "awaitApprovalConfirm" | "readyToApprove" | "approved";
-type ManagerMessageVariant = "ragTable" | "optimization" | "approvalSummary";
+type ManagerPhase = "initial" | "awaitProcessPrompt" | "awaitApprovalConfirm" | "readyToApprove" | "approved";
+type ManagerMessageVariant = "ragTable" | "approvalSummary" | "successText";
 
 type ManagerChatMessage = {
   id: number;
@@ -295,7 +296,7 @@ export function ManagerDesktopScreen() {
               <Check className="h-3.5 w-3.5 text-white" />
             </div>
             <div>
-              <p className="text-[15px] font-semibold leading-tight">Requests approved successfully</p>
+              <p className="text-[15px] font-semibold leading-tight">Requests processed successfully</p>
               <p className="mt-1 text-[14px] text-white/90 leading-snug">Availability decisions have been updated for Sarah Johnson, Emily Carter, and Ryan Anderson.</p>
             </div>
             <button 
@@ -387,6 +388,46 @@ function ManagerAuraAssistant({
     }, delay);
   }
 
+  function queueProcessedSuccessTurn() {
+    clearReplyTimer();
+    setIsTyping(true);
+    replyTimerRef.current = window.setTimeout(() => {
+      appendMessage({
+        role: "assistant",
+        variant: "successText",
+        text: "Done — all availability requests have been processed.",
+      });
+
+      replyTimerRef.current = window.setTimeout(() => {
+        appendMessage({
+          role: "assistant",
+          text: "Sarah Johnson has been approved, Emily Carter has not been approved, and Ryan Anderson has been approved with adjustment.",
+        });
+        setPhase("approved");
+        setIsTyping(false);
+        replyTimerRef.current = null;
+      }, 420);
+    }, 1000);
+  }
+
+  function normalizePrompt(value: string) {
+    return value
+      .toLowerCase()
+      .replace(/[^\w\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function matchesProcessAllPrompt(value: string) {
+    const normalized = normalizePrompt(value);
+    return normalized.includes("process all requests") && normalized.includes("recommendation");
+  }
+
+  function matchesYesPrompt(value: string) {
+    const normalized = normalizePrompt(value);
+    return normalized === "yes" || normalized === "yes please";
+  }
+
   function openAssistant() {
     clearCloseTimer();
     clearNudgeTimer();
@@ -432,40 +473,45 @@ function ManagerAuraAssistant({
     if (phase === "initial") {
       queueAssistantTurn(
         [
-          { text: "Sure. Here’s a snapshot of the new availability requests awaiting your review." },
+          { text: "Sure. I found 3 new availability requests awaiting your review." },
           { variant: "ragTable" },
         ],
-        "awaitOptimization",
+        "awaitProcessPrompt",
       );
       return;
     }
 
-    if (phase === "awaitOptimization") {
-      queueAssistantTurn(
-        [
-          { text: "Here’s an optimized view based on coverage impact, request history, and business risk." },
-          { variant: "optimization" },
-        ],
-        "awaitFair",
-      );
-      return;
-    }
+    if (phase === "awaitProcessPrompt") {
+      if (matchesProcessAllPrompt(trimmedMessage)) {
+        queueAssistantTurn(
+          [{ text: "Should I go ahead and prepare the final approval action?" }],
+          "awaitApprovalConfirm",
+        );
+        return;
+      }
 
-    if (phase === "awaitFair") {
       queueAssistantTurn(
-        [{ text: "Should I go ahead and prepare the final approval action?" }],
-        "awaitApprovalConfirm",
+        [{ text: "Ask me to process all requests as per recommendation when you’re ready." }],
+        "awaitProcessPrompt",
       );
       return;
     }
 
     if (phase === "awaitApprovalConfirm") {
+      if (matchesYesPrompt(trimmedMessage)) {
+        queueAssistantTurn(
+          [
+            { text: "Here’s your final approval summary." },
+            { variant: "approvalSummary" },
+          ],
+          "readyToApprove",
+        );
+        return;
+      }
+
       queueAssistantTurn(
-        [
-          { text: "Here’s your final approval summary." },
-          { variant: "approvalSummary" },
-        ],
-        "readyToApprove",
+        [{ text: "Please confirm with “Yes.” if you want me to prepare the final approval action." }],
+        "awaitApprovalConfirm",
       );
     }
   }
@@ -475,11 +521,7 @@ function ManagerAuraAssistant({
     setHasApproved(true);
     setPhase("approved");
     onApproveRequests();
-    queueAssistantTurn(
-      [{ text: "Approved. The availability request decisions have been updated successfully." }],
-      "approved",
-      1000,
-    );
+    queueProcessedSuccessTurn();
   }
 
   function resizeComposer() {
@@ -615,8 +657,12 @@ function ManagerAuraAssistant({
               )}
             >
               {message.text && !message.variant ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
+              {message.variant === "successText" && message.text ? (
+                <div className="max-w-[92%] rounded-lg border border-[#b8e4c8] bg-[#ecfdf3] px-3 py-2.5 text-[14px] font-medium leading-5 text-[#166534] shadow-sm">
+                  <p className="whitespace-pre-wrap">{message.text}</p>
+                </div>
+              ) : null}
               {message.variant === "ragTable" ? <ManagerRagTableCard hasApproved={hasApproved} /> : null}
-              {message.variant === "optimization" ? <ManagerOptimizationCard /> : null}
               {message.variant === "approvalSummary" ? (
                 <ManagerApprovalSummaryCard hasApproved={hasApproved} onApprove={handleApproveRequests} />
               ) : null}
@@ -678,115 +724,205 @@ function ManagerTypingIndicator() {
 }
 
 function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
+  const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
   const rows = [
     {
       employee: "Sarah Johnson",
       role: "Bakery Associate",
       change: "Unavailable Wednesday morning",
-      duration: "This week",
-      impact: "Low",
-      status: hasApproved ? "Approved" : "Pending",
-      className: "border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]",
+      impact: "Low Impact",
+      recommendation: "Approve",
+      status: hasApproved ? "Approved" : "Pending Review",
+      avatarClassName: "bg-[#DCFCE7] text-[#15803D]",
+      impactClassName: "border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]",
+      recommendationClassName: "text-[#15803D]",
+      recommendationIconClassName: "bg-[#ECFDF3] text-[#15803D]",
+      reason: "This is a long-pending request with low coverage impact. Approving it should not create significant pressure on the schedule.",
     },
     {
       employee: "Emily Carter",
       role: "Front End Associate",
       change: "Unavailable Friday 4p–8p",
-      duration: "This week",
-      impact: "High",
-      status: hasApproved ? "Not Approved" : "Pending",
-      className: "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]",
+      impact: "High Impact",
+      recommendation: "Do Not Approve",
+      status: hasApproved ? "Not Approved" : "Pending Review",
+      avatarClassName: "bg-[#FEE2E2] text-[#DC2626]",
+      impactClassName: "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]",
+      recommendationClassName: "text-[#DC2626]",
+      recommendationIconClassName: "bg-[#FEF2F2] text-[#DC2626]",
+      reason: "This request is not recommended because it falls during a high-pressure coverage window and has been recurring.",
     },
     {
       employee: "Ryan Anderson",
       role: "Grocery Associate",
       change: "Reduce Thursday shift from 8h to 6h",
-      duration: "This week",
-      impact: "Medium",
-      status: hasApproved ? "Approved with Adjustment" : "Pending",
-      className: "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]",
+      impact: "Medium Impact",
+      recommendation: "Approve with Adjustment",
+      status: hasApproved ? "Approved with Adjustment" : "Pending Review",
+      avatarClassName: "bg-[#FEF3C7] text-[#C2410C]",
+      impactClassName: "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]",
+      recommendationClassName: "text-[#C2410C]",
+      recommendationIconClassName: "bg-[#FFFBEB] text-[#C2410C]",
+      reason: "This request can be approved with adjustment because reducing the shift to 6 hours keeps coverage within a safe operating range.",
     },
+  ];
+  const summaryItems = [
+    { value: "3", label: "Requests", icon: "document", className: "bg-[#EFF6FF] text-[#2563EB]" },
+    { value: "1", label: "Low Impact", icon: "dot", className: "bg-[#16A34A]" },
+    { value: "1", label: "Medium Impact", icon: "dot", className: "bg-[#F59E0B]" },
+    { value: "1", label: "High Impact", icon: "dot", className: "bg-[#DC2626]" },
   ];
 
   return (
-    <div className="overflow-hidden rounded-lg border border-[#d8dce6] bg-white text-[12px] text-[#344054] shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="min-w-[820px] text-left">
-          <thead className="border-b border-[#e5e7eb] bg-[#f9fafb] text-[11px] font-semibold uppercase tracking-wide text-[#667085]">
-            <tr>
-              <th className="px-3 py-2">Employee Name</th>
-              <th className="px-3 py-2">Department / Role</th>
-              <th className="px-3 py-2">Requested Availability Change</th>
-              <th className="px-3 py-2">Requested Duration</th>
-              <th className="px-3 py-2">Business Impact</th>
-              <th className="px-3 py-2">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#e5e7eb]">
-            {rows.map((row) => (
-              <tr key={row.employee} className={row.className}>
-                <td className="px-3 py-2 font-semibold">{row.employee}</td>
-                <td className="px-3 py-2">{row.role}</td>
-                <td className="px-3 py-2">{row.change}</td>
-                <td className="px-3 py-2">{row.duration}</td>
-                <td className="px-3 py-2 font-semibold">{row.impact}</td>
-                <td className="px-3 py-2">{row.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="max-w-full space-y-3 rounded-[18px] border border-[#E5E7EB] bg-white p-3 text-[#344054] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+      <div className="grid grid-cols-2 gap-2">
+        {summaryItems.map((item) => (
+          <div key={item.label} className="grid min-h-[60px] grid-cols-[28px_minmax(0,1fr)] items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+            {item.icon === "document" ? (
+              <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full", item.className)}>
+                <LayoutList className="h-4 w-4" />
+              </span>
+            ) : (
+              <span className={cn("ml-2 h-3 w-3 shrink-0 rounded-full", item.className)} />
+            )}
+            <div className="min-w-0">
+              <p className="text-[18px] font-semibold leading-5 text-[#111827]">{item.value}</p>
+              <p className="text-[12px] font-medium leading-4 text-[#334155]">{item.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {rows.map((row) => {
+          const isExpanded = expandedEmployee === row.employee;
+          const reasonId = `manager-reason-${row.employee.toLowerCase().replace(/\s+/g, "-")}`;
+
+          return (
+            <article
+              key={row.employee}
+              className="rounded-[18px] border border-[#E5E7EB] bg-white p-4 text-[14px] shadow-[0_6px_18px_rgba(15,23,42,0.07)]"
+            >
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                <div className="grid min-w-0 grid-cols-[48px_minmax(0,1fr)] items-center gap-3">
+                <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-full", row.avatarClassName)}>
+                  <UserRound className="h-6 w-6" />
+                </span>
+                <div className="min-w-0">
+                  <h4 className="truncate text-[17px] font-semibold leading-6 text-[#111827]">{row.employee}</h4>
+                  <p className="mt-0.5 text-[14px] font-medium leading-5 text-[#475569]">{row.role}</p>
+                </div>
+              </div>
+              <span className={cn("shrink-0 rounded-full border px-3 py-1 text-[13px] font-semibold leading-5", row.impactClassName)}>
+                {row.impact}
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-3 border-t border-[#E5E7EB] pt-4">
+              <ManagerSnapshotField icon={CalendarIcon} label="Requested Change" value={row.change} iconClassName="bg-[#F1F5F9] text-[#475569]" />
+              <ManagerSnapshotField icon={Sparkles} label="AURA Recommendation" value={row.recommendation} iconClassName={row.recommendationIconClassName} valueClassName={row.recommendationClassName} />
+              <ManagerSnapshotField icon={Clock3} label="Status" value={row.status} iconClassName="bg-[#F1F5F9] text-[#475569]" />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setExpandedEmployee((current) => (current === row.employee ? null : row.employee))}
+              aria-expanded={isExpanded}
+              aria-controls={reasonId}
+              className="mt-4 flex w-full items-center justify-between border-t border-dashed border-[#CBD5E1] pt-3 text-left text-[14px] font-medium leading-5 text-[#0066D9]"
+              aria-label={`Why this recommendation for ${row.employee}?`}
+            >
+              <span>{isExpanded ? "Hide recommendation reason" : "Why this recommendation?"}</span>
+              <ChevronRight className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-90")} />
+            </button>
+
+            {isExpanded ? (
+              <div id={reasonId} className="mt-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
+                <div className="flex gap-2.5">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-[#64748B] ring-1 ring-[#E5E7EB]">
+                    <Info className="h-3.5 w-3.5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold leading-4 text-[#334155]">Reason</p>
+                    <p className="mt-1 text-[13px] leading-5 text-[#334155]">{row.reason}</p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </article>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function ManagerOptimizationCard() {
+function ManagerSnapshotField({
+  icon: Icon,
+  label,
+  value,
+  iconClassName,
+  valueClassName,
+}: {
+  icon: typeof CalendarIcon;
+  label: string;
+  value: string;
+  iconClassName?: string;
+  valueClassName?: string;
+}) {
   return (
-    <div className="space-y-3">
-      <div className="rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-[14px]">
-        <div className="mb-1 flex items-center gap-2 font-semibold text-[#15803D]">
-          <CheckCircle2 className="h-4 w-4" />
-          Approve Sarah Johnson
-        </div>
-        <p className="ml-6 leading-snug text-[#166534]">This is a long-pending request and has no significant impact on coverage.</p>
-      </div>
-      <div className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-[14px]">
-        <div className="mb-1 flex items-center gap-2 font-semibold text-[#B91C1C]">
-          <AlertCircle className="h-4 w-4" />
-          Do not approve Emily Carter
-        </div>
-        <p className="ml-6 leading-snug text-[#991B1B]">This request has been recurring, and the requested duration may create pressure during a critical coverage window.</p>
-      </div>
-      <div className="rounded-lg border border-[#FDE68A] bg-[#FFFBEB] p-3 text-[14px]">
-        <div className="mb-1 flex items-center gap-2 font-semibold text-[#B45309]">
-          <AlertTriangle className="h-4 w-4" />
-          Approve Ryan Anderson with adjustment
-        </div>
-        <p className="ml-6 leading-snug text-[#92400E]">The request has been reduced to 6 hours, which keeps the schedule safe for business-as-usual coverage.</p>
-      </div>
+    <div className="grid grid-cols-[34px_112px_minmax(0,1fr)] items-start gap-3">
+      <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", iconClassName)}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="pt-1.5 text-[13px] font-medium leading-4 text-[#64748B]">{label}</span>
+      <span className={cn("min-w-0 whitespace-normal break-words pt-1 text-[14px] font-semibold leading-5 text-[#111827]", valueClassName)}>
+        {value}
+      </span>
     </div>
   );
 }
 
 function ManagerApprovalSummaryCard({ hasApproved, onApprove }: { hasApproved: boolean; onApprove: () => void }) {
+  const rows = [
+    {
+      employee: "Sarah Johnson",
+      decision: "Approved",
+      reason: "Long-pending request with low coverage impact.",
+      decisionClassName: "text-[#15803D]",
+    },
+    {
+      employee: "Emily Carter",
+      decision: "Not Approved",
+      reason: "Recurring request during a high-pressure coverage window.",
+      decisionClassName: "text-[#B91C1C]",
+    },
+    {
+      employee: "Ryan Anderson",
+      decision: "Approved with Adjustment",
+      reason: "Reduced Thursday shift from 8h to 6h to maintain safe coverage.",
+      decisionClassName: "text-[#B45309]",
+    },
+  ];
+
   return (
     <div className="overflow-hidden rounded-lg border border-[#d8dce6] bg-white text-[#333333] shadow-sm">
       <div className="border-b border-[#e5e7eb] bg-[#f9fafb] px-4 py-2.5">
         <h4 className="text-[14px] font-semibold text-[#111827]">Final Approval Summary</h4>
       </div>
-      <div className="space-y-2 px-4 py-3 text-[14px]">
-        <div className="flex items-center justify-between gap-4">
-          <span>Sarah Johnson</span>
-          <span className="font-semibold text-[#15803D]">Approved</span>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <span>Emily Carter</span>
-          <span className="font-semibold text-[#B91C1C]">Not Approved</span>
-        </div>
-        <div className="flex items-start justify-between gap-4">
-          <span>Ryan Anderson</span>
-          <span className="text-right font-semibold text-[#B45309]">Approved with adjustment to 6 hours</span>
-        </div>
+      <div className="divide-y divide-[#E5E7EB] px-4 py-1 text-[14px]">
+        {rows.map((row) => (
+          <div key={row.employee} className="py-3">
+            <div className="flex items-start justify-between gap-3">
+              <span className="font-semibold leading-5 text-[#111827]">{row.employee}</span>
+              <span className={cn("max-w-[46%] text-right font-semibold leading-5", row.decisionClassName)}>{row.decision}</span>
+            </div>
+            <p className="mt-1 text-[13px] leading-5 text-[#64748B]">
+              <span className="font-medium text-[#475569]">Reason: </span>
+              {row.reason}
+            </p>
+          </div>
+        ))}
       </div>
       <div className="border-t border-[#e5e7eb] p-3">
         <button
@@ -795,7 +931,7 @@ function ManagerApprovalSummaryCard({ hasApproved, onApprove }: { hasApproved: b
           disabled={hasApproved}
           className="inline-flex h-10 w-full items-center justify-center rounded-md bg-[#2563EB] px-4 text-[14px] font-semibold text-white transition hover:bg-[#1D4ED8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:bg-[#9CA3AF]"
         >
-          {hasApproved ? "Approved" : "Approve Requests"}
+          {hasApproved ? "Processed" : "Process All Requests"}
         </button>
       </div>
     </div>

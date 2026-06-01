@@ -6,6 +6,7 @@ import {
   ChevronUp,
   Clock3,
   Maximize2,
+  Mic,
   Minimize2,
   Paperclip,
   Plus,
@@ -20,6 +21,7 @@ import sendButtonIcon from "../../assets/Send Button.svg";
 type AuraState = "empty" | "partial" | "valid" | "error";
 type PanelState = "closed" | "open" | "closing";
 type ScriptedPhase = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+type VoiceDemoStatus = "idle" | "listening" | "transcribing";
 
 type AuraMessage = {
   id: number;
@@ -42,6 +44,19 @@ type AuraAssistantProps = {
   hasPopulatedRows: boolean;
   isSubmitted: boolean;
   hideLauncherTooltip?: boolean;
+  placement?: "fixed" | "inside-frame";
+  demoMode?: "tabletVoiceTranscript";
+};
+
+const voiceDemoTiming = {
+  assistantTyping: 2400,
+  assistantCardTyping: 1800,
+  listeningDelay: 1400,
+  transcriptChunkDelay: 320,
+  autoSubmitDelay: 1200,
+  shortGap: 1900,
+  mediumGap: 2200,
+  longGap: 2500,
 };
 
 const tooltipContent: Record<AuraState, { title: string; message: string; description: string }> = {
@@ -372,6 +387,8 @@ export function AuraAssistant({
   hasPopulatedRows,
   isSubmitted,
   hideLauncherTooltip = false,
+  placement = "fixed",
+  demoMode,
 }: AuraAssistantProps) {
   const [panelState, setPanelState] = useState<PanelState>("closed");
   const [requestState, setRequestState] = useState<AuraState>("valid");
@@ -383,12 +400,18 @@ export function AuraAssistant({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [scriptedPhase, setScriptedPhase] = useState<ScriptedPhase>(0);
   const [showSendConfirmationActions, setShowSendConfirmationActions] = useState(false);
+  const [voiceDemoStatus, setVoiceDemoStatus] = useState<VoiceDemoStatus>("idle");
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [isVoiceDemoRunning, setIsVoiceDemoRunning] = useState(false);
+  const [hasVoiceDemoStarted, setHasVoiceDemoStarted] = useState(false);
+  const [isAutoSubmittingDemo, setIsAutoSubmittingDemo] = useState(false);
 
   const [hasAppliedSuggestion, setHasAppliedSuggestion] = useState(false);
   const [showActionButtons, setShowActionButtons] = useState(false);
 
   const replyTimerRef = useRef<number | null>(null);
   const scriptedStepTimerRef = useRef<number | null>(null);
+  const demoTimersRef = useRef<number[]>([]);
   const closeTimerRef = useRef<number | null>(null);
   const nudgeTimerRef = useRef<number | null>(null);
   const nextMessageIdRef = useRef(1);
@@ -400,6 +423,10 @@ export function AuraAssistant({
   const BadgeIcon = badge?.icon;
   const isPanelVisible = panelState !== "closed";
   const showLauncher = panelState === "closed";
+  const isInsideFrame = placement === "inside-frame";
+  const isVoiceDemo = demoMode === "tabletVoiceTranscript";
+  const isVoiceDemoActive = voiceDemoStatus !== "idle";
+  const voiceDemoStatusLabel = voiceDemoStatus === "listening" ? "Listening..." : "Transcribing...";
 
   function appendMessage(message: Omit<AuraMessage, "id">) {
     const newMessage = { id: nextMessageIdRef.current++, ...message };
@@ -416,6 +443,170 @@ export function AuraAssistant({
       window.clearTimeout(scriptedStepTimerRef.current);
       scriptedStepTimerRef.current = null;
     }
+  }
+
+  function clearDemoTimers() {
+    demoTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    demoTimersRef.current = [];
+  }
+
+  function scheduleDemoStep(callback: () => void, delay: number) {
+    const timerId = window.setTimeout(() => {
+      demoTimersRef.current = demoTimersRef.current.filter((id) => id !== timerId);
+      callback();
+    }, delay);
+    demoTimersRef.current.push(timerId);
+  }
+
+  function scheduleDemoAssistant(reply: string | Omit<AuraMessage, "id" | "role">, startsAt: number, typingDelay = voiceDemoTiming.assistantTyping) {
+    scheduleDemoStep(() => setIsTyping(true), startsAt);
+    scheduleDemoStep(() => {
+      appendMessage(
+        typeof reply === "string"
+          ? { role: "assistant", text: reply }
+          : { role: "assistant", ...reply },
+      );
+      setIsTyping(false);
+    }, startsAt + typingDelay);
+  }
+
+  function scheduleDemoVoiceUser(text: string, startsAt: number, onSubmitted?: () => void) {
+    const words = text.split(" ");
+    const chunkSize = words.length <= 3 ? 1 : 3;
+    const transcriptStartsAt = startsAt + voiceDemoTiming.listeningDelay;
+    scheduleDemoStep(() => {
+      setVoiceDemoStatus("listening");
+      setLiveTranscript("");
+    }, startsAt);
+
+    scheduleDemoStep(() => {
+      setVoiceDemoStatus("transcribing");
+    }, transcriptStartsAt);
+
+    for (let index = 0; index < words.length; index += chunkSize) {
+      const chunk = words.slice(0, index + chunkSize).join(" ");
+      scheduleDemoStep(() => setLiveTranscript(chunk), transcriptStartsAt + (index / chunkSize) * voiceDemoTiming.transcriptChunkDelay);
+    }
+
+    const completionDelay =
+      transcriptStartsAt +
+      Math.ceil(words.length / chunkSize) * voiceDemoTiming.transcriptChunkDelay +
+      voiceDemoTiming.autoSubmitDelay;
+
+    scheduleDemoStep(() => {
+      appendMessage({ role: "user", text });
+      onSubmitted?.();
+      setVoiceDemoStatus("idle");
+      setLiveTranscript("");
+    }, completionDelay);
+
+    return completionDelay;
+  }
+
+  function startVoiceTranscriptDemo() {
+    clearReplyTimer();
+    clearDemoTimers();
+    setMessages([]);
+    nextMessageIdRef.current = 1;
+    setScriptedPhase(0);
+    setShowActionButtons(false);
+    setHasAppliedSuggestion(false);
+    setShowSendConfirmationActions(false);
+    setRequestState("partial");
+    setIsTyping(false);
+    setVoiceDemoStatus("idle");
+    setLiveTranscript("");
+    setIsAutoSubmittingDemo(false);
+    setIsVoiceDemoRunning(true);
+    setHasVoiceDemoStarted(true);
+
+    let t = 700;
+    scheduleDemoAssistant("Hello James, how are you? What can I do for you today?", t);
+    t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
+    t = scheduleDemoVoiceUser("Hey, I wanted to see if something can be done as I am not available on Tuesday and Thursday.", t);
+    t += voiceDemoTiming.shortGap;
+    scheduleDemoAssistant("Sure. Do you want me to update your availability and suggest an option that could still work within the rules?", t);
+    t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
+    t = scheduleDemoVoiceUser("Yes.", t);
+    t += voiceDemoTiming.shortGap;
+    scheduleDemoAssistant("What duration will you be unavailable for? Will it be the full day or only part of the day?", t);
+    t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
+    t = scheduleDemoVoiceUser("Tuesday will be the whole day, and on Thursday I won’t be available for 6 hours.", t);
+    t += voiceDemoTiming.shortGap;
+    scheduleDemoAssistant("Great, sounds like you’ve got plans. Here is your current availability.", t);
+    t += voiceDemoTiming.assistantTyping + voiceDemoTiming.shortGap;
+    scheduleDemoAssistant(
+      {
+        variant: "tableCard",
+        tableTitle: "Current Availability (48h)",
+        tableRows: scriptedCurrentRows,
+        summaryHours: "48 hrs total",
+        summaryDays: "5 days/week",
+      },
+      t,
+      voiceDemoTiming.assistantCardTyping,
+    );
+    t += voiceDemoTiming.assistantCardTyping + voiceDemoTiming.mediumGap;
+    t = scheduleDemoVoiceUser("Okay, yes I am aware. Tell me how this changes as per what I said.", t);
+    t += voiceDemoTiming.shortGap;
+    scheduleDemoAssistant("You might not meet the full requirement for this week. This change may create a gap in coverage during this time period.", t);
+    t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
+    scheduleDemoAssistant("If you can work Sunday 9:00a–2:00p, your request has a 95% chance of approval. Without this adjustment, the chance of manager approval may reduce to 30%.", t);
+    t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
+    t = scheduleDemoVoiceUser("Okay, let’s go with the first option. I will work something out.", t);
+    t += voiceDemoTiming.shortGap;
+    scheduleDemoAssistant("Sure, that looks good. Here is your final availability matrix for this week.", t);
+    t += voiceDemoTiming.assistantTyping + voiceDemoTiming.shortGap;
+    scheduleDemoAssistant(
+      {
+        variant: "tableCard",
+        tableTitle: "Final Availability Matrix",
+        tableRows: scriptedFinalRows,
+        summaryHours: "50 hrs total",
+        summaryDays: "6 days/week",
+      },
+      t,
+      voiceDemoTiming.assistantCardTyping,
+    );
+    t += voiceDemoTiming.assistantCardTyping + voiceDemoTiming.mediumGap;
+    t = scheduleDemoVoiceUser("Yup, this looks good. Send it to my manager.", t);
+    t += voiceDemoTiming.shortGap;
+    scheduleDemoAssistant(
+      {
+        variant: "confirmSubmit",
+        text: "Please confirm if you want to submit this availability request to your manager.",
+      },
+      t,
+    );
+    scheduleDemoStep(() => setShowSendConfirmationActions(true), t + voiceDemoTiming.assistantTyping);
+    t += voiceDemoTiming.assistantTyping + voiceDemoTiming.longGap;
+    scheduleDemoStep(() => setIsAutoSubmittingDemo(true), t);
+    t += 900;
+    t = scheduleDemoVoiceUser("Submit", t, () => {
+      setShowSendConfirmationActions(false);
+      setIsAutoSubmittingDemo(false);
+      onSendToManager(scriptedFinalRows);
+    });
+    t += voiceDemoTiming.shortGap;
+    scheduleDemoAssistant(
+      {
+        variant: "status",
+        text: "Done — sent to your manager.\n\nYour request ID is 437862374.",
+      },
+      t,
+    );
+    t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
+    t = scheduleDemoVoiceUser("Great, thanks.", t);
+    t += voiceDemoTiming.shortGap;
+    scheduleDemoAssistant("Will there be anything else?", t);
+    t += voiceDemoTiming.assistantTyping + voiceDemoTiming.mediumGap;
+    t = scheduleDemoVoiceUser("No thanks.", t);
+    t += voiceDemoTiming.shortGap;
+    scheduleDemoAssistant("Have a good day.", t);
+    scheduleDemoStep(() => {
+      setIsVoiceDemoRunning(false);
+      setHasVoiceDemoStarted(false);
+    }, t + voiceDemoTiming.assistantTyping + voiceDemoTiming.longGap);
   }
 
   function clearCloseTimer() {
@@ -456,6 +647,13 @@ export function AuraAssistant({
     setDraftMessage("");
     setPanelView("activeChat");
 
+    if (isVoiceDemo) {
+      if (messages.length === 0 && !hasVoiceDemoStarted) {
+        startVoiceTranscriptDemo();
+      }
+      return;
+    }
+
     if (messages.length === 0) {
       setScriptedPhase(0);
       setShowSendConfirmationActions(false);
@@ -470,9 +668,13 @@ export function AuraAssistant({
 
   function closeAssistant() {
     clearReplyTimer();
+    clearDemoTimers();
     clearCloseTimer();
     clearNudgeTimer();
     setIsTyping(false);
+    setVoiceDemoStatus("idle");
+    setLiveTranscript("");
+    setIsVoiceDemoRunning(false);
     setPanelState("closing");
     closeTimerRef.current = window.setTimeout(() => {
       setPanelState("closed");
@@ -542,7 +744,7 @@ export function AuraAssistant({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedMessage = draftMessage.trim();
-    if (!trimmedMessage || isTyping) return;
+    if (!trimmedMessage || isTyping || isVoiceDemoRunning) return;
 
     appendMessage({ role: "user", text: trimmedMessage });
     setDraftMessage("");
@@ -667,7 +869,7 @@ export function AuraAssistant({
 
   useEffect(() => {
     resizeComposer();
-  }, [draftMessage, isPanelVisible]);
+  }, [draftMessage, liveTranscript, isPanelVisible]);
 
 
   useEffect(() => {
@@ -679,6 +881,7 @@ export function AuraAssistant({
   useEffect(() => {
     return () => {
       clearReplyTimer();
+      clearDemoTimers();
       clearCloseTimer();
       clearNudgeTimer();
     };
@@ -688,7 +891,8 @@ export function AuraAssistant({
     <>
       <div
         className={cn(
-          "fixed bottom-4 right-4 z-50 transition-all duration-300 sm:bottom-6 sm:right-6",
+          "z-50 transition-all duration-300",
+          isInsideFrame ? "absolute bottom-6 right-6" : "fixed bottom-4 right-4 sm:bottom-6 sm:right-6",
           !showLauncher && "pointer-events-none translate-y-2 opacity-0",
           showLauncher && shouldNudgeLauncher && "aura-launcher-nudge",
         )}
@@ -733,10 +937,13 @@ export function AuraAssistant({
 
       <aside
         className={cn(
-          "fixed z-50 flex w-[calc(100vw-24px)] max-w-[clamp(360px,28vw,420px)] origin-bottom-right flex-col overflow-hidden border border-[#d8dce6] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] transition-all duration-300 ease-out",
+          "z-50 flex w-[calc(100vw-24px)] max-w-[clamp(360px,28vw,420px)] origin-bottom-right flex-col overflow-hidden border border-[#d8dce6] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] transition-all duration-300 ease-out",
+          isInsideFrame ? "absolute" : "fixed",
           isFullscreen
             ? "bottom-0 right-0 top-0 w-full max-w-[clamp(360px,28vw,420px)] rounded-none sm:bottom-0 sm:right-0 sm:top-0"
-            : "bottom-3 right-3 top-3 rounded-xl sm:bottom-5 sm:right-5 sm:top-16",
+            : isInsideFrame
+              ? "bottom-3 right-3 top-3 rounded-xl"
+              : "bottom-3 right-3 top-3 rounded-xl sm:bottom-5 sm:right-5 sm:top-16",
           panelState === "open" && "aura-panel-open translate-x-0 scale-100 opacity-100",
           panelState === "closing" && "aura-panel-closing pointer-events-none",
           panelState === "closed" && "pointer-events-none translate-x-[calc(100%+32px)] scale-95 opacity-0",
@@ -844,7 +1051,10 @@ export function AuraAssistant({
                       <button
                         type="button"
                         onClick={handleSubmitToManager}
-                        className="inline-flex h-8 items-center justify-center rounded-[40px] bg-primary px-4 text-[13px] font-medium text-white transition hover:bg-[#0858b9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                        className={cn(
+                          "inline-flex h-8 items-center justify-center rounded-[40px] bg-primary px-4 text-[13px] font-medium text-white transition hover:bg-[#0858b9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                          isAutoSubmittingDemo && "animate-pulse ring-4 ring-primary/20",
+                        )}
                       >
                         Submit
                       </button>
@@ -884,6 +1094,25 @@ export function AuraAssistant({
         </div>
 
         <div className="border-t border-[#e2e5ec] bg-white p-4">
+          {isVoiceDemo && isVoiceDemoActive ? (
+            <div
+              className={cn(
+                "mb-2 flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-medium",
+                "bg-[#e8f2ff] text-[#0868db]",
+              )}
+              aria-live="polite"
+            >
+              <span className="relative flex h-2.5 w-2.5 animate-pulse">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[#33c7ea] opacity-75" />
+              </span>
+              <span>{voiceDemoStatusLabel}</span>
+              <span className="ml-auto flex items-end gap-0.5" aria-hidden="true">
+                <span className="h-2 w-1 animate-[aura-wave_1100ms_ease-in-out_infinite] rounded-full bg-[#0868db]" />
+                <span className="h-3 w-1 animate-[aura-wave_1100ms_ease-in-out_infinite] rounded-full bg-[#33c7ea] [animation-delay:180ms]" />
+                <span className="h-2.5 w-1 animate-[aura-wave_1100ms_ease-in-out_infinite] rounded-full bg-[#0868db] [animation-delay:360ms]" />
+              </span>
+            </div>
+          ) : null}
           <form className="flex min-h-[56px] items-end gap-3 rounded-[40px] border border-[#c9cbd2] bg-white px-3 py-2 shadow-sm transition-[min-height] duration-200" onSubmit={handleSubmit}>
             <button
               type="button"
@@ -896,20 +1125,32 @@ export function AuraAssistant({
               ref={composerTextareaRef}
               rows={1}
               className="min-h-[56px] max-h-[180px] min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent py-4 text-[16px] leading-[1.4] text-[#111827] outline-none placeholder:text-[#888888] disabled:cursor-not-allowed"
-              placeholder="Ask AURA"
+              placeholder={isVoiceDemoActive ? voiceDemoStatusLabel : "Ask AURA"}
               aria-label="Ask AURA"
-              value={draftMessage}
+              value={isVoiceDemo && liveTranscript ? liveTranscript : draftMessage}
               onChange={(event) => setDraftMessage(event.target.value)}
               onKeyDown={handleComposerKeyDown}
-              disabled={isTyping}
+              disabled={isTyping || isVoiceDemoRunning}
             />
             <button
               type="submit"
               disabled
-              className="mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className={cn(
+                "relative mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                isVoiceDemo && isVoiceDemoActive
+                  ? "bg-gradient-to-r from-[#33C7EA] to-[#2A2DBB] text-white opacity-100 shadow-[0_0_0_6px_rgba(51,199,234,0.16)]"
+                  : "disabled:opacity-45",
+              )}
               aria-label="Send message"
             >
-              <img src={sendButtonIcon} alt="" className="h-12 w-12" aria-hidden="true" />
+              {isVoiceDemo && isVoiceDemoActive ? (
+                <>
+                  <span className="absolute inset-0 animate-ping rounded-full bg-[#33C7EA]/25" aria-hidden="true" />
+                  <Mic className="relative h-5 w-5" aria-hidden="true" />
+                </>
+              ) : (
+                <img src={sendButtonIcon} alt="" className="h-12 w-12" aria-hidden="true" />
+              )}
             </button>
           </form>
         </div>

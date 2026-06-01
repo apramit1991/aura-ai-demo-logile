@@ -182,6 +182,18 @@ select {
   }
 }
 
+@keyframes aura-wave {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scaleY(0.65);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.25);
+  }
+}
+
 .aura-typing-dot {
   animation: aura-typing-pulse 3s ease-in-out infinite;
   background: #6f7a8d;

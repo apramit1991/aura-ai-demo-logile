@@ -1730,16 +1730,6 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
             <aside className={cn("min-w-0 border-r border-[#e7e7e7] bg-white py-3", useTabletSkillGapLayout ? "px-2" : "px-3 2xl:px-4")}>
               <div className="flex h-10 items-center justify-between">
                 <h2 className="text-[21px] font-normal leading-[30px] text-[#111827]">Skill Gap Alerts</h2>
-                {isAskAuraFlow ? (
-                  <button
-                    type="button"
-                    onClick={handleAskAura}
-                    className="flex h-10 items-center gap-1.5 rounded-[8px] border border-[#0a68db] bg-white px-4 text-[17px] font-normal leading-[22px] text-[#0a68db] transition hover:bg-[#f0f7ff]"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Ask
-                  </button>
-                ) : null}
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3 2xl:grid-cols-[189px_200px] 2xl:gap-4">
