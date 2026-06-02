@@ -14,12 +14,13 @@ type TabsProps = {
   /** Figma Tab Lv1 (default) = browser-style curved tabs. Lv2 = underline style. */
   level?: 1 | 2;
   className?: string;
+  hideActiveBottomBorder?: boolean;
 };
 
 /** Figma: Tab Lv1 — 40h, active white bg with curved corner notches, border, 17px text.
  *  Figma: Tab Lv2 — underline indicator, lighter weight, 15px text.
  */
-export function Tabs({ tabs, activeTab, onChange, level = 1, className }: TabsProps) {
+export function Tabs({ tabs, activeTab, onChange, level = 1, className, hideActiveBottomBorder = false }: TabsProps) {
   if (level === 2) {
     return (
       <div className={cn("flex items-center gap-1 border-b border-[#dcdcdc]", className)}>
@@ -66,7 +67,7 @@ export function Tabs({ tabs, activeTab, onChange, level = 1, className }: TabsPr
             className={cn(
               "relative h-10 rounded-t-md border px-3 text-left text-[17px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
               active
-                ? "z-10 border-[#d0d3da] border-b-white bg-white font-medium text-primary"
+                ? cn("z-10 border-[#d0d3da] bg-white font-medium text-primary", hideActiveBottomBorder ? "border-b-transparent" : "border-b-white")
                 : "-ml-px border-transparent bg-transparent font-normal text-[#5c5c5c] hover:bg-white/70",
             )}
           >

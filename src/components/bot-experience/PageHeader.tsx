@@ -7,6 +7,7 @@ type PageHeaderProps = {
   onTabChange: (tab: string) => void;
   title?: string;
   tabs?: { id: string; label: string }[];
+  hideActiveTabBottomBorder?: boolean;
 };
 
 export function PageHeader({ 
@@ -16,7 +17,8 @@ export function PageHeader({
   tabs = [
     { id: "availability", label: "Availability" },
     { id: "time-off", label: "Time Off" },
-  ]
+  ],
+  hideActiveTabBottomBorder = false,
 }: PageHeaderProps) {
   return (
     <div className="pt-2 md:pr-5">
@@ -34,6 +36,7 @@ export function PageHeader({
           activeTab={activeTab}
           onChange={onTabChange}
           tabs={tabs}
+          hideActiveBottomBorder={hideActiveTabBottomBorder}
         />
       </div>
     </div>

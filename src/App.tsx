@@ -30,6 +30,7 @@ import { PageHeader } from "./components/bot-experience/PageHeader";
 import { SkillGapDesktopScreen } from "./components/bot-experience/SkillGapDesktopScreen";
 import { TimeOffDesktopScreen } from "./components/bot-experience/TimeOffDesktopScreen";
 import { ManagerDesktopScreen } from "./components/bot-experience/ManagerDesktopScreen";
+import { ApprovalEmployeeScreen } from "./components/bot-experience/ApprovalEmployeeScreen";
 import { ComponentShowcase } from "./components/ui/ComponentShowcase";
 import { Tabs } from "./components/ui/tabs";
 import logileLogoUrl from "./assets/logile-logo.png";
@@ -75,6 +76,14 @@ function DemoNavigationScreen() {
         { label: "Time Off — Desktop", to: "/time-off-desktop", device: "Desktop", icon: Monitor },
       ],
     },
+    {
+      title: "Approval",
+      description: "Review and manage approval workflows for employee requests.",
+      links: [
+        { label: "Approval Employee — Desktop", to: "/approval-employee", device: "Desktop", icon: Monitor },
+        { label: "Approval Manager — Desktop", to: "/availability-manager", device: "Desktop", icon: Monitor },
+      ],
+    },
   ];
 
   return (
@@ -99,6 +108,8 @@ function DemoNavigationScreen() {
                     <CalendarCheck2 className="h-5 w-5" />
                   ) : section.title === "Skill Gap" ? (
                     <Sparkles className="h-5 w-5" />
+                  ) : section.title === "Approval" ? (
+                    <ClipboardList className="h-5 w-5" />
                   ) : (
                     <Clock3 className="h-5 w-5" />
                   )}
@@ -906,6 +917,7 @@ export default function App() {
         <Route path="/skill-gap-desktop" element={<SkillGapDesktopScreen />} />
         <Route path="/skill-gap-ask-aura" element={<SkillGapDesktopScreen mode="askAura" />} />
         <Route path="/time-off-desktop" element={<TimeOffDesktopScreen />} />
+        <Route path="/approval-employee" element={<ApprovalEmployeeScreen />} />
         <Route path="/skill-gap-tablet" element={<SkillGapTabletScreen />} />
         <Route path="/skill-gap-ask-aura-tablet" element={<SkillGapAskAuraTabletScreen />} />
         <Route path="/availability-tablet" element={<AvailabilityTabletScreen />} />

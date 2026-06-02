@@ -6,6 +6,7 @@ import { AppShell } from "./AppShell";
 import { PageHeader } from "./PageHeader";
 import { AuraChatHistoryView } from "./AuraChatHistoryView";
 import { AuraLauncherButton } from "./AuraLauncherButton";
+import { RequestCard } from "./RequestCard";
 import {
   Calendar as CalendarIcon,
   Check,
@@ -80,6 +81,7 @@ export function ManagerDesktopScreen() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             title="Approval"
+            hideActiveTabBottomBorder
             tabs={[
               { id: "calendar", label: "Calendar" },
               { id: "my-request", label: "My Request" },
@@ -156,37 +158,45 @@ export function ManagerDesktopScreen() {
             <div className="flex items-start gap-4">
               {/* Left Column: Request List */}
               <div className="w-[320px] shrink-0 flex flex-col gap-3">
-                <RequestCard 
-                  title="Availability Request" 
-                  subtitle="From Jenning Dwight +4" 
-                  status="Pending" 
-                  isActive={true}
-                />
-                <RequestCard 
-                  title="Paid Time Off Requests" 
-                  subtitle="Multiple Days From Allison Park +4" 
-                  status="Pending" 
-                />
-                <RequestCard 
-                  title="Unpaid Time Off Requests" 
-                  subtitle="Multiple Days From Barry Allen +4" 
-                  status="Pending" 
-                />
+                {hasApproved ? (
+                  <>
+                    <RequestCard 
+                      title="Paid Time Off Requests" 
+                      subtitle="Multiple Days From Allison Park +4" 
+                      status="Pending" 
+                      isActive={true}
+                    />
+                    <RequestCard 
+                      title="Unpaid Time Off Requests" 
+                      subtitle="Multiple Days From Barry Allen +4" 
+                      status="Pending" 
+                    />
+                  </>
+                ) : (
+                  <>
+                    <RequestCard 
+                      title="Availability Request" 
+                      subtitle="From Jenning Dwight +4" 
+                      status="Pending" 
+                      isActive={true}
+                    />
+                    <RequestCard 
+                      title="Paid Time Off Requests" 
+                      subtitle="Multiple Days From Allison Park +4" 
+                      status="Pending" 
+                    />
+                    <RequestCard 
+                      title="Unpaid Time Off Requests" 
+                      subtitle="Multiple Days From Barry Allen +4" 
+                      status="Pending" 
+                    />
+                  </>
+                )}
                 {/* Dynamically updated new requests */}
                 <RequestCard 
                   title="Front End Dept/Employee 40h" 
                   subtitle="Sarah Johnson" 
                   status={sarahStatus} 
-                />
-                <RequestCard 
-                  title="Availability Request" 
-                  subtitle="Emily Carter" 
-                  status={emilyStatus} 
-                />
-                <RequestCard 
-                  title="Availability Request" 
-                  subtitle="Ryan Anderson" 
-                  status={ryanStatus} 
                 />
                 {/* -------------------- */}
                 <RequestCard 
@@ -209,12 +219,19 @@ export function ManagerDesktopScreen() {
                   subtitle="Multiple Days From Barry Allen +4" 
                   status="Denied" 
                 />
+                {hasApproved ? (
+                  <RequestCard 
+                    title="Availability Request" 
+                    subtitle="From Jenning Dwight +4" 
+                    status="Approved" 
+                  />
+                ) : null}
               </div>
 
               {/* Right Column: Request Details */}
               <div className="flex-1 overflow-hidden">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-[20px] font-semibold text-[#333333]">Paid Time Off Requests</h2>
+                  <h2 className="text-[20px] font-semibold text-[#333333]">{hasApproved ? "Paid Time Off Requests" : "Availability Request"}</h2>
                   <div className="flex items-center gap-2">
                     <button
                       disabled={hasApproved}
@@ -925,32 +942,6 @@ function ManagerApprovalSummaryCard({ hasApproved, onApprove }: { hasApproved: b
         >
           {hasApproved ? "Processed" : "Process All Requests"}
         </button>
-      </div>
-    </div>
-  );
-}
-
-function RequestCard({ title, subtitle, status, isActive = false }: { title: string, subtitle: string, status: string, isActive?: boolean }) {
-  const statusStyles: Record<string, string> = {
-    Pending: "bg-[#FFFAEB] text-[#B54708] border-[#FEDF89]",
-    Approved: "bg-[#ECFDF3] text-[#027A48] border-[#A6F4C5]",
-    Denied: "bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]",
-    "Not Approved": "bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]",
-    "Approved with Adjustment": "bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0]"
-  };
-  
-  const currentStyle = statusStyles[status] || "bg-gray-100 text-gray-800 border-gray-200";
-
-  return (
-    <div className={`rounded-lg border p-4 ${isActive ? 'bg-[#F2F8FD] border-[#91C1F1]' : 'bg-white border-[#EAECF0]'}`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <h4 className="text-[14px] font-medium text-[#101828]">{title}</h4>
-          <p className="mt-1 text-[13px] text-[#667085]">{subtitle}</p>
-        </div>
-        <span className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-[12px] font-medium ${currentStyle}`}>
-          {status}
-        </span>
       </div>
     </div>
   );
