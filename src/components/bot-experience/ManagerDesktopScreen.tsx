@@ -729,10 +729,8 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
     {
       employee: "Sarah Johnson",
       role: "Bakery Associate",
-      change: "Unavailable Wednesday morning",
       impact: "Low Impact",
       recommendation: "Approve",
-      status: hasApproved ? "Approved" : "Pending Review",
       avatarClassName: "bg-[#DCFCE7] text-[#15803D]",
       impactClassName: "border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]",
       recommendationClassName: "text-[#15803D]",
@@ -742,10 +740,8 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
     {
       employee: "Emily Carter",
       role: "Front End Associate",
-      change: "Unavailable Friday 4p–8p",
       impact: "High Impact",
       recommendation: "Do Not Approve",
-      status: hasApproved ? "Not Approved" : "Pending Review",
       avatarClassName: "bg-[#FEE2E2] text-[#DC2626]",
       impactClassName: "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]",
       recommendationClassName: "text-[#DC2626]",
@@ -755,10 +751,8 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
     {
       employee: "Ryan Anderson",
       role: "Grocery Associate",
-      change: "Reduce Thursday shift from 8h to 6h",
       impact: "Medium Impact",
       recommendation: "Approve with Adjustment",
-      status: hasApproved ? "Approved with Adjustment" : "Pending Review",
       avatarClassName: "bg-[#FEF3C7] text-[#C2410C]",
       impactClassName: "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]",
       recommendationClassName: "text-[#C2410C]",
@@ -818,10 +812,8 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
               </span>
             </div>
 
-            <div className="mt-4 space-y-3 border-t border-[#E5E7EB] pt-4">
-              <ManagerSnapshotField icon={CalendarIcon} label="Requested Change" value={row.change} iconClassName="bg-[#F1F5F9] text-[#475569]" />
+            <div className="mt-3 border-t border-[#E5E7EB] pt-3">
               <ManagerSnapshotField icon={Sparkles} label="AURA Recommendation" value={row.recommendation} iconClassName={row.recommendationIconClassName} valueClassName={row.recommendationClassName} />
-              <ManagerSnapshotField icon={Clock3} label="Status" value={row.status} iconClassName="bg-[#F1F5F9] text-[#475569]" />
             </div>
 
             <button

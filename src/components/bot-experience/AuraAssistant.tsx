@@ -63,21 +63,22 @@ const voiceDemoTiming = {
   listeningDelay: 1400,
   transcriptChunkDelay: 320,
   autoSubmitDelay: 1200,
+  audioCompletionBuffer: 350,
   shortGap: 1900,
   mediumGap: 2200,
   longGap: 2500,
 };
 
 const tabletVoicePromptAudio = {
-  initialRequest: tabletVoiceInitialRequest,
-  yes: tabletVoiceYes,
-  durationDetails: tabletVoiceDurationDetails,
-  changeQuestion: tabletVoiceChangeQuestion,
-  firstOption: tabletVoiceFirstOption,
-  sendManager: tabletVoiceSendManager,
-  submit: tabletVoiceSubmit,
-  thanks: tabletVoiceThanks,
-  noThanks: tabletVoiceNoThanks,
+  initialRequest: { audioSrc: tabletVoiceInitialRequest, durationMs: 5300 },
+  yes: { audioSrc: tabletVoiceYes, durationMs: 610 },
+  durationDetails: { audioSrc: tabletVoiceDurationDetails, durationMs: 4770 },
+  changeQuestion: { audioSrc: tabletVoiceChangeQuestion, durationMs: 4630 },
+  firstOption: { audioSrc: tabletVoiceFirstOption, durationMs: 4140 },
+  sendManager: { audioSrc: tabletVoiceSendManager, durationMs: 2965 },
+  submit: { audioSrc: tabletVoiceSubmit, durationMs: 645 },
+  thanks: { audioSrc: tabletVoiceThanks, durationMs: 1420 },
+  noThanks: { audioSrc: tabletVoiceNoThanks, durationMs: 925 },
 };
 
 const tooltipContent: Record<AuraState, { title: string; message: string; description: string }> = {
@@ -497,15 +498,20 @@ export function AuraAssistant({
     }, startsAt + typingDelay);
   }
 
-  function scheduleDemoVoiceUser(text: string, startsAt: number, audioSrc?: string, onSubmitted?: () => void) {
+  function scheduleDemoVoiceUser(
+    text: string,
+    startsAt: number,
+    voicePrompt?: { audioSrc: string; durationMs: number },
+    onSubmitted?: () => void,
+  ) {
     const words = text.split(" ");
     const chunkSize = words.length <= 3 ? 1 : 3;
     const transcriptStartsAt = startsAt + voiceDemoTiming.listeningDelay;
     scheduleDemoStep(() => {
       setVoiceDemoStatus("listening");
       setLiveTranscript("");
-      if (audioSrc) {
-        const audio = new Audio(audioSrc);
+      if (voicePrompt) {
+        const audio = new Audio(voicePrompt.audioSrc);
         demoAudioRef.current = audio;
         audio.play().catch(() => {
           demoAudioRef.current = null;
@@ -522,10 +528,14 @@ export function AuraAssistant({
       scheduleDemoStep(() => setLiveTranscript(chunk), transcriptStartsAt + (index / chunkSize) * voiceDemoTiming.transcriptChunkDelay);
     }
 
-    const completionDelay =
+    const transcriptCompletionDelay =
       transcriptStartsAt +
       Math.ceil(words.length / chunkSize) * voiceDemoTiming.transcriptChunkDelay +
       voiceDemoTiming.autoSubmitDelay;
+    const audioCompletionDelay = voicePrompt
+      ? startsAt + voicePrompt.durationMs + voiceDemoTiming.audioCompletionBuffer
+      : startsAt;
+    const completionDelay = Math.max(transcriptCompletionDelay, audioCompletionDelay);
 
     scheduleDemoStep(() => {
       appendMessage({ role: "user", text });
