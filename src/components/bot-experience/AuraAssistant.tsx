@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   CalendarDays,
   ChevronLeft,
-  ChevronUp,
   Clock3,
   Maximize2,
   Mic,
@@ -16,6 +15,7 @@ import {
 import { cn } from "../../lib/utils";
 import { AvailabilityValidationState, RecommendationData } from "../../App";
 import { AuraChatHistoryView } from "./AuraChatHistoryView";
+import { AuraLauncherButton } from "./AuraLauncherButton";
 import sendButtonIcon from "../../assets/Send Button.svg";
 import tabletVoiceInitialRequest from "../../assets/audio/availability-tablet/initial-request.wav";
 import tabletVoiceYes from "../../assets/audio/availability-tablet/yes.wav";
@@ -959,15 +959,7 @@ export function AuraAssistant({
             </div>
           ) : null}
 
-          <button
-            type="button"
-            aria-label="Open AURA AI assistant"
-            onClick={openAssistant}
-            className="relative inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-[#33C7EA] to-[#2A2DBB] px-5 text-[15px] font-semibold text-white shadow-[0_12px_28px_rgba(42,45,187,0.35),0_0_24px_rgba(51,199,234,0.28)] outline-none ring-1 ring-white/30 transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_16px_36px_rgba(42,45,187,0.42),0_0_32px_rgba(51,199,234,0.36)] focus-visible:ring-4 focus-visible:ring-[#7edff4]"
-          >
-            <Sparkles className="h-4 w-4 fill-white/20" />
-            <span>AURA AI</span>
-            <ChevronUp className="h-4 w-4 opacity-85" />
+          <AuraLauncherButton onClick={openAssistant}>
             {badge ? (
               <span
                 className={cn(
@@ -979,7 +971,7 @@ export function AuraAssistant({
                 {BadgeIcon ? <BadgeIcon className="h-3 w-3" /> : badge.label}
               </span>
             ) : null}
-          </button>
+          </AuraLauncherButton>
         </div>
       </div>
 
