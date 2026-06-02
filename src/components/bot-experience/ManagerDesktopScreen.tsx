@@ -722,6 +722,8 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
       employee: "Sarah Johnson",
       role: "Bakery Associate",
       impact: "Low Impact",
+      requestedTime: "Wednesday morning, 6:00a–12:00p",
+      requestedChange: "Unavailable Wednesday morning",
       recommendation: "Approve",
       avatarClassName: "bg-[#DCFCE7] text-[#15803D]",
       impactClassName: "border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]",
@@ -733,6 +735,8 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
       employee: "Emily Carter",
       role: "Front End Associate",
       impact: "High Impact",
+      requestedTime: "Friday, 4:00p–8:00p",
+      requestedChange: "Unavailable Friday 4p–8p",
       recommendation: "Do Not Approve",
       avatarClassName: "bg-[#FEE2E2] text-[#DC2626]",
       impactClassName: "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]",
@@ -744,6 +748,8 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
       employee: "Ryan Anderson",
       role: "Grocery Associate",
       impact: "Medium Impact",
+      requestedTime: "Thursday, reduced from 8h to 6h",
+      requestedChange: "Reduce Thursday shift from 8h to 6h",
       recommendation: "Approve with Adjustment",
       avatarClassName: "bg-[#FEF3C7] text-[#C2410C]",
       impactClassName: "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]",
@@ -804,7 +810,9 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
               </span>
             </div>
 
-            <div className="mt-3 border-t border-[#E5E7EB] pt-3">
+            <div className="mt-3 space-y-2.5 border-t border-[#E5E7EB] pt-3">
+              <ManagerSnapshotField icon={CalendarIcon} label="Requested Time" value={row.requestedTime} iconClassName="bg-[#F1F5F9] text-[#475569]" valueClassName="text-[#111827]" />
+              <ManagerSnapshotField icon={LayoutList} label="Requested Change" value={row.requestedChange} iconClassName="bg-[#F1F5F9] text-[#475569]" valueClassName="text-[#111827]" />
               <ManagerSnapshotField icon={Sparkles} label="AURA Recommendation" value={row.recommendation} iconClassName={row.recommendationIconClassName} valueClassName={row.recommendationClassName} />
             </div>
 
@@ -813,7 +821,7 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
               onClick={() => setExpandedEmployee((current) => (current === row.employee ? null : row.employee))}
               aria-expanded={isExpanded}
               aria-controls={reasonId}
-              className="mt-4 flex w-full items-center justify-between border-t border-dashed border-[#CBD5E1] pt-3 text-left text-[14px] font-medium leading-5 text-[#0066D9]"
+              className="mt-3 flex w-full items-center justify-between border-t border-dashed border-[#CBD5E1] pt-3 text-left text-[14px] font-medium leading-5 text-[#0066D9]"
               aria-label={`Why this recommendation for ${row.employee}?`}
             >
               <span>{isExpanded ? "Hide recommendation reason" : "Why this recommendation?"}</span>
