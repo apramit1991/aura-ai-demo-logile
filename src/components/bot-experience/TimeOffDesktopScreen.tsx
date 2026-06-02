@@ -477,7 +477,7 @@ function TimeOffAuraAssistant({ onApplyWindow }: { onApplyWindow: (windowId: Tim
           <AuraChatHistoryView onSelectChat={() => setPanelView("activeChat")} />
         ) : (
           <>
-        <div className="scrollbar-slim min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#f7f8fb] px-5 py-4">
+        <div className="scrollbar-slim min-h-0 flex-1 space-y-3 overflow-y-auto bg-white px-5 py-4">
           {messages.map((message) => (
             <div
               key={message.id}

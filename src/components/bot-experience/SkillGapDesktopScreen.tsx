@@ -779,7 +779,7 @@ function SkillGapAuraAssistant({
           <AuraChatHistoryView onSelectChat={() => setPanelView("activeChat")} />
         ) : (
           <>
-        <div className="scrollbar-slim min-h-0 flex-1 space-y-4 overflow-y-auto bg-[#f7f8fb] px-5 py-4">
+        <div className="scrollbar-slim min-h-0 flex-1 space-y-4 overflow-y-auto bg-white px-5 py-4">
           {messages.map((message) => (
             message.kind === "text" ? (
               <div

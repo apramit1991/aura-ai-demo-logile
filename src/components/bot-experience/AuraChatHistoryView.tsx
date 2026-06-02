@@ -60,7 +60,7 @@ export function AuraChatHistoryView({ onSelectChat }: { onSelectChat: () => void
   };
 
   return (
-    <div className="scrollbar-slim min-h-0 flex-1 overflow-y-auto bg-[#f7f8fb] px-4 py-3">
+    <div className="scrollbar-slim min-h-0 flex-1 overflow-y-auto bg-white px-4 py-3">
       <div className="relative mb-3">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#5c5c5c]" />
         <input
