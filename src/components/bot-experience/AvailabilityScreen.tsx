@@ -36,12 +36,20 @@ export function AvailabilityScreen({
       <div className="flex items-center justify-between border-b border-[#d0d3da] bg-white px-5 py-3">
         <h2 className="text-[19px] font-medium text-primary">Create Availability Request</h2>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onReset} disabled={isSubmitted}>
-            Reset
-          </Button>
-          <Button size="sm" onClick={onSubmit} disabled={isSubmitted || totalDays === 0}>
+          {/* <Button variant="outline" size="sm" onClick={onReset} disabled={isSubmitted}>
+            Clear All
+          </Button> */}
+          <button type="button" className="h-[39px] min-w-[80px] rounded-[7px] bg-[#4F4F4F] px-5 text-[17px]  text-white">
+            Save as Draft
+          </button>
+          <button type="button" className="h-[39px] min-w-[80px] rounded-[7px] bg-[#0066d9] px-5 text-[17px]  text-white"
+            onClick={onSubmit} disabled={isSubmitted || totalDays === 0}
+          >
             Submit
-          </Button>
+          </button>
+          {/* <Button className="h-[39px] min-w-[82px] rounded-[7px] bg-[#0066d9] px-5 text-[17px]" size="sm" onClick={onSubmit} disabled={isSubmitted || totalDays === 0}>
+            Submit
+          </Button> */}
         </div>
       </div>
 
@@ -54,10 +62,21 @@ export function AvailabilityScreen({
             validationState={validationState}
             isTouchMode={isTouchMode}
           />
-
-          <div id="my-availability-section" className="mt-7 flex items-center justify-between">
-            <h2 className="text-[21px] font-normal">My Availability</h2>
+          <div className="flex justify-start  align-middle mt-7 gap-3">
+            <div id="my-availability-section" className=" flex items-center justify-between">
+              <h2 className="text-[21px] font-normal">My Availability</h2>
+            </div>
+            {/* <Button variant="outline" size="sm" onClick={onReset} disabled={isSubmitted}>
+              Clear All
+            </Button> */}
+            <button type="button" className="h-[39px] min-w-[80px] rounded-[7px] border border-[#0066d9] bg-[#ffffff] px-5 text-[17px]  text-[#0066d9]"
+              onClick={onReset} disabled={isSubmitted}
+            >
+              Clear All
+            </button>
           </div>
+
+
 
           <AvailabilityGrid
             isLoading={isLoading}

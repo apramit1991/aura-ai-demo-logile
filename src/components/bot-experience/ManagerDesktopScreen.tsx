@@ -63,7 +63,7 @@ export function ManagerDesktopScreen() {
   };
 
   return (
-    <AppShell 
+    <AppShell
       activeNavLabel="Labor Model"
       showDemoBackLink
       profile={{
@@ -109,7 +109,7 @@ export function ManagerDesktopScreen() {
                     &gt;
                   </button>
                 </div>
-                
+
                 {/* Type Dropdown */}
                 <div className="flex h-10 items-center justify-between gap-2 rounded-md border border-[#D0D5DD] bg-white px-3 text-[14px] text-[#344054] min-w-[140px]">
                   <span>Availability+5</span>
@@ -132,13 +132,13 @@ export function ManagerDesktopScreen() {
 
                 {/* View Toggles & Actions */}
                 <div className="flex items-center gap-1 ml-2">
-                  <button 
+                  <button
                     className={`flex h-10 w-10 items-center justify-center rounded-md ${viewMode === 'grid' ? 'bg-[#0B70D0] text-white' : 'text-[#667085] hover:bg-gray-100'}`}
                     onClick={() => setViewMode('grid')}
                   >
                     <Grip className="h-5 w-5" />
                   </button>
-                  <button 
+                  <button
                     className={`flex h-10 w-10 items-center justify-center rounded-md ${viewMode === 'list' ? 'bg-[#0B70D0] text-white' : 'text-[#667085] hover:bg-gray-100'}`}
                     onClick={() => setViewMode('list')}
                   >
@@ -160,70 +160,70 @@ export function ManagerDesktopScreen() {
               <div className="w-[320px] shrink-0 flex flex-col gap-3">
                 {hasApproved ? (
                   <>
-                    <RequestCard 
-                      title="Paid Time Off Requests" 
-                      subtitle="Multiple Days From Allison Park +4" 
-                      status="Pending" 
+                    <RequestCard
+                      title="Paid Time Off Requests"
+                      subtitle="Multiple Days From Allison Park +4"
+                      status="Pending"
                       isActive={true}
                     />
-                    <RequestCard 
-                      title="Unpaid Time Off Requests" 
-                      subtitle="Multiple Days From Barry Allen +4" 
-                      status="Pending" 
+                    <RequestCard
+                      title="Unpaid Time Off Requests"
+                      subtitle="Multiple Days From Barry Allen +4"
+                      status="Pending"
                     />
                   </>
                 ) : (
                   <>
-                    <RequestCard 
-                      title="Availability Request" 
-                      subtitle="From Jenning Dwight +4" 
-                      status="Pending" 
+                    <RequestCard
+                      title="Availability Request"
+                      subtitle="From Jenning Dwight +4"
+                      status="Pending"
                       isActive={true}
                     />
-                    <RequestCard 
-                      title="Paid Time Off Requests" 
-                      subtitle="Multiple Days From Allison Park +4" 
-                      status="Pending" 
+                    <RequestCard
+                      title="Paid Time Off Requests"
+                      subtitle="Multiple Days From Allison Park +4"
+                      status="Pending"
                     />
-                    <RequestCard 
-                      title="Unpaid Time Off Requests" 
-                      subtitle="Multiple Days From Barry Allen +4" 
-                      status="Pending" 
+                    <RequestCard
+                      title="Unpaid Time Off Requests"
+                      subtitle="Multiple Days From Barry Allen +4"
+                      status="Pending"
                     />
                   </>
                 )}
                 {/* Dynamically updated new requests */}
-                <RequestCard 
-                  title="Front End Dept/Employee 40h" 
-                  subtitle="Sarah Johnson" 
-                  status={sarahStatus} 
+                <RequestCard
+                  title="Front End Dept/Employee 40h"
+                  subtitle="Sarah Johnson"
+                  status={sarahStatus}
                 />
                 {/* -------------------- */}
-                <RequestCard 
-                  title="Bid Shifts" 
-                  subtitle="From Jenning Dwight +4" 
-                  status="Approved" 
+                <RequestCard
+                  title="Bid Shifts"
+                  subtitle="From Jenning Dwight +4"
+                  status="Approved"
                 />
-                <RequestCard 
-                  title="Paid Time Off Requests" 
-                  subtitle="Multiple Days From Allison Park +4" 
-                  status="Approved" 
+                <RequestCard
+                  title="Paid Time Off Requests"
+                  subtitle="Multiple Days From Allison Park +4"
+                  status="Approved"
                 />
-                <RequestCard 
-                  title="Unpaid Time Off Requests" 
-                  subtitle="Multiple Days From Barry Allen +4" 
-                  status="Approved" 
+                <RequestCard
+                  title="Unpaid Time Off Requests"
+                  subtitle="Multiple Days From Barry Allen +4"
+                  status="Approved"
                 />
-                <RequestCard 
-                  title="Unpaid Time Off Requests" 
-                  subtitle="Multiple Days From Barry Allen +4" 
-                  status="Denied" 
+                <RequestCard
+                  title="Unpaid Time Off Requests"
+                  subtitle="Multiple Days From Barry Allen +4"
+                  status="Denied"
                 />
                 {hasApproved ? (
-                  <RequestCard 
-                    title="Availability Request" 
-                    subtitle="From Jenning Dwight +4" 
-                    status="Approved" 
+                  <RequestCard
+                    title="Availability Request"
+                    subtitle="From Jenning Dwight +4"
+                    status="Approved"
                   />
                 ) : null}
               </div>
@@ -252,7 +252,7 @@ export function ManagerDesktopScreen() {
                 </div>
 
                 <div className="space-y-4">
-                  <EmployeeRequestCard 
+                  <EmployeeRequestCard
                     avatarSrc={avatar1}
                     name="Jenning Dwight"
                     dateStr="1/30/21 - 2/1/21"
@@ -260,7 +260,7 @@ export function ManagerDesktopScreen() {
                     defaultExpanded={true}
                     checked={true}
                   />
-                  <EmployeeRequestCard 
+                  <EmployeeRequestCard
                     avatarSrc={avatar3}
                     name="Bessie Cooper"
                     dateStr="1/30/21 - 2/1/21"
@@ -317,7 +317,7 @@ export function ManagerDesktopScreen() {
               <p className="text-[15px] font-semibold leading-tight">Requests processed successfully</p>
               <p className="mt-1 text-[14px] text-white/90 leading-snug">Availability decisions have been updated for Sarah Johnson, Emily Carter, and Ryan Anderson.</p>
             </div>
-            <button 
+            <button
               onClick={() => setShowToast(false)}
               className="ml-auto text-white/70 hover:text-white"
             >
@@ -491,7 +491,7 @@ function ManagerAuraAssistant({
     if (phase === "initial") {
       queueAssistantTurn(
         [
-          { text: "Sure. I found 3 new availability requests awaiting your review." },
+          { text: "Sure. I found 1 new availability requests awaiting your review." },
           { variant: "ragTable" },
         ],
         "awaitProcessPrompt",
@@ -654,64 +654,64 @@ function ManagerAuraAssistant({
           <AuraChatHistoryView onSelectChat={() => setPanelView("activeChat")} />
         ) : (
           <>
-        <div className="scrollbar-slim flex-1 space-y-3 overflow-y-auto bg-white px-5 py-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "animate-[aura-message-in_800ms_ease-out] rounded-lg px-3 py-2 text-[14px] leading-5 shadow-sm",
-                message.role === "assistant"
-                  ? cn("max-w-[92%] bg-[#E6F0FB] text-[#333333]", message.variant && "max-w-full bg-transparent p-0 shadow-none")
-                  : "ml-auto max-w-[84%] bg-[#F4F5FA] text-[#111827]",
-              )}
-            >
-              {message.text && !message.variant ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
-              {message.variant === "successText" && message.text ? (
-                <div className="max-w-[92%] rounded-lg border border-[#b8e4c8] bg-[#ecfdf3] px-3 py-2.5 text-[14px] font-medium leading-5 text-[#166534] shadow-sm">
-                  <p className="whitespace-pre-wrap">{message.text}</p>
+            <div className="scrollbar-slim flex-1 space-y-3 overflow-y-auto bg-white px-5 py-4">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={cn(
+                    "animate-[aura-message-in_800ms_ease-out] rounded-lg px-3 py-2 text-[14px] leading-5 shadow-sm",
+                    message.role === "assistant"
+                      ? cn("max-w-[92%] bg-[#E6F0FB] text-[#333333]", message.variant && "max-w-full bg-transparent p-0 shadow-none")
+                      : "ml-auto max-w-[84%] bg-[#F4F5FA] text-[#111827]",
+                  )}
+                >
+                  {message.text && !message.variant ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
+                  {message.variant === "successText" && message.text ? (
+                    <div className="max-w-[92%] rounded-lg border border-[#b8e4c8] bg-[#ecfdf3] px-3 py-2.5 text-[14px] font-medium leading-5 text-[#166534] shadow-sm">
+                      <p className="whitespace-pre-wrap">{message.text}</p>
+                    </div>
+                  ) : null}
+                  {message.variant === "ragTable" ? <ManagerRagTableCard hasApproved={hasApproved} /> : null}
+                  {message.variant === "approvalSummary" ? (
+                    <ManagerApprovalSummaryCard hasApproved={hasApproved} onApprove={handleApproveRequests} />
+                  ) : null}
                 </div>
-              ) : null}
-              {message.variant === "ragTable" ? <ManagerRagTableCard hasApproved={hasApproved} /> : null}
-              {message.variant === "approvalSummary" ? (
-                <ManagerApprovalSummaryCard hasApproved={hasApproved} onApprove={handleApproveRequests} />
-              ) : null}
+              ))}
+
+              {isTyping ? <ManagerTypingIndicator /> : null}
+              <div ref={scrollAnchorRef} />
             </div>
-          ))}
 
-          {isTyping ? <ManagerTypingIndicator /> : null}
-          <div ref={scrollAnchorRef} />
-        </div>
-
-        <div className="border-t border-[#e2e5ec] bg-white p-4">
-          <form className="flex min-h-[56px] items-end gap-3 rounded-[40px] border border-[#c9cbd2] bg-white px-3 py-2 shadow-sm transition-[min-height] duration-200" onSubmit={handleSubmit}>
-            <button
-              type="button"
-              className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#5c5c5c] transition hover:bg-[#f3f6fb] hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              aria-label="Attach file"
-            >
-              <Paperclip className="h-5 w-5" />
-            </button>
-            <textarea
-              ref={composerTextareaRef}
-              rows={1}
-              className="min-h-[56px] max-h-[180px] min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent py-4 text-[16px] leading-[1.4] text-[#111827] outline-none placeholder:text-[#888888] disabled:cursor-not-allowed"
-              placeholder="Ask AURA"
-              aria-label="Ask AURA"
-              value={draftMessage}
-              onChange={(event) => setDraftMessage(event.target.value)}
-              onKeyDown={handleComposerKeyDown}
-              disabled={isTyping}
-            />
-            <button
-              type="submit"
-              disabled
-              className="mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              aria-label="Send message"
-            >
-              <img src={sendButtonIcon} alt="" className="h-12 w-12" aria-hidden="true" />
-            </button>
-          </form>
-        </div>
+            <div className="border-t border-[#e2e5ec] bg-white p-4">
+              <form className="flex min-h-[56px] items-end gap-3 rounded-[40px] border border-[#c9cbd2] bg-white px-3 py-2 shadow-sm transition-[min-height] duration-200" onSubmit={handleSubmit}>
+                <button
+                  type="button"
+                  className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#5c5c5c] transition hover:bg-[#f3f6fb] hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  aria-label="Attach file"
+                >
+                  <Paperclip className="h-5 w-5" />
+                </button>
+                <textarea
+                  ref={composerTextareaRef}
+                  rows={1}
+                  className="min-h-[56px] max-h-[180px] min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent py-4 text-[16px] leading-[1.4] text-[#111827] outline-none placeholder:text-[#888888] disabled:cursor-not-allowed"
+                  placeholder="Ask AURA"
+                  aria-label="Ask AURA"
+                  value={draftMessage}
+                  onChange={(event) => setDraftMessage(event.target.value)}
+                  onKeyDown={handleComposerKeyDown}
+                  disabled={isTyping}
+                />
+                <button
+                  type="submit"
+                  disabled
+                  className="mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  aria-label="Send message"
+                >
+                  <img src={sendButtonIcon} alt="" className="h-12 w-12" aria-hidden="true" />
+                </button>
+              </form>
+            </div>
           </>
         )}
       </aside>
@@ -735,19 +735,19 @@ function ManagerTypingIndicator() {
 function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
   const rows = [
-    {
-      employee: "Sarah Johnson",
-      role: "Bakery Associate",
-      impact: "Low Impact",
-      requestedTime: "Wednesday morning, 6:00a–12:00p",
-      requestedChange: "Unavailable Wednesday morning",
-      recommendation: "Approve",
-      avatarClassName: "bg-[#DCFCE7] text-[#15803D]",
-      impactClassName: "border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]",
-      recommendationClassName: "text-[#15803D]",
-      recommendationIconClassName: "bg-[#ECFDF3] text-[#15803D]",
-      reason: "This is a long-pending request with low coverage impact. Approving it should not create significant pressure on the schedule.",
-    },
+    // {
+    //   employee: "Sarah Johnson",
+    //   role: "Bakery Associate",
+    //   impact: "Low Impact",
+    //   requestedTime: "Wednesday morning, 6:00a–12:00p",
+    //   requestedChange: "Unavailable Wednesday morning",
+    //   recommendation: "Approve",
+    //   avatarClassName: "bg-[#DCFCE7] text-[#15803D]",
+    //   impactClassName: "border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]",
+    //   recommendationClassName: "text-[#15803D]",
+    //   recommendationIconClassName: "bg-[#ECFDF3] text-[#15803D]",
+    //   reason: "This is a long-pending request with low coverage impact. Approving it should not create significant pressure on the schedule.",
+    // },
     {
       employee: "Emily Carter",
       role: "Front End Associate",
@@ -761,30 +761,30 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
       recommendationIconClassName: "bg-[#FEF2F2] text-[#DC2626]",
       reason: "This request is not recommended because it falls during a high-pressure coverage window and has been recurring.",
     },
-    {
-      employee: "Ryan Anderson",
-      role: "Grocery Associate",
-      impact: "Medium Impact",
-      requestedTime: "Thursday, reduced from 8h to 6h",
-      requestedChange: "Reduce Thursday shift from 8h to 6h",
-      recommendation: "Approve with Adjustment",
-      avatarClassName: "bg-[#FEF3C7] text-[#C2410C]",
-      impactClassName: "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]",
-      recommendationClassName: "text-[#C2410C]",
-      recommendationIconClassName: "bg-[#FFFBEB] text-[#C2410C]",
-      reason: "This request can be approved with adjustment because reducing the shift to 6 hours keeps coverage within a safe operating range.",
-    },
+    // {
+    //   employee: "Ryan Anderson",
+    //   role: "Grocery Associate",
+    //   impact: "Medium Impact",
+    //   requestedTime: "Thursday, reduced from 8h to 6h",
+    //   requestedChange: "Reduce Thursday shift from 8h to 6h",
+    //   recommendation: "Approve with Adjustment",
+    //   avatarClassName: "bg-[#FEF3C7] text-[#C2410C]",
+    //   impactClassName: "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]",
+    //   recommendationClassName: "text-[#C2410C]",
+    //   recommendationIconClassName: "bg-[#FFFBEB] text-[#C2410C]",
+    //   reason: "This request can be approved with adjustment because reducing the shift to 6 hours keeps coverage within a safe operating range.",
+    // },
   ];
   const summaryItems = [
-    { value: "3", label: "Requests", icon: "document", className: "bg-[#EFF6FF] text-[#2563EB]" },
-    { value: "1", label: "Low Impact", icon: "dot", className: "bg-[#16A34A]" },
-    { value: "1", label: "Medium Impact", icon: "dot", className: "bg-[#F59E0B]" },
+    // { value: "3", label: "Requests", icon: "document", className: "bg-[#EFF6FF] text-[#2563EB]" },
+    // { value: "1", label: "Low Impact", icon: "dot", className: "bg-[#16A34A]" },
+    // { value: "1", label: "Medium Impact", icon: "dot", className: "bg-[#F59E0B]" },
     { value: "1", label: "High Impact", icon: "dot", className: "bg-[#DC2626]" },
   ];
 
   return (
     <div className="max-w-full space-y-3 rounded-[18px] border border-[#E5E7EB] bg-white p-3 text-[#344054] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 hidden">
         {summaryItems.map((item) => (
           <div key={item.label} className="grid min-h-[60px] grid-cols-[28px_minmax(0,1fr)] items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
             {item.icon === "document" ? (
@@ -814,51 +814,51 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
             >
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                 <div className="grid min-w-0 grid-cols-[48px_minmax(0,1fr)] items-center gap-3">
-                <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-full", row.avatarClassName)}>
-                  <UserRound className="h-6 w-6" />
-                </span>
-                <div className="min-w-0">
-                  <h4 className="truncate text-[17px] font-semibold leading-6 text-[#111827]">{row.employee}</h4>
-                  <p className="mt-0.5 text-[14px] font-medium leading-5 text-[#475569]">{row.role}</p>
-                </div>
-              </div>
-              <span className={cn("shrink-0 rounded-full border px-3 py-1 text-[13px] font-semibold leading-5", row.impactClassName)}>
-                {row.impact}
-              </span>
-            </div>
-
-            <div className="mt-3 space-y-2.5 border-t border-[#E5E7EB] pt-3">
-              <ManagerSnapshotField icon={CalendarIcon} label="Requested Time" value={row.requestedTime} iconClassName="bg-[#F1F5F9] text-[#475569]" valueClassName="text-[#111827]" />
-              <ManagerSnapshotField icon={LayoutList} label="Requested Change" value={row.requestedChange} iconClassName="bg-[#F1F5F9] text-[#475569]" valueClassName="text-[#111827]" />
-              <ManagerSnapshotField icon={Sparkles} label="AURA Recommendation" value={row.recommendation} iconClassName={row.recommendationIconClassName} valueClassName={row.recommendationClassName} />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setExpandedEmployee((current) => (current === row.employee ? null : row.employee))}
-              aria-expanded={isExpanded}
-              aria-controls={reasonId}
-              className="mt-3 flex w-full items-center justify-between border-t border-dashed border-[#CBD5E1] pt-3 text-left text-[14px] font-medium leading-5 text-[#0066D9]"
-              aria-label={`Why this recommendation for ${row.employee}?`}
-            >
-              <span>{isExpanded ? "Hide recommendation reason" : "Why this recommendation?"}</span>
-              <ChevronRight className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-90")} />
-            </button>
-
-            {isExpanded ? (
-              <div id={reasonId} className="mt-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
-                <div className="flex gap-2.5">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-[#64748B] ring-1 ring-[#E5E7EB]">
-                    <Info className="h-3.5 w-3.5" />
+                  <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-full", row.avatarClassName)}>
+                    <UserRound className="h-6 w-6" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[13px] font-semibold leading-4 text-[#334155]">Reason</p>
-                    <p className="mt-1 text-[13px] leading-5 text-[#334155]">{row.reason}</p>
+                    <h4 className="truncate text-[17px] font-semibold leading-6 text-[#111827]">{row.employee}</h4>
+                    <p className="mt-0.5 text-[14px] font-medium leading-5 text-[#475569]">{row.role}</p>
                   </div>
                 </div>
+                <span className={cn("shrink-0 rounded-full border px-3 py-1 text-[13px] font-semibold leading-5", row.impactClassName)}>
+                  {row.impact}
+                </span>
               </div>
-            ) : null}
-          </article>
+
+              <div className="mt-3 space-y-2.5 border-t border-[#E5E7EB] pt-3">
+                <ManagerSnapshotField icon={CalendarIcon} label="Original Availibility" value={row.requestedTime} iconClassName="bg-[#F1F5F9] text-[#475569]" valueClassName="text-[#111827]" />
+                <ManagerSnapshotField icon={LayoutList} label="Requested" value={row.requestedChange} iconClassName="bg-[#F1F5F9] text-[#475569]" valueClassName="text-[#111827]" />
+                <ManagerSnapshotField icon={Sparkles} label="AURA Recommendation" value={row.recommendation} iconClassName={row.recommendationIconClassName} valueClassName={row.recommendationClassName} />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setExpandedEmployee((current) => (current === row.employee ? null : row.employee))}
+                aria-expanded={isExpanded}
+                aria-controls={reasonId}
+                className="mt-3 flex w-full items-center justify-between border-t border-dashed border-[#CBD5E1] pt-3 text-left text-[14px] font-medium leading-5 text-[#0066D9]"
+                aria-label={`Why this recommendation for ${row.employee}?`}
+              >
+                <span>{isExpanded ? "Hide recommendation reason" : "Why this recommendation?"}</span>
+                <ChevronRight className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-90")} />
+              </button>
+
+              {isExpanded ? (
+                <div id={reasonId} className="mt-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
+                  <div className="flex gap-2.5">
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-[#64748B] ring-1 ring-[#E5E7EB]">
+                      <Info className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold leading-4 text-[#334155]">Reason</p>
+                      <p className="mt-1 text-[13px] leading-5 text-[#334155]">{row.reason}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </article>
           );
         })}
       </div>
@@ -947,15 +947,15 @@ function ManagerApprovalSummaryCard({ hasApproved, onApprove }: { hasApproved: b
   );
 }
 
-function EmployeeRequestCard({ 
-  avatarSrc, 
-  name, 
-  dateStr, 
-  totalHrs, 
+function EmployeeRequestCard({
+  avatarSrc,
+  name,
+  dateStr,
+  totalHrs,
   defaultExpanded = false,
   checked = false,
   expandable = true,
-}: { 
+}: {
   avatarSrc?: string;
   name: string;
   dateStr: string;
@@ -969,7 +969,7 @@ function EmployeeRequestCard({
 
   return (
     <div className="rounded-lg border border-[#EAECF0] bg-white overflow-hidden">
-      <div 
+      <div
         className={cn(
           "flex items-center justify-between px-6 py-4",
           expandable ? "cursor-pointer" : "cursor-default",
@@ -980,7 +980,7 @@ function EmployeeRequestCard({
         }}
       >
         <div className="flex items-center gap-4">
-          <button 
+          <button
             type="button"
             className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-[#D0D5DD]"
             style={{ backgroundColor: isChecked ? '#2563EB' : 'transparent', borderColor: isChecked ? '#2563EB' : '#D0D5DD' }}
@@ -988,15 +988,15 @@ function EmployeeRequestCard({
           >
             {isChecked && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
           </button>
-          
+
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F2F4F7] text-[12px] font-medium text-[#475467] overflow-hidden bg-[#FDE272]">
             {avatarSrc ? (
-               <img src={avatarSrc} alt={name} className="h-full w-full object-cover" />
+              <img src={avatarSrc} alt={name} className="h-full w-full object-cover" />
             ) : (
-               <span>{name.charAt(0)}</span>
+              <span>{name.charAt(0)}</span>
             )}
           </div>
-          
+
           <div>
             <span className="block text-[17px] font-medium text-[#111827]">{name}</span>
             <span className="block mt-0.5 text-[15px] text-[#4B5563]">{dateStr} (Total Hrs - {totalHrs})</span>
@@ -1006,7 +1006,7 @@ function EmployeeRequestCard({
           {isExpanded ? <ChevronUp className="h-6 w-6 text-[#6B7280]" /> : <ChevronDown className="h-6 w-6 text-[#6B7280]" />}
         </div>
       </div>
-      
+
       {expandable && isExpanded && (
         <div className="border-t border-[#EAECF0] px-6 py-5">
           <div className="grid grid-cols-[180px_1fr] gap-y-3.5 text-[15px]">
@@ -1015,7 +1015,7 @@ function EmployeeRequestCard({
 
             <div className="text-[#6B7280]">Benefit Balance:</div>
             <div className="text-[#111827]">
-              Vacation (Hrs): 40h,<br/>
+              Vacation (Hrs): 40h,<br />
               Personal (Hrs): 24h
             </div>
 
@@ -1036,7 +1036,7 @@ function EmployeeRequestCard({
 
             <div className="text-[#6B7280]">Message:</div>
             <div className="text-[#111827] pr-8">
-              By Dwight Jennings / (149) Employee Need an emergency vacation, need<br/>
+              By Dwight Jennings / (149) Employee Need an emergency vacation, need<br />
               off from work (Tue 1/11/21 4:12a). Replied by (149) Supervisor
             </div>
 

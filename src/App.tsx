@@ -23,13 +23,17 @@ import {
 } from "lucide-react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/bot-experience/AppShell";
+import { getAvatarByName } from "./lib/avatarHelper";
 import { AvailabilityScreen } from "./components/bot-experience/AvailabilityScreen";
 import { AuraAssistant } from "./components/bot-experience/AuraAssistant";
 import { EmptyState } from "./components/bot-experience/EmptyState";
 import { PageHeader } from "./components/bot-experience/PageHeader";
 import { SkillGapDesktopScreen } from "./components/bot-experience/SkillGapDesktopScreen";
 import { TimeOffDesktopScreen } from "./components/bot-experience/TimeOffDesktopScreen";
+import { SkillGapEmployeeDesktopScreen } from "./components/bot-experience/SkillGapEmployeeDesktopScreen";
+import { SkillGapEmployeeTabletScreen } from "./components/bot-experience/SkillGapEmployeeTabletScreen";
 import { ManagerDesktopScreen } from "./components/bot-experience/ManagerDesktopScreen";
+import { ManagerTabletScreen } from "./components/bot-experience/ManagerTabletScreen";
 import { ApprovalEmployeeScreen } from "./components/bot-experience/ApprovalEmployeeScreen";
 import { ComponentShowcase } from "./components/ui/ComponentShowcase";
 import { Tabs } from "./components/ui/tabs";
@@ -47,7 +51,7 @@ export type AvailabilityValidationState = "valid" | "warning";
 
 function DemoNavigationScreen() {
   const availabilityMobilePrototypeUrl =
-    "https://www.figma.com/proto/OQoHaBN95m2wt8Wo1Q1F6x/LTSP_UPDATED-FILE-15TH-May-HEB-DEMO-?node-id=2186-90067&t=zVlBh1Zpwbm9JzRl-1";
+    "https://www.figma.com/proto/Knn1ZIFk1rP6DIQ9V7yU1C/LTSP-3.0-MVP?node-id=2013-2308&t=bt9ZTf2FKzD9PNkY-1";
   const sections = [
     {
       title: "Availability",
@@ -56,7 +60,8 @@ function DemoNavigationScreen() {
         { label: "Availability Employee— Desktop", to: "/availability-desktop", device: "Desktop", icon: Monitor },
         { label: "Availability Manager — Desktop", to: "/availability-manager", device: "Desktop", icon: Monitor },
         { label: "Availability Employee — Tablet", to: "/availability-tablet", device: "Tablet", icon: Tablet },
-        { label: "Availability — Mobile", to: availabilityMobilePrototypeUrl, device: "Mobile", icon: Smartphone, external: true },
+        { label: "Availability Manager — Tablet", to: "/availability-manager-tablet", device: "Tablet", icon: Tablet },
+        // { label: "Availability — Mobile", to: availabilityMobilePrototypeUrl, device: "Mobile", icon: Smartphone, external: true },
       ],
     },
     {
@@ -67,15 +72,17 @@ function DemoNavigationScreen() {
         { label: "Skill Gap Ask Aura — Desktop", to: "/skill-gap-ask-aura", device: "Desktop", icon: Monitor },
         { label: "Skill Gap AI Recommendation — Tablet", to: "/skill-gap-tablet", device: "Tablet", icon: Tablet },
         { label: "Skill Gap Ask Aura — Tablet", to: "/skill-gap-ask-aura-tablet", device: "Tablet", icon: Tablet },
+        { label: "Skill Gap Employee — Desktop", to: "/skill-gap-employee", device: "Desktop", icon: Monitor },
+        { label: "Skill Gap Employee— Tablet", to: "/skill-gap-employee-tablet", device: "Tablet", icon: Tablet },
       ],
     },
-    {
-      title: "Time Off",
-      description: "Review time-off request flows across device formats.",
-      links: [
-        { label: "Time Off — Desktop", to: "/time-off-desktop", device: "Desktop", icon: Monitor },
-      ],
-    },
+    // {
+    //   title: "Time Off",
+    //   description: "Review time-off request flows across device formats.",
+    //   links: [
+    //     { label: "Time Off — Desktop", to: "/time-off-desktop", device: "Desktop", icon: Monitor },
+    //   ],
+    // },
     {
       title: "Approval",
       description: "Review and manage approval workflows for employee requests.",
@@ -257,12 +264,12 @@ function AvailabilityDesktopScreen() {
       current.map((row) =>
         row.day === day
           ? {
-              ...row,
-              start: "00:00a/p",
-              end: "00:00a/p",
-              hours: "0h",
-              auraFilled: false,
-            }
+            ...row,
+            start: "00:00a/p",
+            end: "00:00a/p",
+            hours: "0h",
+            auraFilled: false,
+          }
           : row,
       ),
     );
@@ -448,12 +455,12 @@ function AvailabilityTabletScreen() {
       current.map((row) =>
         row.day === day
           ? {
-              ...row,
-              start: "00:00a/p",
-              end: "00:00a/p",
-              hours: "0h",
-              auraFilled: false,
-            }
+            ...row,
+            start: "00:00a/p",
+            end: "00:00a/p",
+            hours: "0h",
+            auraFilled: false,
+          }
           : row,
       ),
     );
@@ -549,159 +556,163 @@ function AvailabilityTabletScreen() {
               </div>
             ) : null}
             <div className="h-full overflow-y-auto bg-[#f1f2f7] pb-24 text-[#333333]">
-        <header className="flex h-[58px] items-center gap-4 bg-[#f1f2f7] px-4">
-          <button type="button" className="flex h-9 w-9 items-center justify-center rounded-md text-[#333333]" aria-label="Open menu">
-            <Menu className="h-6 w-6" />
-          </button>
+              <header className="flex h-[58px] items-center gap-4 bg-[#f1f2f7] px-4">
+                <button type="button" className="flex h-9 w-9 items-center justify-center rounded-md text-[#333333]" aria-label="Open menu">
+                  <Menu className="h-6 w-6" />
+                </button>
 
-          <img src={logileLogoUrl} alt="Logile WFM" className="h-[23px] w-[128px] object-contain" />
+                <img src={logileLogoUrl} alt="Logile WFM" className="h-[23px] w-[128px] object-contain" />
 
-          <label className="relative ml-9 flex h-10 w-[228px] items-center">
-            <Search className="absolute left-3 h-[18px] w-[18px] text-[#5c5c5c]" />
-            <input
-              type="search"
-              placeholder="Search..."
-              className="h-10 w-full rounded-[7px] border border-[#d7d9e0] bg-white pl-9 pr-3 text-[18px] text-[#333333] outline-none placeholder:text-[#8b8f98]"
-            />
-          </label>
+                <label className="relative ml-9 flex h-10 w-[228px] items-center">
+                  <Search className="absolute left-3 h-[18px] w-[18px] text-[#5c5c5c]" />
+                  <input
+                    type="search"
+                    placeholder="Search..."
+                    className="h-10 w-full rounded-[7px] border border-[#d7d9e0] bg-white pl-9 pr-3 text-[18px] text-[#333333] outline-none placeholder:text-[#8b8f98]"
+                  />
+                </label>
 
-          <div className="ml-auto flex items-center gap-4 text-[#4f545d]">
-            {[
-              { icon: Calendar, label: "Calendar" },
-              { icon: ClipboardList, label: "Tasks" },
-              { icon: Mail, label: "Messages" },
-              { icon: MessageSquare, label: "Comments" },
-            ].map(({ icon: Icon, label }) => (
-              <button key={label} type="button" className="flex h-9 w-9 items-center justify-center rounded-md" aria-label={label}>
-                <Icon className="h-[21px] w-[21px]" />
-              </button>
-            ))}
-            <button type="button" className="relative flex h-9 w-9 items-center justify-center rounded-md" aria-label="Notifications">
-              <Bell className="h-[21px] w-[21px]" />
-              <span className="absolute -right-1 top-0 rounded-full bg-[#e22d20] px-1.5 text-[12px] font-medium leading-4 text-white">99+</span>
-            </button>
-          </div>
-
-          <button type="button" className="ml-1 flex h-10 w-[196px] items-center gap-2 rounded-md border border-[#d4d7de] bg-white px-2" aria-label="Open profile menu">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#cfe8bf] text-[12px] font-bold text-[#2f6a28]">
-              {employee.avatar}
-            </span>
-            <span className="min-w-0 flex-1 text-left leading-tight">
-              <span className="block truncate text-[15px] font-semibold text-[#333333]">{employee.name}</span>
-              <span className="block text-[15px] font-semibold text-[#5c5c5c]">{employee.role}</span>
-            </span>
-            <ChevronDown className="h-5 w-5 shrink-0 text-[#5c5c5c]" />
-          </button>
-        </header>
-
-        <section className="px-[30px] pb-6">
-          <div className="flex h-[48px] items-center gap-3">
-            <button type="button" className="flex h-[34px] w-[34px] items-center justify-center rounded-md border border-[#d4d7de] bg-white text-[#5c5c5c]" aria-label="Back">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <h1 className="text-[26px] font-semibold leading-8 text-[#333333]">LTSP: Create Request</h1>
-            <CircleHelp className="h-4.5 w-4.5 text-[#5c5c5c]" />
-          </div>
-
-          <div className="relative z-10">
-            <Tabs
-              activeTab={activeTabletTab}
-              onChange={setActiveTabletTab}
-              tabs={[
-                { id: "availability", label: "Availability" },
-                { id: "time-off", label: "Time Off" },
-              ]}
-            />
-          </div>
-
-          <div className="-mt-px overflow-hidden rounded-t-md rounded-b-[8px] border border-[#d0d3da] bg-[#f1f3f9]">
-            <div className="flex h-[48px] items-center border-b border-[#d0d3da] bg-white px-5">
-              <h2 className="text-[19px] font-medium leading-6 text-[#0066d9]">Create Availability Request</h2>
-            </div>
-            <button type="button" className="flex h-[46px] w-full items-center gap-2 border-b border-[#d0d3da] bg-white px-3 text-left">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#b8bcc5] text-[#6b7280]">
-                <ChevronLeft className="h-3.5 w-3.5 rotate-180" />
-              </span>
-              <span className="border-b border-[#0066d9] pb-0.5 text-[17px] font-semibold leading-5 text-[#0066d9]">Apply Filters</span>
-            </button>
-
-            <div className="bg-[#f1f2f7] px-4 pb-4 pt-4">
-              <div className="grid grid-cols-[1fr_1.02fr_1fr] gap-4">
-                <AvailabilityTabletSummaryCard title="My Preferences">
-                  <AvailabilityTabletMetric label="Hours per week" value="30" emphasis />
-                  <AvailabilityTabletMetric label="Day per week" value="5" />
-                </AvailabilityTabletSummaryCard>
-
-                <AvailabilityTabletSummaryCard title="Work Group Rules">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                    {request.rules.map((item) => (
-                      <AvailabilityTabletInlineRule key={item.label} label={item.label} value={item.value} />
-                    ))}
-                  </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-[#e0e2e7] pt-3 text-[15px] text-[#5c5c5c]">
-                    <span>Weekly Range:</span>
-                    <span className="text-[22px] font-normal text-[#0066d9]">4-30 <span className="text-[11px] text-[#5c5c5c]">hrs</span></span>
-                  </div>
-                </AvailabilityTabletSummaryCard>
-
-                <AvailabilityTabletSummaryCard title="My Availability">
-                  <div className="space-y-3 text-[15px] text-[#5c5c5c]">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p>Total Hours</p>
-                        <p className="mt-1 text-[20px] font-semibold text-[#333333]">{totalHours}h</p>
-                      </div>
-                      {isSubmitted ? (
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b8e4c8] bg-[#ecfdf3] text-[#1f8f55]">
-                          <CheckCircle2 className="h-4 w-4" />
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center justify-between gap-3 border-t border-[#e0e2e7] pt-3">
-                      <div>
-                        <p>Total Days</p>
-                        <p className="mt-1 text-[20px] font-semibold text-[#333333]">{totalDays} Days</p>
-                      </div>
-                      {isSubmitted ? (
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b8e4c8] bg-[#ecfdf3] text-[#1f8f55]">
-                          <CheckCircle2 className="h-4 w-4" />
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </AvailabilityTabletSummaryCard>
-              </div>
-
-              <div className="mt-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-[21px] font-semibold leading-7 text-[#333333]">My Availability</h2>
-                  <button
-                    type="button"
-                    onClick={handleClearAll}
-                    className="h-9 rounded-[7px] border border-[#0066d9] bg-white px-3 text-[17px] font-normal leading-5 text-[#0066d9]"
-                  >
-                    Clear All
+                <div className="ml-auto flex items-center gap-4 text-[#4f545d]">
+                  {[
+                    { icon: Calendar, label: "Calendar" },
+                    { icon: ClipboardList, label: "Tasks" },
+                    { icon: Mail, label: "Messages" },
+                    { icon: MessageSquare, label: "Comments" },
+                  ].map(({ icon: Icon, label }) => (
+                    <button key={label} type="button" className="flex h-9 w-9 items-center justify-center rounded-md" aria-label={label}>
+                      <Icon className="h-[21px] w-[21px]" />
+                    </button>
+                  ))}
+                  <button type="button" className="relative flex h-9 w-9 items-center justify-center rounded-md" aria-label="Notifications">
+                    <Bell className="h-[21px] w-[21px]" />
+                    <span className="absolute -right-1 top-0 rounded-full bg-[#e22d20] px-1.5 text-[12px] font-medium leading-4 text-white">99+</span>
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button type="button" className="h-[39px] min-w-[80px] rounded-[7px] bg-[#555555] px-5 text-[17px] font-semibold text-white">
-                    Save
-                  </button>
-                  <button type="button" className="h-[39px] min-w-[82px] rounded-[7px] bg-[#0066d9] px-5 text-[17px] font-semibold text-white">
-                    Submit
-                  </button>
-                </div>
-              </div>
+                <button type="button" className="ml-1 flex h-10 w-[196px] items-center gap-2 rounded-md border border-[#d4d7de] bg-white px-2" aria-label="Open profile menu">
+                  <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#cfe8bf] text-[12px] font-bold text-[#2f6a28]">
+                    {getAvatarByName(employee.name) ? (
+                      <img src={getAvatarByName(employee.name)} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      employee.avatar
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 text-left leading-tight">
+                    <span className="block truncate text-[15px] font-semibold text-[#333333]">{employee.name}</span>
+                    <span className="block text-[15px] font-semibold text-[#5c5c5c]">{employee.role}</span>
+                  </span>
+                  <ChevronDown className="h-5 w-5 shrink-0 text-[#5c5c5c]" />
+                </button>
+              </header>
 
-              <div className="mt-5 space-y-[14px]">
-                {rows.map((row) => (
-                  <AvailabilityTabletRow key={row.day} row={row} onReset={handleResetRow} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+              <section className="px-[30px] pb-6">
+                <div className="flex h-[48px] items-center gap-3">
+                  <button type="button" className="flex h-[34px] w-[34px] items-center justify-center rounded-md border border-[#d4d7de] bg-white text-[#5c5c5c]" aria-label="Back">
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <h1 className="text-[16px] font-semibold leading-8 text-[#333333]">LTSP: Create Request</h1>
+                  <CircleHelp className="h-4.5 w-4.5 text-[#5c5c5c]" />
+                </div>
+
+                <div className="relative z-10">
+                  <Tabs
+                    activeTab={activeTabletTab}
+                    onChange={setActiveTabletTab}
+                    tabs={[
+                      { id: "availability", label: "Availability" },
+                      { id: "time-off", label: "Time Off" },
+                    ]}
+                  />
+                </div>
+
+                <div className="-mt-px overflow-hidden rounded-t-md rounded-b-[8px] border border-[#d0d3da] bg-[#f1f3f9]">
+                  <div className="flex h-[48px] items-center border-b border-[#d0d3da] bg-white px-5">
+                    <h2 className="text-[16px] font-medium leading-6 text-[#0066d9]">Create Availability Request</h2>
+                  </div>
+                  <button type="button" className="flex h-[46px] w-full items-center gap-2 border-b border-[#d0d3da] bg-white px-3 text-left">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#b8bcc5] text-[#6b7280]">
+                      <ChevronLeft className="h-3.5 w-3.5 rotate-180" />
+                    </span>
+                    <span className=" border-[#0066d9] pb-0.5 text-[16px]  font-semibold leading-5 text-[#0066d9]">Apply Filters</span>
+                  </button>
+
+                  <div className="bg-[#f1f2f7] px-4 pb-4 pt-4">
+                    <div className="grid grid-cols-[1fr_1.02fr_1fr] gap-4">
+                      <AvailabilityTabletSummaryCard title="My Preferences">
+                        <AvailabilityTabletMetric label="Hours per week" value="30" emphasis />
+                        <AvailabilityTabletMetric label="Day per week" value="5" />
+                      </AvailabilityTabletSummaryCard>
+
+                      <AvailabilityTabletSummaryCard title="Work Group Rules">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                          {request.rules.map((item) => (
+                            <AvailabilityTabletInlineRule key={item.label} label={item.label} value={item.value} />
+                          ))}
+                        </div>
+                        <div className="mt-3 flex items-center justify-between border-t border-[#e0e2e7] pt-3 text-[15px] text-[#5c5c5c]">
+                          <span>Weekly Range:</span>
+                          <span className="text-[22px] font-normal text-[#0066d9]">4-30 <span className="text-[11px] text-[#5c5c5c]">hrs</span></span>
+                        </div>
+                      </AvailabilityTabletSummaryCard>
+
+                      <AvailabilityTabletSummaryCard title="My Availability">
+                        <div className="space-y-3 text-[15px] text-[#5c5c5c]">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p>Total Hours</p>
+                              <p className="mt-1 text-[20px] font-semibold text-[#333333]">{totalHours}h</p>
+                            </div>
+                            {isSubmitted ? (
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b8e4c8] bg-[#ecfdf3] text-[#1f8f55]">
+                                <CheckCircle2 className="h-4 w-4" />
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center justify-between gap-3 border-t border-[#e0e2e7] pt-3">
+                            <div>
+                              <p>Total Days</p>
+                              <p className="mt-1 text-[20px] font-semibold text-[#333333]">{totalDays} Days</p>
+                            </div>
+                            {isSubmitted ? (
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b8e4c8] bg-[#ecfdf3] text-[#1f8f55]">
+                                <CheckCircle2 className="h-4 w-4" />
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </AvailabilityTabletSummaryCard>
+                    </div>
+
+                    <div className="mt-6 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <h2 className="text-[21px] font-semibold leading-7 text-[#333333]">My Availability</h2>
+                        <button
+                          type="button"
+                          onClick={handleClearAll}
+                          className="h-9 rounded-[7px] border border-[#0066d9] bg-white px-3 text-[17px] font-normal leading-5 text-[#0066d9]"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button type="button" className="h-[39px] min-w-[80px] rounded-[7px] bg-[#555555] px-5 text-[17px] text-white">
+                          Save as Draft
+                        </button>
+                        <button type="button" className="h-[39px] min-w-[82px] rounded-[7px] bg-[#0066d9] px-5 text-[17px] text-white">
+                          Submit
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 space-y-[14px]">
+                      {rows.map((row) => (
+                        <AvailabilityTabletRow key={row.day} row={row} onReset={handleResetRow} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
 
             <AuraAssistant
@@ -788,6 +799,8 @@ function SkillGapTabletScreen() {
 function SkillGapAskAuraTabletScreen() {
   return <TabletFrame title="Skill Gap Ask Aura Tablet Prototype" src="/skill-gap-ask-aura?embed=1&device=tablet" />;
 }
+
+// SkillGapEmployeeTabletScreen is imported from ./components/bot-experience/SkillGapManagerTabletScreen.tsx
 
 function PasswordGate({ children }: { children: React.ReactNode }) {
   const isProd = import.meta.env.PROD;
@@ -920,7 +933,10 @@ export default function App() {
         <Route path="/approval-employee" element={<ApprovalEmployeeScreen />} />
         <Route path="/skill-gap-tablet" element={<SkillGapTabletScreen />} />
         <Route path="/skill-gap-ask-aura-tablet" element={<SkillGapAskAuraTabletScreen />} />
+        <Route path="/skill-gap-employee" element={<SkillGapEmployeeDesktopScreen />} />
+        <Route path="/skill-gap-employee-tablet" element={<SkillGapEmployeeTabletScreen />} />
         <Route path="/availability-tablet" element={<AvailabilityTabletScreen />} />
+        <Route path="/availability-manager-tablet" element={<ManagerTabletScreen />} />
         <Route path="/components" element={<ComponentShowcase />} />
         <Route path="/time-off-tablet" element={<PlaceholderScreen title="Time Off - Tablet" />} />
         <Route path="/availability-mobile" element={<PlaceholderScreen title="Availability - Mobile" />} />

@@ -1,6 +1,7 @@
 import { Bell, ChevronDown, Search, Settings } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Badge } from "./badge";
+import { getAvatarByName } from "../../lib/avatarHelper";
 
 type HeaderAction = { icon: React.ElementType; label: string; badge?: number; onClick?: () => void };
 
@@ -71,8 +72,8 @@ export function Header({ title, logo, actions, user, notificationCount, classNam
             type="button"
             className="ml-2 flex items-center gap-2 rounded-md px-2 py-1 transition hover:bg-[#f4f5fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
           >
-            {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+            {user.avatarUrl || getAvatarByName(user.name) ? (
+              <img src={user.avatarUrl || getAvatarByName(user.name)} alt="" className="h-8 w-8 rounded-full object-cover" />
             ) : (
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-white">
                 {user.name.charAt(0)}

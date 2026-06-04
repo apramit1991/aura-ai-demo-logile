@@ -12,6 +12,7 @@ import { employee, headerActions, navItems } from "../../data/mockData";
 import { cn } from "../../lib/utils";
 import logoUrl from "../../assets/logo.png";
 import { Input } from "../ui/input";
+import { getAvatarByName } from "../../lib/avatarHelper";
 
 type AppShellProps = {
   children: ReactNode;
@@ -93,8 +94,8 @@ export function AppShell({ children, activeNavLabel, showDemoBackLink = false, p
             className="flex h-12 min-w-0 items-center gap-2 rounded-md border border-[#d4d7de] bg-white px-2 transition hover:border-[#b9bec8] sm:min-w-[206px]"
           >
             <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible rounded-full bg-[#b8e0aa] text-xs font-bold text-[#2e6623] ring-2 ring-[#dff4d6]">
-              {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+              {profile.avatarUrl || getAvatarByName(profile.name) ? (
+                <img src={profile.avatarUrl || getAvatarByName(profile.name)} alt="" className="h-8 w-8 rounded-full object-cover" />
               ) : (
                 profile.avatar
               )}

@@ -30,15 +30,17 @@ import { AuraLauncherButton } from "./AuraLauncherButton";
 import { PageHeader } from "./PageHeader";
 import { Tabs } from "../ui/tabs";
 import { cn } from "../../lib/utils";
-import profileAvatar from "../../assets/skill-gap/profile.png";
-import sarahAvatar from "../../assets/skill-gap/sarah-johnson.png";
-import emilyAvatar from "../../assets/skill-gap/emily-carter.png";
-import michaelAvatar from "../../assets/skill-gap/michael-chen.png";
-import jessicaAvatar from "../../assets/skill-gap/jessica-brown.png";
-import ryanAvatar from "../../assets/skill-gap/ryan-anderson.png";
-import alexAvatar from "../../assets/skill-gap/alex-thompson.png";
-import jordanAvatar from "../../assets/skill-gap/jordan-mitchell.png";
+import { getAvatarByName } from "../../lib/avatarHelper";
 import sendButtonIcon from "../../assets/Send Button.svg";
+
+const profileAvatar = getAvatarByName("Smith, Jane")!;
+const sarahAvatar = getAvatarByName("Sarah Johnson")!;
+const emilyAvatar = getAvatarByName("Emily Carter")!;
+const michaelAvatar = getAvatarByName("Michael Chen")!;
+const jessicaAvatar = getAvatarByName("Jessica Brown")!;
+const ryanAvatar = getAvatarByName("Ryan Anderson")!;
+const alexAvatar = getAvatarByName("Alex Thompson")!;
+const jordanAvatar = getAvatarByName("Jordan Mitchell")!;
 
 const alertCards = [
   { id: 1, title: "Bakery - Baking, 40h", action: "Click on Card for solution" },
@@ -92,7 +94,7 @@ const crossTrainEmployees = [
     required: "Availability: Mon-Sun · 52h",
   },
   {
-    name: "Ryan Anderson,",
+    name: "Ryan Anderson",
     avatar: ryanAvatar,
     badges: ["Inventory"],
     current: "Secondary LT: Cake Decoration, Bakery Clerk, Bakery Opening",

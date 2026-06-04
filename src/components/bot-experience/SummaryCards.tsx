@@ -50,7 +50,7 @@ export function SummaryCards({ totalHours, totalDays, validationState, isTouchMo
       )}
     >
       <section className="min-w-0 rounded-[14px] bg-white p-3 2xl:p-4">
-        <h3 className="mb-4 text-[21px] font-normal">My Preferences</h3>
+        <h3 className="mb-4 text-[20px] font-semibold font-normal">My Preferences</h3>
         <div className="grid max-w-full gap-3 text-[15px] text-[#5c5c5c]">
           {request.preferences.map((item) => (
             <div key={item.label} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
@@ -64,7 +64,7 @@ export function SummaryCards({ totalHours, totalDays, validationState, isTouchMo
       </section>
 
       <section className="min-w-0 rounded-[14px] bg-white p-3 2xl:p-4">
-        <h3 className="mb-6 text-[21px] font-normal">Work Group Rules</h3>
+        <h3 className="mb-6 text-[20px] font-semibold font-normal">Work Group Rules</h3>
         <div className="grid max-w-full grid-cols-1 gap-x-4 gap-y-3 text-[15px] text-[#5c5c5c] sm:grid-cols-2">
           {request.rules.map((item) => (
             <div key={item.label} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
@@ -85,7 +85,7 @@ export function SummaryCards({ totalHours, totalDays, validationState, isTouchMo
 
       <section className="min-w-0 rounded-[14px] bg-white p-3 2xl:p-4">
         <div className="mb-4">
-          <h3 className="text-[21px] font-normal">My Availability</h3>
+          <h3 className="text-[20px] font-semibold font-normal">My Availability</h3>
         </div>
         <div className="grid gap-3 text-[15px] text-[#5c5c5c]">
           <div className="flex items-center justify-between gap-3">

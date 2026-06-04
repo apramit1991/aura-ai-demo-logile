@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { AppShell } from "./AppShell";
+import { getAvatarByName } from "../../lib/avatarHelper";
 import { AuraChatHistoryView } from "./AuraChatHistoryView";
 import { AuraLauncherButton } from "./AuraLauncherButton";
 import { PageHeader } from "./PageHeader";
@@ -458,6 +459,7 @@ export function ApprovalEmployeeScreen() {
         role: "Employee",
         avatar: "SJ",
         badge: 1,
+        avatarUrl: getAvatarByName("Sarah Johnson"),
       }}
     >
       <div className="flex h-full flex-col bg-[#F4F5FA]">
