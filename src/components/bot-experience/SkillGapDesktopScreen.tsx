@@ -215,6 +215,7 @@ type AskAuraPhase =
   | "awaitCriticalCardClick"
   | "awaitCrossTrainConsent"
   | "awaitAvailabilitySendConfirm"
+  | "awaitCrossTrainAfterAvailabilitySent"
   | "awaitCrossTrainSelection"
   | "awaitCrossTrainSendConfirm"
   | "awaitClosePrompt"
@@ -243,16 +244,16 @@ const askAuraCrossTrainEmployees: AskAuraCrossTrainEmployee[] = [
   {
     name: "Jessica Brown",
     avatar: jessicaAvatar,
-    recommendationType: "Cross-training",
-    estimatedTime: "2 weeks",
-    impact: "Helps reduce the Bakery skill gap",
+    recommendationType: "Customer Service",
+    estimatedTime: "Mon-Sun · 52h",
+    impact: "Secondary LT: Cake Decoration, Bakery Clerk, +1",
   },
   {
     name: "Ryan Anderson",
     avatar: ryanAvatar,
-    recommendationType: "Cross-training",
-    estimatedTime: "2 weeks",
-    impact: "Helps reduce the Bakery skill gap",
+    recommendationType: "Inventory",
+    estimatedTime: "Tue-Sun · 45h",
+    impact: "Secondary LT: Cake Decoration, Bakery Clerk, Bakery Opening",
   },
 ];
 
@@ -392,20 +393,30 @@ function SkillGapAuraAssistant({
     }, delay);
   }
 
-  function queueAssistantSuccessFollowUp() {
+  function queueAvailabilitySuccessFollowUp() {
     clearTypingTimer();
     setIsAuraTyping(true);
     typingTimerRef.current = window.setTimeout(() => {
-      appendMessage({ role: "assistant", kind: "successText", text: "Done — that’s sent." });
+      appendMessage({ role: "assistant", kind: "successText", text: "Done — that's sent." });
       typingTimerRef.current = window.setTimeout(() => {
         appendMessage({
           role: "assistant",
           kind: "text",
-          text: "Do you want to proceed with solving the other 2 critical gaps as well?",
+          text: "Would you also like to see who you can cross-train?",
         });
         setIsAuraTyping(false);
         typingTimerRef.current = null;
       }, 380);
+    }, 900);
+  }
+
+  function queueCrossTrainSuccessFollowUp() {
+    clearTypingTimer();
+    setIsAuraTyping(true);
+    typingTimerRef.current = window.setTimeout(() => {
+      appendMessage({ role: "assistant", kind: "successText", text: "Done — cross-train request sent." });
+      setIsAuraTyping(false);
+      typingTimerRef.current = null;
     }, 900);
   }
 
@@ -508,7 +519,7 @@ function SkillGapAuraAssistant({
     queueAssistant({
       role: "assistant",
       kind: "text",
-      text: "You selected Jessica Brown and Ryan Anderson. This will reduce the skill gap by 99%. Would you like me to prepare cross-training requests for Bakery coverage support?",
+      text: "You selected Jessica Brown and Ryan Anderson This will reduce the skill gap by 90%. Would you like me to send corss-train requests to both of them?",
     });
   }, [selectedCrossTrainEmployees, crossTrainRequestSent, hasPromptedCrossTrainRequest]);
 
@@ -555,19 +566,10 @@ function SkillGapAuraAssistant({
     }
 
     if (phase === "awaitCrossTrainConsent") {
-      if (matchesYesPrompt(trimmedMessage)) {
-        setPhase("awaitCrossTrainSelection");
-        queueAssistant([
-          { role: "assistant", kind: "text", text: "I found 2 employees who can be cross-trained to reduce the skill gap by 99%." },
-          { role: "assistant", kind: "crossTrainCards" },
-        ]);
-        return;
-      }
-
       queueAssistant({
         role: "assistant",
         kind: "text",
-        text: "Select Sarah Johnson and Emily Carter to send availability requests, or reply with 'Yes' to review cross-training options.",
+        text: "Select Sarah Johnson and Emily Carter to send availability requests.",
       });
       return;
     }
@@ -583,8 +585,22 @@ function SkillGapAuraAssistant({
       setAvailabilitySkillGapReductionPercent(100);
       setAvailabilityRequestSent(true);
       onSendAvailabilityRequests({ type: "availability", employees: ["Sarah Johnson", "Emily Carter"] });
+      setPhase("awaitCrossTrainAfterAvailabilitySent");
+      queueAvailabilitySuccessFollowUp();
+      return;
+    }
+
+    if (phase === "awaitCrossTrainAfterAvailabilitySent") {
+      if (matchesYesPrompt(trimmedMessage)) {
+        setPhase("awaitCrossTrainSelection");
+        queueAssistant([
+          { role: "assistant", kind: "text", text: "I found 2 employees who can be Cross Trained to reduce the skill gap by 99%." },
+          { role: "assistant", kind: "crossTrainCards" },
+        ]);
+        return;
+      }
       setPhase("awaitClosePrompt");
-      queueAssistantSuccessFollowUp();
+      queueAssistant({ role: "assistant", kind: "text", text: "Alright. Let me know if there's anything else I can help with." });
       return;
     }
 
@@ -623,7 +639,7 @@ function SkillGapAuraAssistant({
       setCrossTrainRequestSent(true);
       onSendAvailabilityRequests({ type: "crossTraining", employees: ["Jessica Brown", "Ryan Anderson"] });
       setPhase("awaitClosePrompt");
-      queueAssistantSuccessFollowUp();
+      queueCrossTrainSuccessFollowUp();
       return;
     }
 
@@ -688,10 +704,6 @@ function SkillGapAuraAssistant({
       { role: "assistant", kind: "availabilityCards" },
       { role: "assistant", kind: "text", text: "My preferred combination for full coverage is Sarah Johnson at 100% allocation and Emily Carter at 10% support. This can create 100% fulfilment for the Baking gap." },
     ]);
-    followUpTimerRef.current = window.setTimeout(() => {
-      setHasShownCrossTrainPrompt(true);
-      queueAssistant({ role: "assistant", kind: "text", text: "Would you like to see who you can cross-train?" });
-    }, 2600);
   }
 
   return (
@@ -774,160 +786,160 @@ function SkillGapAuraAssistant({
           <AuraChatHistoryView onSelectChat={() => setPanelView("activeChat")} />
         ) : (
           <>
-        <div className="scrollbar-slim min-h-0 flex-1 space-y-4 overflow-y-auto bg-white px-5 py-4">
-          {messages.map((message) => (
-            message.kind === "text" ? (
-              <div
-                key={message.id}
-                className={cn(
-                  "animate-[aura-message-in_180ms_ease-out] rounded-lg px-3 py-2 text-[14px] leading-5 shadow-sm",
-                  message.role === "assistant" ? "max-w-[92%] bg-[#E6F0FB] text-[#333333]" : "ml-auto max-w-[84%] bg-[#F4F5FA] text-[#111827]",
-                )}
-              >
-                {message.text}
-              </div>
-            ) : message.kind === "successText" ? (
-              <div
-                key={message.id}
-                className="animate-[aura-message-in_180ms_ease-out] max-w-[92%] rounded-lg border border-[#b8e4c8] bg-[#ecfdf3] px-3 py-2.5 text-[#166534] shadow-sm"
-              >
-                <p className="whitespace-pre-line text-[14px] font-medium leading-5">{message.text}</p>
-              </div>
-            ) : message.kind === "criticalGapCards" ? (
-              <div key={message.id} className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-lg border border-[#fca5a5] bg-[#fef2f2] px-3 py-3 shadow-sm">
-                <div className="space-y-2">
-                  {[
-                    "Bakery - Baking, 40h",
-                    "Bakery - Cake Decoration, 32h",
-                    "Bakery Clerk, 28h",
-                  ].map((title) => (
-                    <button
-                      key={title}
-                      type="button"
-                      onClick={() => handleCriticalCardSelect(title)}
-                      className={cn(
-                        "flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                        selectedCriticalGapCard === title ? "border-[#ef4444] bg-white" : "border-[#fecaca] bg-white/80 hover:border-[#ef4444] hover:bg-white",
-                      )}
-                    >
-                      <AlertTriangle className="h-4 w-4 shrink-0 text-[#dc2626]" />
-                      <p className="text-[14px] font-semibold leading-5 text-[#111827]">{title}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : message.kind === "availabilityCards" ? (
-              <div key={message.id} className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-xl border border-[#d8dce6] bg-white shadow-sm">
-                <div className="border-b border-[#e5e7eb] px-4 py-3">
-                  <p className="text-[15px] font-semibold leading-5 text-primary">Availability movement — solves in 2 days</p>
-                  <p className="mt-2 text-[13px] leading-5 text-[#1f2937]">Sarah Johnson has Bakery as a secondary skill. If approved, this can solve 85% of the Baking gap.</p>
-                  <p className="mt-1 text-[13px] leading-5 text-[#1f2937]">Emily Carter has Bakery as a tertiary skill. If approved, this can help achieve 100% reduction when combined with Sarah Johnson.</p>
-                </div>
-                <div className="space-y-3 px-4 py-4">
-                  {askAuraAvailabilityEmployees.map((employee) => (
-                    <AskAuraEmployeeCard
-                      key={employee.name}
-                      employee={employee}
-                      selected={selectedAvailabilityEmployees.has(employee.name)}
-                      disabled={sentAvailabilityEmployees.has(employee.name)}
-                      onToggle={() => toggleAvailabilityEmployee(employee.name)}
-                      subtitle={`${employee.skillLevel} • ${employee.impact}`}
-                      status={sentAvailabilityEmployees.has(employee.name) ? "Pending Approval" : undefined}
-                    />
-                  ))}
-                  {availabilitySkillGapReductionPercent > 0 ? (
-                    <div className="rounded-md border border-[#d8dce6] bg-[#f8fafc] px-3 py-3">
-                      <p className="text-[13px] font-semibold leading-5 text-[#334155]">
-                        {availabilitySkillGapReductionPercent}% skill gap reduced
-                      </p>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
-                        <div
-                          className="h-full rounded-full bg-[#34b233] transition-all duration-500 ease-out"
-                          style={{ width: `${availabilitySkillGapReductionPercent}%` }}
-                        />
-                      </div>
+            <div className="scrollbar-slim min-h-0 flex-1 space-y-4 overflow-y-auto bg-white px-5 py-4">
+              {messages.map((message) => (
+                message.kind === "text" ? (
+                  <div
+                    key={message.id}
+                    className={cn(
+                      "animate-[aura-message-in_180ms_ease-out] rounded-lg px-3 py-2 text-[14px] leading-5 shadow-sm",
+                      message.role === "assistant" ? "max-w-[92%] bg-[#E6F0FB] text-[#333333]" : "ml-auto max-w-[84%] bg-[#F4F5FA] text-[#111827]",
+                    )}
+                  >
+                    {message.text}
+                  </div>
+                ) : message.kind === "successText" ? (
+                  <div
+                    key={message.id}
+                    className="animate-[aura-message-in_180ms_ease-out] max-w-[92%] rounded-lg border border-[#b8e4c8] bg-[#ecfdf3] px-3 py-2.5 text-[#166534] shadow-sm"
+                  >
+                    <p className="whitespace-pre-line text-[14px] font-medium leading-5">{message.text}</p>
+                  </div>
+                ) : message.kind === "criticalGapCards" ? (
+                  <div key={message.id} className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-lg border border-[#fca5a5] bg-[#fef2f2] px-3 py-3 shadow-sm">
+                    <div className="space-y-2">
+                      {[
+                        "Bakery - Baking, 40h",
+                        "Bakery - Cake Decoration, 32h",
+                        "Bakery Clerk, 28h",
+                      ].map((title) => (
+                        <button
+                          key={title}
+                          type="button"
+                          onClick={() => handleCriticalCardSelect(title)}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                            selectedCriticalGapCard === title ? "border-[#ef4444] bg-white" : "border-[#fecaca] bg-white/80 hover:border-[#ef4444] hover:bg-white",
+                          )}
+                        >
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-[#dc2626]" />
+                          <p className="text-[14px] font-semibold leading-5 text-[#111827]">{title}</p>
+                        </button>
+                      ))}
                     </div>
-                  ) : null}
-                </div>
-              </div>
-            ) : message.kind === "crossTrainCards" ? (
-              <div key={message.id} className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-xl border border-[#d8dce6] bg-white shadow-sm">
-                <div className="border-b border-[#e5e7eb] px-4 py-3">
-                  <p className="text-[15px] font-semibold leading-5 text-primary">Cross-training — estimated in 2 weeks</p>
-                  <p className="mt-2 text-[13px] leading-5 text-[#1f2937]">Select employees to prepare cross-training requests for Bakery coverage support.</p>
-                </div>
-                <div className="space-y-3 px-4 py-4">
-                  {askAuraCrossTrainEmployees.map((employee) => (
-                    <AskAuraEmployeeCard
-                      key={employee.name}
-                      employee={employee}
-                      selected={selectedCrossTrainEmployees.has(employee.name)}
-                      disabled={sentCrossTrainEmployees.has(employee.name)}
-                      onToggle={() => toggleCrossTrainEmployee(employee.name)}
-                      subtitle={`${employee.recommendationType} • Estimated time: ${employee.estimatedTime} • Impact: ${employee.impact}`}
-                      status={sentCrossTrainEmployees.has(employee.name) ? "Pending Approval" : undefined}
-                    />
-                  ))}
-                  {crossTrainSkillGapReductionPercent > 0 ? (
-                    <div className="rounded-md border border-[#d8dce6] bg-[#f8fafc] px-3 py-3">
-                      <p className="text-[13px] font-semibold leading-5 text-[#334155]">
-                        {crossTrainSkillGapReductionPercent >= 99 ? "Skill gap 99% reduced" : `Skill gap ${crossTrainSkillGapReductionPercent}% reduced`}
-                      </p>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
-                        <div
-                          className="h-full rounded-full bg-[#34b233] transition-all duration-500 ease-out"
-                          style={{ width: `${crossTrainSkillGapReductionPercent}%` }}
-                        />
-                      </div>
+                  </div>
+                ) : message.kind === "availabilityCards" ? (
+                  <div key={message.id} className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-xl border border-[#d8dce6] bg-white shadow-sm">
+                    <div className="border-b border-[#e5e7eb] px-4 py-3">
+                      <p className="text-[15px] font-semibold leading-5 text-primary">Availability movement — solves in 2 days</p>
+                      <p className="mt-2 text-[13px] leading-5 text-[#1f2937]">Sarah Johnson has Bakery as a secondary skill. If approved, this can solve 85% of the Baking gap.</p>
+                      <p className="mt-1 text-[13px] leading-5 text-[#1f2937]">Emily Carter has Bakery as a tertiary skill. If approved, this can help achieve 100% reduction when combined with Sarah Johnson.</p>
                     </div>
-                  ) : null}
-                </div>
-              </div>
-            ) : null
-          ))}
+                    <div className="space-y-3 px-4 py-4">
+                      {askAuraAvailabilityEmployees.map((employee) => (
+                        <AskAuraEmployeeCard
+                          key={employee.name}
+                          employee={employee}
+                          selected={selectedAvailabilityEmployees.has(employee.name)}
+                          disabled={sentAvailabilityEmployees.has(employee.name)}
+                          onToggle={() => toggleAvailabilityEmployee(employee.name)}
+                          subtitle={`${employee.skillLevel} • ${employee.impact}`}
+                          status={sentAvailabilityEmployees.has(employee.name) ? "Pending Approval" : undefined}
+                        />
+                      ))}
+                      {availabilitySkillGapReductionPercent > 0 ? (
+                        <div className="rounded-md border border-[#d8dce6] bg-[#f8fafc] px-3 py-3">
+                          <p className="text-[13px] font-semibold leading-5 text-[#334155]">
+                            {availabilitySkillGapReductionPercent}% skill gap reduced
+                          </p>
+                          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
+                            <div
+                              className="h-full rounded-full bg-[#34b233] transition-all duration-500 ease-out"
+                              style={{ width: `${availabilitySkillGapReductionPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : message.kind === "crossTrainCards" ? (
+                  <div key={message.id} className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-xl border border-[#d8dce6] bg-white shadow-sm">
+                    <div className="border-b border-[#e5e7eb] px-4 py-3">
+                      <p className="text-[15px] font-semibold leading-5 text-primary">Cross-training — estimated in 2 weeks</p>
+                      <p className="mt-2 text-[13px] leading-5 text-[#1f2937]">Select employees to prepare cross-training requests for Bakery coverage support.</p>
+                    </div>
+                    <div className="space-y-3 px-4 py-4">
+                      {askAuraCrossTrainEmployees.map((employee) => (
+                        <AskAuraEmployeeCard
+                          key={employee.name}
+                          employee={employee}
+                          selected={selectedCrossTrainEmployees.has(employee.name)}
+                          disabled={sentCrossTrainEmployees.has(employee.name)}
+                          onToggle={() => toggleCrossTrainEmployee(employee.name)}
+                          subtitle={`${employee.recommendationType} · ${employee.impact} · Availability: ${employee.estimatedTime}`}
+                          status={sentCrossTrainEmployees.has(employee.name) ? "Pending Approval" : undefined}
+                        />
+                      ))}
+                      {crossTrainSkillGapReductionPercent > 0 ? (
+                        <div className="rounded-md border border-[#d8dce6] bg-[#f8fafc] px-3 py-3">
+                          <p className="text-[13px] font-semibold leading-5 text-[#334155]">
+                            {crossTrainSkillGapReductionPercent >= 99 ? "Skill gap 99% reduced" : `Skill gap ${crossTrainSkillGapReductionPercent}% reduced`}
+                          </p>
+                          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
+                            <div
+                              className="h-full rounded-full bg-[#34b233] transition-all duration-500 ease-out"
+                              style={{ width: `${crossTrainSkillGapReductionPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null
+              ))}
 
-          {isAuraTyping ? (
-            <div className="animate-[aura-message-in_180ms_ease-out] max-w-[88%] rounded-lg bg-[#E6F0FB] px-3 py-2 text-[#5c5c5c] shadow-sm">
-              <span className="sr-only">AURA AI is typing</span>
-              <span className="flex h-5 items-center gap-1" aria-hidden="true">
-                <span className="aura-typing-dot" />
-                <span className="aura-typing-dot [animation-delay:420ms]" />
-                <span className="aura-typing-dot [animation-delay:840ms]" />
-              </span>
+              {isAuraTyping ? (
+                <div className="animate-[aura-message-in_180ms_ease-out] max-w-[88%] rounded-lg bg-[#E6F0FB] px-3 py-2 text-[#5c5c5c] shadow-sm">
+                  <span className="sr-only">AURA AI is typing</span>
+                  <span className="flex h-5 items-center gap-1" aria-hidden="true">
+                    <span className="aura-typing-dot" />
+                    <span className="aura-typing-dot [animation-delay:420ms]" />
+                    <span className="aura-typing-dot [animation-delay:840ms]" />
+                  </span>
+                </div>
+              ) : null}
+              <div ref={scrollAnchorRef} />
             </div>
-          ) : null}
-          <div ref={scrollAnchorRef} />
-        </div>
-        <footer className="shrink-0 border-t border-[#e2e5ec] bg-white px-4 py-3">
-          <form className="flex min-h-[56px] items-end gap-3 rounded-[40px] border border-[#c9cbd2] bg-white px-3 py-2 shadow-sm transition-[min-height] duration-200" onSubmit={handleChatSubmit}>
-            <button
-              type="button"
-              className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#5c5c5c] transition hover:bg-[#f3f6fb] hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              aria-label="Attach file"
-            >
-              <Paperclip className="h-5 w-5" />
-            </button>
-            <textarea
-              ref={composerTextareaRef}
-              rows={1}
-              className="min-h-[56px] max-h-[180px] min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent py-4 text-[16px] leading-[1.4] text-[#111827] outline-none placeholder:text-[#888888]"
-              placeholder="Ask AURA"
-              aria-label="Ask AURA"
-              value={draftMessage}
-              onChange={(event) => setDraftMessage(event.target.value)}
-              onKeyDown={handleComposerKeyDown}
-              disabled={isAuraTyping}
-            />
-            <button
-              type="submit"
-              disabled
-              className="mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              aria-label="Send message"
-            >
-              <img src={sendButtonIcon} alt="" className="h-12 w-12" aria-hidden="true" />
-            </button>
-          </form>
-        </footer>
+            <footer className="shrink-0 border-t border-[#e2e5ec] bg-white px-4 py-3">
+              <form className="flex min-h-[56px] items-end gap-3 rounded-[40px] border border-[#c9cbd2] bg-white px-3 py-2 shadow-sm transition-[min-height] duration-200" onSubmit={handleChatSubmit}>
+                <button
+                  type="button"
+                  className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#5c5c5c] transition hover:bg-[#f3f6fb] hover:text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  aria-label="Attach file"
+                >
+                  <Paperclip className="h-5 w-5" />
+                </button>
+                <textarea
+                  ref={composerTextareaRef}
+                  rows={1}
+                  className="min-h-[56px] max-h-[180px] min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent py-4 text-[16px] leading-[1.4] text-[#111827] outline-none placeholder:text-[#888888]"
+                  placeholder="Ask AURA"
+                  aria-label="Ask AURA"
+                  value={draftMessage}
+                  onChange={(event) => setDraftMessage(event.target.value)}
+                  onKeyDown={handleComposerKeyDown}
+                  disabled={isAuraTyping}
+                />
+                <button
+                  type="submit"
+                  disabled
+                  className="mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  aria-label="Send message"
+                >
+                  <img src={sendButtonIcon} alt="" className="h-12 w-12" aria-hidden="true" />
+                </button>
+              </form>
+            </footer>
           </>
         )}
       </aside>

@@ -12,6 +12,7 @@ import { AuraChatHistoryView } from "./AuraChatHistoryView";
 import { AuraLauncherButton } from "./AuraLauncherButton";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
+import { CalendarDetailsModal } from "./CalendarDetailsModal";
 import {
   Calendar as CalendarIcon,
   Check,
@@ -189,17 +190,14 @@ export function ManagerTabletScreen() {
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded bg-white p-2">
                     <div className="flex items-center gap-2">
                       {/* Date Picker (Mock) */}
-                      <div className="flex h-9 items-center rounded-md border border-[#D0D5DD] bg-white px-2.5 text-[13px] text-[#344054]">
-                        <button className="mr-1.5 text-[#98A2B3] hover:text-[#344054]">
-                          &lt;
-                        </button>
-                        <span className="mr-1.5">6/13/24 - 6/19/24</span>
-                        <CalendarIcon className="h-3.5 w-3.5 text-[#98A2B3]" />
-                        <button className="ml-1.5 text-[#98A2B3] hover:text-[#344054]">
-                          &gt;
-                        </button>
+                      <div className="flex items-center">
+                        <div className="flex h-9 overflow-hidden rounded-md border border-[#c9cbd2] bg-white">
+                          <button type="button" className="flex w-9 items-center justify-center border-r border-[#c9cbd2]">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-left h-5 w-5 text-[#5c5c5c]"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" className="flex min-w-[170px] items-center justify-between px-2 text-[16px] leading-[22px] 2xl:min-w-[198px] 2xl:text-[17px]"><span>6/13/24 - 6/19/24</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-calendar h-[18px] w-[18px] text-primary"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg></button><button type="button" className="flex w-9 items-center justify-center border-l border-[#c9cbd2]"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-right h-5 w-5 text-[#5c5c5c]"><path d="m9 18 6-6-6-6"></path></svg>
+                          </button>
+                        </div>
                       </div>
-                      
+
                       {/* Type Dropdown */}
                       <div className="flex h-9 items-center justify-between gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-2.5 text-[13px] text-[#344054] min-w-[120px]">
                         <span>Availability+5</span>
@@ -222,13 +220,13 @@ export function ManagerTabletScreen() {
 
                       {/* View Toggles & Actions */}
                       <div className="flex items-center gap-1 ml-1">
-                        <button 
+                        <button
                           className={`flex h-9 w-9 items-center justify-center rounded-md ${viewMode === 'grid' ? 'bg-[#0B70D0] text-white' : 'text-[#667085] hover:bg-gray-100'}`}
                           onClick={() => setViewMode('grid')}
                         >
                           <Grip className="h-4.5 w-4.5" />
                         </button>
-                        <button 
+                        <button
                           className={`flex h-9 w-9 items-center justify-center rounded-md ${viewMode === 'list' ? 'bg-[#0B70D0] text-white' : 'text-[#667085] hover:bg-gray-100'}`}
                           onClick={() => setViewMode('list')}
                         >
@@ -250,70 +248,70 @@ export function ManagerTabletScreen() {
                     <div className="w-[280px] shrink-0 flex flex-col gap-3">
                       {hasApproved ? (
                         <>
-                          <RequestCard 
-                            title="Paid Time Off Requests" 
-                            subtitle="Multiple Days From Allison Park +4" 
-                            status="Pending" 
+                          <RequestCard
+                            title="Paid Time Off Requests"
+                            subtitle="Multiple Days From Allison Park +4"
+                            status="Pending"
                             isActive={true}
                           />
-                          <RequestCard 
-                            title="Unpaid Time Off Requests" 
-                            subtitle="Multiple Days From Barry Allen +4" 
-                            status="Pending" 
+                          <RequestCard
+                            title="Unpaid Time Off Requests"
+                            subtitle="Multiple Days From Barry Allen +4"
+                            status="Pending"
                           />
                         </>
                       ) : (
                         <>
-                          <RequestCard 
-                            title="Availability Request" 
-                            subtitle="From Jenning Dwight +4" 
-                            status="Pending" 
+                          <RequestCard
+                            title="Availability Request"
+                            subtitle="From Jenning Dwight +4"
+                            status="Pending"
                             isActive={true}
                           />
-                          <RequestCard 
-                            title="Paid Time Off Requests" 
-                            subtitle="Multiple Days From Allison Park +4" 
-                            status="Pending" 
+                          <RequestCard
+                            title="Paid Time Off Requests"
+                            subtitle="Multiple Days From Allison Park +4"
+                            status="Pending"
                           />
-                          <RequestCard 
-                            title="Unpaid Time Off Requests" 
-                            subtitle="Multiple Days From Barry Allen +4" 
-                            status="Pending" 
+                          <RequestCard
+                            title="Unpaid Time Off Requests"
+                            subtitle="Multiple Days From Barry Allen +4"
+                            status="Pending"
                           />
                         </>
                       )}
                       {/* Dynamically updated new requests */}
-                      <RequestCard 
-                        title="Front End Dept/Employee 40h" 
-                        subtitle="Sarah Johnson" 
-                        status={sarahStatus} 
+                      <RequestCard
+                        title="Front End Dept/Employee 40h"
+                        subtitle="Sarah Johnson"
+                        status={sarahStatus}
                       />
                       {/* -------------------- */}
-                      <RequestCard 
-                        title="Bid Shifts" 
-                        subtitle="From Jenning Dwight +4" 
-                        status="Approved" 
+                      <RequestCard
+                        title="Bid Shifts"
+                        subtitle="From Jenning Dwight +4"
+                        status="Approved"
                       />
-                      <RequestCard 
-                        title="Paid Time Off Requests" 
-                        subtitle="Multiple Days From Allison Park +4" 
-                        status="Approved" 
+                      <RequestCard
+                        title="Paid Time Off Requests"
+                        subtitle="Multiple Days From Allison Park +4"
+                        status="Approved"
                       />
-                      <RequestCard 
-                        title="Unpaid Time Off Requests" 
-                        subtitle="Multiple Days From Barry Allen +4" 
-                        status="Approved" 
+                      <RequestCard
+                        title="Unpaid Time Off Requests"
+                        subtitle="Multiple Days From Barry Allen +4"
+                        status="Approved"
                       />
-                      <RequestCard 
-                        title="Unpaid Time Off Requests" 
-                        subtitle="Multiple Days From Barry Allen +4" 
-                        status="Denied" 
+                      <RequestCard
+                        title="Unpaid Time Off Requests"
+                        subtitle="Multiple Days From Barry Allen +4"
+                        status="Denied"
                       />
                       {hasApproved ? (
-                        <RequestCard 
-                          title="Availability Request" 
-                          subtitle="From Jenning Dwight +4" 
-                          status="Approved" 
+                        <RequestCard
+                          title="Availability Request"
+                          subtitle="From Jenning Dwight +4"
+                          status="Approved"
                         />
                       ) : null}
                     </div>
@@ -342,7 +340,7 @@ export function ManagerTabletScreen() {
                       </div>
 
                       <div className="space-y-3">
-                        <EmployeeRequestCard 
+                        <EmployeeRequestCard
                           avatarSrc={avatar1}
                           name="Jenning Dwight"
                           dateStr="1/30/21 - 2/1/21"
@@ -350,7 +348,7 @@ export function ManagerTabletScreen() {
                           defaultExpanded={true}
                           checked={true}
                         />
-                        <EmployeeRequestCard 
+                        <EmployeeRequestCard
                           avatarSrc={avatar3}
                           name="Bessie Cooper"
                           dateStr="1/30/21 - 2/1/21"
@@ -407,7 +405,7 @@ export function ManagerTabletScreen() {
                       <p className="text-[14px] font-semibold leading-tight">Requests processed successfully</p>
                       <p className="mt-1 text-[13px] text-white/90 leading-snug">Availability decisions have been updated for Sarah Johnson, Emily Carter, and Ryan Anderson.</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setShowToast(false)}
                       className="ml-auto text-white/70 hover:text-white"
                     >
@@ -513,7 +511,7 @@ function ManagerAuraAssistant({
       replyTimerRef.current = window.setTimeout(() => {
         appendMessage({
           role: "assistant",
-          text: "Sarah Johnson has been approved, Emily Carter has not been approved, and Ryan Anderson has been approved with adjustment.",
+          text: "Emily Carter has been dinied.",
         });
         setPhase("approved");
         setIsTyping(false);
@@ -586,7 +584,7 @@ function ManagerAuraAssistant({
     if (phase === "initial") {
       queueAssistantTurn(
         [
-          { text: "Sure. I found 3 new availability requests awaiting your review." },
+          { text: "Sure. I found 1 new availability requests awaiting your review." },
           { variant: "ragTable" },
         ],
         "awaitProcessPrompt",
@@ -830,45 +828,45 @@ function ManagerTypingIndicator() {
 function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
   const rows = [
-    {
-      employee: "Sarah Johnson",
-      role: "Bakery Associate",
-      impact: "Low Impact",
-      requestedTime: "Wednesday morning, 6:00a–12:00p",
-      requestedChange: "Unavailable Wednesday morning",
-      recommendation: "Approve",
-      avatarClassName: "bg-[#DCFCE7] text-[#15803D]",
-      impactClassName: "border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]",
-      recommendationClassName: "text-[#15803D]",
-      recommendationIconClassName: "bg-[#ECFDF3] text-[#15803D]",
-      reason: "This is a long-pending request with low coverage impact. Approving it should not create significant pressure on the schedule.",
-    },
+    // {
+    //   employee: "Sarah Johnson",
+    //   role: "Bakery Associate",
+    //   impact: "Low Impact",
+    //   requestedTime: "Wednesday morning, 6:00a–12:00p",
+    //   requestedChange: "Unavailable Wednesday morning",
+    //   recommendation: "Approve",
+    //   avatarClassName: "bg-[#DCFCE7] text-[#15803D]",
+    //   impactClassName: "border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]",
+    //   recommendationClassName: "text-[#15803D]",
+    //   recommendationIconClassName: "bg-[#ECFDF3] text-[#15803D]",
+    //   reason: "This is a long-pending request with low coverage impact. Approving it should not create significant pressure on the schedule.",
+    // },
     {
       employee: "Emily Carter",
       role: "Front End Associate",
       impact: "High Impact",
       requestedTime: "Friday, 4:00p–8:00p",
       requestedChange: "Unavailable Friday 4p–8p",
-      recommendation: "Do Not Approve",
+      recommendation: "Deny",
       avatarClassName: "bg-[#FEE2E2] text-[#DC2626]",
       impactClassName: "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]",
       recommendationClassName: "text-[#DC2626]",
       recommendationIconClassName: "bg-[#FEF2F2] text-[#DC2626]",
       reason: "This request is not recommended because it falls during a high-pressure coverage window and has been recurring.",
     },
-    {
-      employee: "Ryan Anderson",
-      role: "Grocery Associate",
-      impact: "Medium Impact",
-      requestedTime: "Thursday, reduced from 8h to 6h",
-      requestedChange: "Reduce Thursday shift from 8h to 6h",
-      recommendation: "Approve with Adjustment",
-      avatarClassName: "bg-[#FEF3C7] text-[#C2410C]",
-      impactClassName: "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]",
-      recommendationClassName: "text-[#C2410C]",
-      recommendationIconClassName: "bg-[#FFFBEB] text-[#C2410C]",
-      reason: "This request can be approved with adjustment because reducing the shift to 6 hours keeps coverage within a safe operating range.",
-    },
+    // {
+    //   employee: "Ryan Anderson",
+    //   role: "Grocery Associate",
+    //   impact: "Medium Impact",
+    //   requestedTime: "Thursday, reduced from 8h to 6h",
+    //   requestedChange: "Reduce Thursday shift from 8h to 6h",
+    //   recommendation: "Approve with Adjustment",
+    //   avatarClassName: "bg-[#FEF3C7] text-[#C2410C]",
+    //   impactClassName: "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]",
+    //   recommendationClassName: "text-[#C2410C]",
+    //   recommendationIconClassName: "bg-[#FFFBEB] text-[#C2410C]",
+    //   reason: "This request can be approved with adjustment because reducing the shift to 6 hours keeps coverage within a safe operating range.",
+    // },
   ];
 
   const summaryItems = [
@@ -881,7 +879,7 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
   return (
     <div className="max-w-full space-y-2.5 rounded-[14px] border border-[#E5E7EB] bg-white p-2.5 text-[#344054] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
       <div className="grid grid-cols-2 gap-1.5">
-        {summaryItems.map((item) => (
+        {/* {summaryItems.map((item) => (
           <div key={item.label} className="grid min-h-[50px] grid-cols-[24px_minmax(0,1fr)] items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
             {item.icon === "document" ? (
               <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full", item.className)}>
@@ -895,7 +893,7 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
               <p className="text-[11px] font-medium leading-snug text-[#334155]">{item.label}</p>
             </div>
           </div>
-        ))}
+        ))} */}
       </div>
 
       <div className="space-y-2.5">
@@ -990,24 +988,24 @@ function ManagerSnapshotField({
 
 function ManagerApprovalSummaryCard({ hasApproved, onApprove }: { hasApproved: boolean; onApprove: () => void }) {
   const rows = [
-    {
-      employee: "Sarah Johnson",
-      decision: "Approved",
-      reason: "Long-pending request with low coverage impact.",
-      decisionClassName: "text-[#15803D]",
-    },
+    // {
+    //   employee: "Sarah Johnson",
+    //   decision: "Approved",
+    //   reason: "Long-pending request with low coverage impact.",
+    //   decisionClassName: "text-[#15803D]",
+    // },
     {
       employee: "Emily Carter",
-      decision: "Not Approved",
+      decision: "Deny",
       reason: "Recurring request during a high-pressure coverage window.",
       decisionClassName: "text-[#B91C1C]",
     },
-    {
-      employee: "Ryan Anderson",
-      decision: "Approved with Adjustment",
-      reason: "Reduced Thursday shift from 8h to 6h to maintain safe coverage.",
-      decisionClassName: "text-[#B45309]",
-    },
+    // {
+    //   employee: "Ryan Anderson",
+    //   decision: "Approved with Adjustment",
+    //   reason: "Reduced Thursday shift from 8h to 6h to maintain safe coverage.",
+    //   decisionClassName: "text-[#B45309]",
+    // },
   ];
 
   return (
@@ -1043,15 +1041,15 @@ function ManagerApprovalSummaryCard({ hasApproved, onApprove }: { hasApproved: b
   );
 }
 
-function EmployeeRequestCard({ 
-  avatarSrc, 
-  name, 
-  dateStr, 
-  totalHrs, 
+function EmployeeRequestCard({
+  avatarSrc,
+  name,
+  dateStr,
+  totalHrs,
   defaultExpanded = false,
   checked = false,
   expandable = true,
-}: { 
+}: {
   avatarSrc?: string;
   name: string;
   dateStr: string;
@@ -1062,10 +1060,11 @@ function EmployeeRequestCard({
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isChecked, setIsChecked] = useState(checked);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   return (
     <div className="rounded-lg border border-[#EAECF0] bg-white overflow-hidden text-[14px]">
-      <div 
+      <div
         className={cn(
           "flex items-center justify-between px-4 py-3.5",
           expandable ? "cursor-pointer" : "cursor-default",
@@ -1076,7 +1075,7 @@ function EmployeeRequestCard({
         }}
       >
         <div className="flex items-center gap-3.5">
-          <button 
+          <button
             type="button"
             className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border border-[#D0D5DD]"
             style={{ backgroundColor: isChecked ? '#2563EB' : 'transparent', borderColor: isChecked ? '#2563EB' : '#D0D5DD' }}
@@ -1084,15 +1083,15 @@ function EmployeeRequestCard({
           >
             {isChecked && <Check className="h-3 w-3 text-white" strokeWidth={3.5} />}
           </button>
-          
+
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F2F4F7] text-[11px] font-medium text-[#475467] overflow-hidden bg-[#FDE272]">
             {avatarSrc ? (
-               <img src={avatarSrc} alt={name} className="h-full w-full object-cover" />
+              <img src={avatarSrc} alt={name} className="h-full w-full object-cover" />
             ) : (
-               <span>{name.charAt(0)}</span>
+              <span>{name.charAt(0)}</span>
             )}
           </div>
-          
+
           <div>
             <span className="block text-[15px] font-medium text-[#111827]">{name}</span>
             <span className="block mt-0.5 text-[13px] text-[#4B5563]">{dateStr} ({totalHrs})</span>
@@ -1102,7 +1101,7 @@ function EmployeeRequestCard({
           {isExpanded ? <ChevronUp className="h-5 w-5 text-[#6B7280]" /> : <ChevronDown className="h-5 w-5 text-[#6B7280]" />}
         </div>
       </div>
-      
+
       {expandable && isExpanded && (
         <div className="border-t border-[#EAECF0] px-4 py-4 bg-[#FAFAFA]">
           <div className="grid grid-cols-[140px_1fr] gap-y-2.5 text-[13.5px]">
@@ -1134,11 +1133,22 @@ function EmployeeRequestCard({
               By Dwight Jennings: Need emergency vacation.
             </div>
 
-            <div className="text-[#6B7280]">Request Details:</div>
-            <div className="text-[#2563EB] cursor-pointer hover:underline">Calendar View</div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+             <div className="text-[#6B7280]">Request Details:</div>
+             <div 
+               className="text-[#2563EB] cursor-pointer hover:underline"
+               onClick={(e) => {
+                 e.stopPropagation();
+                 setShowCalendar(true);
+               }}
+             >
+               Calendar View
+             </div>
+           </div>
+         </div>
+       )}
+       {showCalendar && (
+         <CalendarDetailsModal onClose={() => setShowCalendar(false)} />
+       )}
+     </div>
+   );
+ }

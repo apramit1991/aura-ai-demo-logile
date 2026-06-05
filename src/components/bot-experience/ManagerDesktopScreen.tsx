@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import sendButtonIcon from "../../assets/Send Button.svg";
+import { CalendarDetailsModal } from "./CalendarDetailsModal";
 
 type ManagerPanelState = "closed" | "open" | "closing";
 type ManagerPhase = "initial" | "awaitProcessPrompt" | "awaitApprovalConfirm" | "readyToApprove" | "approved";
@@ -94,20 +95,17 @@ export function ManagerDesktopScreen() {
 
         {/* Main Content Area */}
         <div className="flex-1 overflow-auto bg-white p-4 md:p-8">
-          <div className="mx-auto max-w-[1400px]">
+          <div className="mx-auto">
             {/* Filter Bar */}
             <div className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded bg-white p-2">
               <div className="flex items-center gap-2">
                 {/* Date Picker (Mock) */}
-                <div className="flex h-10 items-center rounded-md border border-[#D0D5DD] bg-white px-3 text-[14px] text-[#344054]">
-                  <button className="mr-2 text-[#98A2B3] hover:text-[#344054]">
-                    &lt;
-                  </button>
-                  <span className="mr-2">6/13/24 - 6/19/24</span>
-                  <CalendarIcon className="h-4 w-4 text-[#98A2B3]" />
-                  <button className="ml-2 text-[#98A2B3] hover:text-[#344054]">
-                    &gt;
-                  </button>
+                <div className="flex items-center">
+                  <div className="flex h-9 overflow-hidden rounded-md border border-[#c9cbd2] bg-white">
+                    <button type="button" className="flex w-9 items-center justify-center border-r border-[#c9cbd2]">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-left h-5 w-5 text-[#5c5c5c]"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" className="flex min-w-[170px] items-center justify-between px-2 text-[16px] leading-[22px] 2xl:min-w-[198px] 2xl:text-[17px]"><span>6/13/24 - 6/19/24</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-calendar h-[18px] w-[18px] text-primary"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg></button><button type="button" className="flex w-9 items-center justify-center border-l border-[#c9cbd2]"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-right h-5 w-5 text-[#5c5c5c]"><path d="m9 18 6-6-6-6"></path></svg>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Type Dropdown */}
@@ -419,7 +417,7 @@ function ManagerAuraAssistant({
       replyTimerRef.current = window.setTimeout(() => {
         appendMessage({
           role: "assistant",
-          text: "Sarah Johnson has been approved, Emily Carter has not been approved, and Ryan Anderson has been approved with adjustment.",
+          text: "Emily Carter has been dinied.",
         });
         setPhase("approved");
         setIsTyping(false);
@@ -438,7 +436,7 @@ function ManagerAuraAssistant({
 
   function matchesProcessAllPrompt(value: string) {
     const normalized = normalizePrompt(value);
-    return normalized.includes("process all requests") && normalized.includes("recommendation");
+    return normalized.includes("process request") && normalized.includes("recommendation");
   }
 
   function matchesYesPrompt(value: string) {
@@ -754,7 +752,7 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
       impact: "High Impact",
       requestedTime: "Friday, 4:00p–8:00p",
       requestedChange: "Unavailable Friday 4p–8p",
-      recommendation: "Do Not Approve",
+      recommendation: "Deny",
       avatarClassName: "bg-[#FEE2E2] text-[#DC2626]",
       impactClassName: "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]",
       recommendationClassName: "text-[#DC2626]",
@@ -894,24 +892,24 @@ function ManagerSnapshotField({
 
 function ManagerApprovalSummaryCard({ hasApproved, onApprove }: { hasApproved: boolean; onApprove: () => void }) {
   const rows = [
-    {
-      employee: "Sarah Johnson",
-      decision: "Approved",
-      reason: "Long-pending request with low coverage impact.",
-      decisionClassName: "text-[#15803D]",
-    },
+    // {
+    //   employee: "Sarah Johnson",
+    //   decision: "Approved",
+    //   reason: "Long-pending request with low coverage impact.",
+    //   decisionClassName: "text-[#15803D]",
+    // },
     {
       employee: "Emily Carter",
-      decision: "Not Approved",
+      decision: "Deny",
       reason: "Recurring request during a high-pressure coverage window.",
       decisionClassName: "text-[#B91C1C]",
     },
-    {
-      employee: "Ryan Anderson",
-      decision: "Approved with Adjustment",
-      reason: "Reduced Thursday shift from 8h to 6h to maintain safe coverage.",
-      decisionClassName: "text-[#B45309]",
-    },
+    // {
+    //   employee: "Ryan Anderson",
+    //   decision: "Approved with Adjustment",
+    //   reason: "Reduced Thursday shift from 8h to 6h to maintain safe coverage.",
+    //   decisionClassName: "text-[#B45309]",
+    // },
   ];
 
   return (
@@ -966,6 +964,7 @@ function EmployeeRequestCard({
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isChecked, setIsChecked] = useState(checked);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   return (
     <div className="rounded-lg border border-[#EAECF0] bg-white overflow-hidden">
@@ -1041,9 +1040,20 @@ function EmployeeRequestCard({
             </div>
 
             <div className="text-[#6B7280]">Request Details</div>
-            <div className="text-[#2563EB] cursor-pointer hover:underline">Calendar View</div>
+            <div 
+              className="text-[#2563EB] cursor-pointer hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCalendar(true);
+              }}
+            >
+              Calendar View
+            </div>
           </div>
         </div>
+      )}
+      {showCalendar && (
+        <CalendarDetailsModal onClose={() => setShowCalendar(false)} />
       )}
     </div>
   );

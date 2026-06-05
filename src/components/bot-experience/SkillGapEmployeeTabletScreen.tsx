@@ -14,6 +14,7 @@ import {
 import { getAvatarByName } from "../../lib/avatarHelper";
 import { AuraChatHistoryView } from "./AuraChatHistoryView";
 import { AuraLauncherButton } from "./AuraLauncherButton";
+import { PageHeader } from "./PageHeader";
 import { cn } from "../../lib/utils";
 import sendButtonIcon from "../../assets/Send Button.svg";
 import availabilityIcon from "../../assets/approval-employee/addpunch.svg";
@@ -251,11 +252,11 @@ export function SkillGapEmployeeTabletScreen() {
   const [isAuraTyping, setIsAuraTyping] = useState(false);
 
   const tabs = [
-    { id: "calendar", label: "Calander" },
+    // { id: "calendar", label: "Calendar" },
     { id: "my-request", label: "My Request" },
     { id: "create-request", label: "Create Request" },
     { id: "my-compensations", label: "My Compensations" },
-    { id: "manage-calendar", label: "Manage Calendar" },
+    // { id: "manage-calendar", label: "Manage Calendar" },
   ];
 
   return (
@@ -280,32 +281,15 @@ export function SkillGapEmployeeTabletScreen() {
           <div className="-mt-5 h-[calc(100%+20px)] overflow-hidden">
             <TabletShell>
               <div className="flex h-full flex-col bg-[#F4F5FA]">
-
-                {/* Page header with tabs */}
-                <div className="bg-[#F4F5FA] border-b border-[#E4E7EC]">
-                  <div className="flex items-center gap-2 px-4 pt-3">
-                    <button type="button" className="flex h-7 w-7 items-center justify-center rounded-md border border-[#d4d7de] bg-white text-[#5c5c5c]">
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <h1 className="text-[18px] font-semibold text-[#333]">ESS</h1>
-                  </div>
-                  <div className="mt-1 flex gap-0 overflow-x-auto px-4 pb-0">
-                    {tabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setActiveTab(tab.id)}
-                        className={cn(
-                          "whitespace-nowrap px-3 py-2 text-[13px] border-b-2 transition-colors",
-                          activeTab === tab.id
-                            ? "border-[#0a68db] font-semibold text-[#0a68db]"
-                            : "border-transparent text-[#5c5c5c] hover:text-[#333]",
-                        )}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
+                {/* Page Header */}
+                <div className="bg-[#F4F5FA] px-4 md:px-6 border-b border-[#E4E7EC]">
+                  <PageHeader
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    title="ESS"
+                    hideActiveTabBottomBorder
+                    tabs={tabs}
+                  />
                 </div>
 
                 {/* Sub-tabs + filter bar */}

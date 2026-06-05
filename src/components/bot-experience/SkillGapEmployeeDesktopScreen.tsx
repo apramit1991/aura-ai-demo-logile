@@ -1,8 +1,16 @@
-import { type Dispatch, type FormEvent, type KeyboardEvent, type SetStateAction, useEffect, useRef, useState } from "react";
 import {
-  Calendar as CalendarIcon,
+  type Dispatch,
+  type FormEvent,
+  type KeyboardEvent,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
   ChevronDown,
   ChevronLeft,
+  Check,
   Maximize2,
   Minimize2,
   Paperclip,
@@ -25,15 +33,55 @@ import crossTrainingIcon from "../../assets/approval-employee/book-plus.png";
 /* ------------------------------------------------------------------ */
 
 type PanelState = "closed" | "open" | "closing";
-type ChatPhase = "initial" | "done";
-type ChatMessage = {
+
+/**
+ * AuraFlowStep — follows the exact approved script:
+ *
+ * initial           → Panel just opened, greeting queued
+ * awaitAction       → Availability card shown, waiting for Accept/Decline/Adjust
+ * adjustPrompt      → "What days would you like to make adjustments to?"
+ * adjustAwaitInput  → Waiting for Sarah's typed adjustment request
+ * adjustChecking    → Aura is checking (auto-advances with typing delay)
+ * adjustCounterOffer→ "These adjustments cannot be made, 12pm–2pm instead?"
+ * adjustCounterInput→ Waiting for Sarah's typed response to counter-offer
+ * adjustFinalConfirm→ "Sure, I'll raise this to manager" + updated calendar + [Yes][No]
+ * adjustSuccess     → "A request has been sent. Here is the request ID."
+ * acceptSuccess     → Accept confirmed, request ID shown
+ * declineSuccess    → Decline confirmed
+ * done              → Conversation complete, free follow-up
+ */
+type AuraFlowStep =
+  | "initial"
+  | "awaitAction"
+  | "adjustPrompt"
+  | "adjustAwaitInput"
+  | "adjustChecking"
+  | "adjustCounterOffer"
+  | "adjustCounterInput"
+  | "adjustFinalConfirm"
+  | "adjustSuccess"
+  | "acceptSuccess"
+  | "declineSuccess"
+  | "done";
+
+type MessageVariant =
+  | "availabilityCard"
+  | "actionButtons"
+  | "requestedCalendar"
+  | "yesNoButtons"
+  | "successCard";
+
+type AuraChatMessage = {
   id: number;
   role: "assistant" | "user";
-  text: string;
+  text?: string;
+  content?: React.ReactNode;
+  variant?: MessageVariant;
+  availabilityAction?: "accepted" | "declined" | "adjusted";
+  yesNoChoice?: "yes" | "no";
 };
-
 /* ------------------------------------------------------------------ */
-/*  Sub-components                                                      */
+/*  Page-level sub-components                                           */
 /* ------------------------------------------------------------------ */
 
 function DayColumn({
@@ -78,7 +126,7 @@ function DayColumn({
           !isFirst ? "border-l-0" : "",
         )}
       >
-        <span className={cn("text-[16px]  font-medium leading-[1.4]", valueColor)}>{value}</span>
+        <span className={cn("text-[16px] font-medium leading-[1.4]", valueColor)}>{value}</span>
       </div>
     </div>
   );
@@ -155,6 +203,256 @@ function RequestListCard({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Chat bubble variant components                                      */
+/* ------------------------------------------------------------------ */
+
+/** A single day column — matches the main screen's DayColumn style */
+function ChatDayCol({
+  day,
+  value,
+  highlighted = false,
+  headerBg = "bg-white",
+  valueBg = "bg-white",
+  isFirst = false,
+  isLast = false,
+}: {
+  day: string;
+  value: string;
+  highlighted?: boolean;
+  headerBg?: string;
+  valueBg?: string;
+  isFirst?: boolean;
+  isLast?: boolean;
+}) {
+  return (
+    <div className="flex flex-1 flex-col min-w-0">
+      {/* Day header */}
+      <div
+        className={cn(
+          "flex h-[44px] items-center justify-center border border-[#dcdcdc]",
+          headerBg,
+          isFirst ? "rounded-tl-lg" : "",
+          isLast ? "rounded-tr-lg" : "",
+          !isFirst ? "border-l-0" : "",
+        )}
+      >
+        <span className={cn("text-[14px] font-bold", highlighted ? "text-[#e27c00]" : "text-[#888]")}>{day}</span>
+      </div>
+      {/* Time value */}
+      <div
+        className={cn(
+          "flex min-h-[64px] items-center justify-center px-1 border border-[#dcdcdc] border-t-0 text-center",
+          valueBg,
+          isFirst ? "rounded-bl-lg" : "",
+          isLast ? "rounded-br-lg" : "",
+          !isFirst ? "border-l-0" : "",
+        )}
+      >
+        <span className={cn("text-[13px] font-medium leading-[1.35] whitespace-pre-wrap", highlighted ? "text-[#e27c00]" : "text-[#333]")}>
+          {value}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** A compact table row: label + horizontal day columns, matching screen style */
+function ChatAvailabilityTable({
+  label,
+  sublabel,
+  days,
+  labelColor = "text-[#444]",
+  headerBg,
+}: {
+  label: string;
+  sublabel?: string;
+  days: { day: string; value: string; highlighted?: boolean; headerBg?: string; valueBg?: string }[];
+  labelColor?: string;
+  headerBg?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className={cn("px-1.5 py-1.5 rounded-md", headerBg)}>
+        <p className={cn("text-[13px] font-semibold uppercase tracking-wide", labelColor)}>{label}<span > </span><span className="text-[12px] text-[#888]">{sublabel}</span></p>
+      </div>
+      <div className="flex w-full">
+        {days.map((d, i) => (
+          <ChatDayCol
+            key={d.day}
+            day={d.day}
+            value={d.value}
+            highlighted={d.highlighted}
+            headerBg={d.headerBg ?? "bg-white"}
+            valueBg={d.valueBg ?? "bg-white"}
+            isFirst={i === 0}
+            isLast={i === days.length - 1}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The main availability card shown in the initial greeting.
+ * Uses the same column-table style as the main screen.
+ */
+function ChatAvailabilityCard({
+  actionTaken,
+}: {
+  actionTaken?: "accepted" | "declined" | "adjusted";
+}) {
+  return (
+    <div className="flex flex-col gap-4 rounded-xl border border-[#dcdcdc] bg-white p-3 shadow-sm">
+      {/* Original */}
+      <ChatAvailabilityTable
+        label="Original Availability"
+        sublabel="39h"
+        labelColor="text-[#3a7d44]"
+        headerBg="bg-[#f3fcf1]"
+        days={[
+          { day: "Mon", value: "6:00a\n5:00p", headerBg: "bg-[#f3fcf1]", valueBg: "bg-[#f3fcf1]" },
+          { day: "Tue", value: "6:00a\n2:00p", headerBg: "bg-[#f3fcf1]", valueBg: "bg-[#f3fcf1]" },
+          { day: "Fri", value: "10:00a\n4:00p" },
+          { day: "Sat", value: "6:00a\n2:00p", headerBg: "bg-[#f3fcf1]", valueBg: "bg-[#f3fcf1]" },
+          { day: "Sun", value: "10:00a\n4:00p" },
+        ]}
+      />
+
+      {/* Divider */}
+      <div className="border-t border-dashed border-[#dcdcdc]" />
+
+      {/* Proposed */}
+      <ChatAvailabilityTable
+        label="Proposed Availability"
+        sublabel="52h"
+        labelColor="text-[#7c360b]"
+        headerBg="bg-[#fff8e6]"
+        days={[
+          { day: "Mon", value: "6:00a\n5:00p" },
+          { day: "Tue", value: "6:00a\n2:00p" },
+          { day: "Wed", value: "6:00a\n12:00p", highlighted: true },
+          { day: "Fri", value: "10:00a\n7:00p", highlighted: true },
+          { day: "Sat", value: "6:00a\n2:00p" },
+          { day: "Sun", value: "6:00a\n4:00p", highlighted: true },
+        ]}
+      />
+
+      {/* Status strip — shown after a decision is made */}
+      {actionTaken && (
+        <div
+          className={cn(
+            "rounded-lg px-3 py-2 text-[13px] font-semibold text-center",
+            actionTaken === "accepted" && "bg-[#ecfdf3] text-[#166534]",
+            actionTaken === "declined" && "bg-[#fef2f2] text-[#991b1b]",
+            actionTaken === "adjusted" && "bg-[#eff6ff] text-[#1e40af]",
+          )}
+        >
+          {actionTaken === "accepted" && "Accepted"}
+          {actionTaken === "declined" && "Declined"}
+          {actionTaken === "adjusted" && "Adjustment requested"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The "requested" calendar shown before submitting to manager.
+ * Uses the same column-table style as the main screen, with Wed highlighted in blue.
+ */
+function ChatRequestedCalendar() {
+  return (
+    <div className="flex flex-col gap-1 rounded-xl border border-[#0a68db] bg-white p-3 shadow-sm">
+      <ChatAvailabilityTable
+        label="Adjustment Request"
+        sublabel="Pending manager review"
+        labelColor="text-[#0a68db]"
+        headerBg="bg-[#EDF3FF]"
+        days={[
+          { day: "Mon", value: "6:00a\n5:00p" },
+          { day: "Tue", value: "6:00a\n2:00p" },
+          { day: "Wed", value: "8:00a\noff 10a", highlighted: true },
+          { day: "Fri", value: "10:00a\n7:00p" },
+          { day: "Sat", value: "6:00a\n2:00p" },
+          { day: "Sun", value: "6:00a\n4:00p" },
+        ]}
+      />
+    </div>
+  );
+}
+
+/** Yes / No buttons */
+function ChatYesNoButtons({
+  onYes,
+  onNo,
+  choiceMade,
+}: {
+  onYes: () => void;
+  onNo: () => void;
+  choiceMade?: "yes" | "no";
+}) {
+  const isDisabled = !!choiceMade;
+  return (
+    <div className="flex gap-2 mt-1">
+      <button
+        type="button"
+        disabled={isDisabled}
+        onClick={!isDisabled ? onYes : undefined}
+        className={cn(
+          "flex-1 rounded-lg py-2.5 text-[13px] font-semibold transition",
+          choiceMade === "yes"
+            ? "bg-[#0a68db] text-white cursor-not-allowed"
+            : isDisabled
+              ? "bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed"
+              : "bg-[#0a68db] text-white hover:bg-[#0856b8] active:scale-95",
+        )}
+      >
+        Yes
+      </button>
+      <button
+        type="button"
+        disabled={isDisabled}
+        onClick={!isDisabled ? onNo : undefined}
+        className={cn(
+          "flex-1 rounded-lg border py-2.5 text-[13px] font-semibold transition",
+          choiceMade === "no"
+            ? "border-[#4f4f4f] bg-[#4f4f4f] text-white cursor-not-allowed"
+            : isDisabled
+              ? "border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af] cursor-not-allowed"
+              : "border-[#c1c1c1] bg-white text-[#333] hover:bg-[#f8f9fb] active:scale-95",
+        )}
+      >
+        No
+      </button>
+    </div>
+  );
+}
+
+/** Success card shown after request is sent */
+function ChatSuccessCard({ requestId }: { requestId: string }) {
+  return (
+    <div className="rounded-xl border border-[#059669] overflow-hidden bg-white shadow-sm">
+      {/* <div className="flex items-center gap-2 px-4 py-2.5 bg-[#059669]">
+        <Check className="h-3.5 w-3.5 text-white" />
+        <span className="text-[12px] font-semibold text-white">Request Sent to Manager</span>
+      </div> */}
+      <div className="px-4 py-3">
+        {/* <p className="text-[13px] text-[#333] leading-snug">
+          Your manager will review the adjustment and respond within 48 hours.
+        </p> */}
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] text-[#888]">Request ID:</span>
+          <span className="rounded-lg bg-[#d1fae5] px-2.5 py-1 text-[12px] font-mono font-bold text-[#065f46] tracking-wide">
+            {requestId}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main Screen                                                         */
 /* ------------------------------------------------------------------ */
 
@@ -163,8 +461,8 @@ export function SkillGapEmployeeDesktopScreen() {
   const [subTab, setSubTab] = useState<"submitted" | "received">("received");
   const [selectedRequest, setSelectedRequest] = useState<"availability" | "crossTrain">("availability");
   const [actionState, setActionState] = useState<"pending" | "accepted" | "declined">("pending");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatPhase, setChatPhase] = useState<ChatPhase>("initial");
+  const [chatMessages, setChatMessages] = useState<AuraChatMessage[]>([]);
+  const [chatFlowStep, setChatFlowStep] = useState<AuraFlowStep>("initial");
   const [isAuraTyping, setIsAuraTyping] = useState(false);
 
   const sarahAvatar = getAvatarByName("Sarah Johnson");
@@ -191,11 +489,11 @@ export function SkillGapEmployeeDesktopScreen() {
             title="ESS"
             hideActiveTabBottomBorder
             tabs={[
-              { id: "calendar", label: "Calander" },
+              // { id: "calendar", label: "Calander" },
               { id: "my-request", label: "My Request" },
               { id: "create-request", label: "Create Request" },
               { id: "my-compensations", label: "My Compensations" },
-              { id: "manage-calendar", label: "Manage Calendar" },
+              // { id: "manage-calendar", label: "Manage Calendar" },
             ]}
           />
         </div>
@@ -287,44 +585,6 @@ export function SkillGapEmployeeDesktopScreen() {
                 <span className="font-medium">Action By:</span>{" "}
                 <span className="text-[#333]">Sun, 5/1/26</span>
               </p>
-              {/* <div className="flex flex-col items-end gap-1 shrink-0">
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    disabled={actionState !== "pending"}
-                    onClick={() => setActionState("declined")}
-                    className={cn(
-                      "flex h-[36px] items-center justify-center rounded-lg px-6 text-[15px] text-white transition",
-                      actionState === "declined"
-                        ? "bg-[#888] cursor-not-allowed"
-                        : actionState === "accepted"
-                          ? "bg-[#888] cursor-not-allowed"
-                          : "bg-[#4f4f4f] hover:bg-[#333]",
-                    )}
-                  >
-                    {actionState === "declined" ? "Declined" : "Decline"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={actionState !== "pending"}
-                    onClick={() => setActionState("accepted")}
-                    className={cn(
-                      "flex h-[36px] items-center justify-center rounded-lg px-6 text-[15px] text-white transition",
-                      actionState === "accepted"
-                        ? "bg-[#059669] cursor-not-allowed"
-                        : actionState === "declined"
-                          ? "bg-[#888] cursor-not-allowed"
-                          : "bg-[#0a68db] hover:bg-[#0856b8]",
-                    )}
-                  >
-                    {actionState === "accepted" ? "Accepted" : "Accept"}
-                  </button>
-                </div>
-                <p className="text-[13px] text-[#888]">
-                  <span className="font-medium">Action By:</span>{" "}
-                  <span className="text-[#333]">Sun, 5/1/26</span>
-                </p>
-              </div> */}
             </div>
 
             {/* Detail content card */}
@@ -399,25 +659,23 @@ export function SkillGapEmployeeDesktopScreen() {
                         disabled={actionState !== "pending"}
                         onClick={() => setActionState("accepted")}
                         className={cn(
-                          "flex h-[36px] items-center justify-center rounded-lg px-6 text-[15px] text-white transition",
+                          "flex h-[36px] items-center justify-center rounded-lg px-6 text-[15px] transition",
                           actionState === "accepted"
-                            ? "bg-[#059669] cursor-not-allowed"
+                            ? "bg-[#E7E7E7] text-[#888888] cursor-not-allowed"
                             : actionState === "declined"
-                              ? "bg-[#888] cursor-not-allowed"
-                              : "bg-[#0a68db] hover:bg-[#0856b8]",
+                              ? "bg-[#888] text-white cursor-not-allowed"
+                              : "bg-[#0a68db] text-white hover:bg-[#0856b8]"
                         )}
                       >
                         {actionState === "accepted" ? "Accepted" : "Accept"}
                       </button>
                     </div>
                   </div>
-
-
                 </div>
 
                 {/* Right: Supervisor Message */}
                 <div className="w-[414px] shrink-0">
-                  <p className="mb-2 text-[15px] font-medium text-[#0a68db] text-[16px] ">Supervisor Message</p>
+                  <p className="mb-2 text-[15px] font-medium text-[#0a68db] text-[16px]">Supervisor Message</p>
                   <div className="rounded-lg bg-[#EDF3FF] p-4 text-[16px] leading-relaxed text-[#333333]">
                     <p className="font-semibold mb-1">Request Impact:</p>
                     <p className="mb-3">
@@ -435,29 +693,51 @@ export function SkillGapEmployeeDesktopScreen() {
         </div>
       </div>
 
-      <ManagerAuraAssistant
+      {/* Aura AI Chat Panel */}
+      <EmployeeAuraAssistant
         messages={chatMessages}
         setMessages={setChatMessages}
-        phase={chatPhase}
-        setPhase={setChatPhase}
+        flowStep={chatFlowStep}
+        setFlowStep={setChatFlowStep}
         isTyping={isAuraTyping}
         setIsTyping={setIsAuraTyping}
+        setActionState={setActionState}
       />
 
+      {/* Page-level toast on Accept / Decline */}
       {actionState !== "pending" && (
-        <div className="fixed right-6 top-20 z-[100] animate-in slide-in-from-right-8 fade-in flex w-[340px] flex-col rounded-lg bg-[#027A48] p-4 text-white shadow-lg shadow-black/10">
+        <div
+          className={`fixed right-6 top-20 z-[100] animate-in slide-in-from-right-8 fade-in flex w-[340px] flex-col rounded-lg p-4 text-white shadow-lg shadow-black/10 ${actionState === "accepted"
+            ? "bg-[#2B9A1F]"
+            : "bg-[#E22D20]"
+            }`}
+        >
           <div className="flex items-start gap-3">
             <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 mt-0.5">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
             </div>
+
             <div>
               <p className="text-[15px] font-semibold leading-tight">
                 Request {actionState === "accepted" ? "Accepted" : "Declined"}
               </p>
               <p className="mt-1 text-[14px] text-white/90 leading-snug">
-                The Adjust Availability Request has been {actionState === "accepted" ? "accepted" : "declined"}.
+                The adjust availability request has been{" "}
+                {actionState === "accepted" ? "accepted" : "declined"}.
               </p>
             </div>
+
             <button
               onClick={() => setActionState("pending")}
               className="ml-auto text-white/70 hover:text-white"
@@ -472,23 +752,27 @@ export function SkillGapEmployeeDesktopScreen() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  AURA Assistant Panel                                                */
+/*  Aura Employee Assistant — Scripted Chat Panel                       */
 /* ------------------------------------------------------------------ */
 
-function ManagerAuraAssistant({
+const REQUEST_ID = "ADJ-2026-8842";
+
+function EmployeeAuraAssistant({
   messages,
   setMessages,
-  phase,
-  setPhase,
+  flowStep,
+  setFlowStep,
   isTyping,
   setIsTyping,
+  setActionState,
 }: {
-  messages: ChatMessage[];
-  setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
-  phase: ChatPhase;
-  setPhase: Dispatch<SetStateAction<ChatPhase>>;
+  messages: AuraChatMessage[];
+  setMessages: Dispatch<SetStateAction<AuraChatMessage[]>>;
+  flowStep: AuraFlowStep;
+  setFlowStep: Dispatch<SetStateAction<AuraFlowStep>>;
   isTyping: boolean;
   setIsTyping: Dispatch<SetStateAction<boolean>>;
+  setActionState: Dispatch<SetStateAction<"pending" | "accepted" | "declined">>;
 }) {
   const [panelState, setPanelState] = useState<PanelState>("closed");
   const [draftMessage, setDraftMessage] = useState("");
@@ -498,39 +782,49 @@ function ManagerAuraAssistant({
 
   const closeTimerRef = useRef<number | null>(null);
   const nudgeTimerRef = useRef<number | null>(null);
-  const replyTimerRef = useRef<number | null>(null);
-  const nextMessageIdRef = useRef(1);
-  const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
-  const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const t1Ref = useRef<number | null>(null);
+  const t2Ref = useRef<number | null>(null);
+  const t3Ref = useRef<number | null>(null);
+  const t4Ref = useRef<number | null>(null);
+  const nextIdRef = useRef(1);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const isPanelVisible = panelState !== "closed";
   const showLauncher = panelState === "closed";
 
-  function appendMessage(message: Omit<ChatMessage, "id">) {
-    const newMessage = { id: nextMessageIdRef.current++, ...message };
-    setMessages((current) => [...current, newMessage]);
-    return newMessage.id;
+  function addMsg(msg: Omit<AuraChatMessage, "id">) {
+    const m: AuraChatMessage = {
+      id: nextIdRef.current++,
+      ...msg,
+    };
+
+    setMessages((prev) => [...prev, m]);
+    return m.id;
   }
 
-  function clearReplyTimer() {
-    if (replyTimerRef.current) { window.clearTimeout(replyTimerRef.current); replyTimerRef.current = null; }
+  function clearTimers() {
+    [t1Ref, t2Ref, t3Ref, t4Ref].forEach((r) => {
+      if (r.current) { window.clearTimeout(r.current); r.current = null; }
+    });
   }
+
   function clearCloseTimer() {
     if (closeTimerRef.current) { window.clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
   }
+
   function clearNudgeTimer() {
     if (nudgeTimerRef.current) { window.clearTimeout(nudgeTimerRef.current); nudgeTimerRef.current = null; }
   }
 
-  function queueAssistantReply(text: string, delay = 1000) {
-    clearReplyTimer();
-    setIsTyping(true);
-    replyTimerRef.current = window.setTimeout(() => {
-      appendMessage({ role: "assistant", text });
-      setIsTyping(false);
-      replyTimerRef.current = null;
-    }, delay);
+  /** Helper: show typing → add message → optional callback */
+  function delay(ms: number, timerRef: React.MutableRefObject<number | null>, fn: () => void) {
+    timerRef.current = window.setTimeout(fn, ms);
   }
+
+  /* ---------------------------------------------------------------- */
+  /*  Open panel — show scripted greeting on first open               */
+  /* ---------------------------------------------------------------- */
 
   function openAssistant() {
     clearCloseTimer();
@@ -542,12 +836,42 @@ function ManagerAuraAssistant({
     setDraftMessage("");
 
     if (messages.length === 0 && !isTyping) {
-      queueAssistantReply(
-        "Hello! I'm AURA, your AI assistant. I can help you review the Adjust Availability Request or answer any questions you have.",
-        800,
-      );
+      setIsTyping(true);
+      // Step 1: greeting text (800ms)
+      delay(800, t1Ref, () => {
+        addMsg({
+          role: "assistant",
+          text: "Hey Sarah! Here is a proposed availability calendar for you, that aligns with your skills and supports the store.",
+        });
+        setIsTyping(true);
+        // Step 2: availability card (1200ms)
+        delay(1200, t2Ref, () => {
+          addMsg({ role: "assistant", variant: "availabilityCard" });
+          setIsTyping(true);
+          // Step 3: conversational prompt to reply (800ms)
+          delay(800, t3Ref, () => {
+            addMsg({
+              role: "assistant",
+              content: (
+                <>
+                  Please let me know how you'd like to proceed. You can{" "}
+                  <span className="font-semibold">accept</span> the request,{" "}
+                  <span className="font-semibold">decline</span> it, or{" "}
+                  <span className="font-semibold">suggest an adjustment</span>.
+                </>
+              ),
+            });
+            setIsTyping(false);
+            setFlowStep("awaitAction");
+          });
+        });
+      });
     }
   }
+
+  /* ---------------------------------------------------------------- */
+  /*  Close panel                                                      */
+  /* ---------------------------------------------------------------- */
 
   function closeAssistant() {
     clearCloseTimer();
@@ -565,49 +889,502 @@ function ManagerAuraAssistant({
     }, 260);
   }
 
+  /* ---------------------------------------------------------------- */
+  /*  Accept flow                                                      */
+  /* ---------------------------------------------------------------- */
+
+  function handleAccept(cardMsgId: number | null = null) {
+    // Freeze the availability card buttons if triggered from a card
+    if (cardMsgId !== null) {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === cardMsgId ? { ...m, availabilityAction: "accepted" } : m)),
+      );
+    }
+    addMsg({ role: "user", text: "Accept" });
+    setFlowStep("acceptSuccess");
+    setActionState("accepted");
+    setIsTyping(true);
+    delay(900, t1Ref, () => {
+      addMsg({
+        role: "assistant",
+        text: "Great! Your acceptance has been submitted. Smith Jane will be notified.",
+        variant: "successCard",
+      });
+      setIsTyping(false);
+      setFlowStep("done");
+    });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Decline flow                                                     */
+  /* ---------------------------------------------------------------- */
+
+  function handleDecline(cardMsgId: number | null = null) {
+    // Freeze the availability card buttons if triggered from a card
+    if (cardMsgId !== null) {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === cardMsgId ? { ...m, availabilityAction: "declined" } : m)),
+      );
+    }
+    addMsg({ role: "user", text: "Decline" });
+    setFlowStep("declineSuccess");
+    setActionState("declined");
+    setIsTyping(true);
+    delay(900, t1Ref, () => {
+      addMsg({
+        role: "assistant",
+        text: "Understood. The request has been declined. Your current availability remains unchanged. Smith Jane will be notified.",
+      });
+      setIsTyping(false);
+      setFlowStep("done");
+    });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Adjust flow — Step 1: prompt                                     */
+  /* ---------------------------------------------------------------- */
+
+  function handleAdjust(cardMsgId: number | null = null) {
+    // Freeze the availability card status strip if triggered from a card
+    if (cardMsgId !== null) {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === cardMsgId ? { ...m, availabilityAction: "adjusted" } : m)),
+      );
+    }
+    addMsg({ role: "user", text: "Adjust" });
+    setFlowStep("adjustPrompt");
+    setIsTyping(true);
+    delay(900, t1Ref, () => {
+      addMsg({ role: "assistant", text: "What days would you like to make adjustments to?" });
+      setIsTyping(false);
+      setFlowStep("adjustAwaitInput");
+    });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Adjust flow — Step 2: Sarah's input → checking → counter-offer  */
+  /* ---------------------------------------------------------------- */
+
+  function handleAdjustInput(userText: string) {
+    addMsg({ role: "user", text: userText });
+    setDraftMessage("");
+    setFlowStep("adjustChecking");
+    setIsTyping(true);
+    // checking delay → counter-offer
+    delay(1800, t1Ref, () => {
+      addMsg({
+        role: "assistant",
+        text: "These adjustments cannot be made. Would you like to take 12pm – 2pm off instead?",
+      });
+      setIsTyping(false);
+      setFlowStep("adjustCounterOffer");
+    });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Adjust flow — Step 3: Sarah rejects counter-offer → final confirm*/
+  /* ---------------------------------------------------------------- */
+
+  function handleCounterReject(userText: string) {
+    addMsg({ role: "user", text: userText });
+    setDraftMessage("");
+    setFlowStep("adjustFinalConfirm");
+    setIsTyping(true);
+    // Aura acknowledges and shows calendar + conversational prompt
+    delay(1000, t1Ref, () => {
+      addMsg({
+        role: "assistant",
+        text: "Sure, I will raise this adjustment request to your manager.",
+      });
+      setIsTyping(true);
+      delay(1200, t2Ref, () => {
+        addMsg({ role: "assistant", variant: "requestedCalendar" });
+        setIsTyping(true);
+        delay(800, t3Ref, () => {
+          addMsg({
+            role: "assistant",
+            content: (
+              <span>
+                Would you like me to send this adjustment request to your manager? Reply <span className="font-semibold">Yes</span> to confirm or <span className="font-semibold">No</span> to cancel.
+              </span>
+            ),
+          });
+          setIsTyping(false);
+        });
+      });
+    });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Yes/No buttons after calendar shown                              */
+  /* ---------------------------------------------------------------- */
+
+  function handleFinalYes(yesNoMsgId: number) {
+    // Freeze the yes/no buttons
+    setMessages((prev) =>
+      prev.map((m) => (m.id === yesNoMsgId ? { ...m, yesNoChoice: "yes" } : m)),
+    );
+    addMsg({ role: "user", text: "Yes" });
+    setFlowStep("adjustSuccess");
+    setIsTyping(true);
+    delay(900, t1Ref, () => {
+      addMsg({
+        role: "assistant",
+        text: "A request to your manager has been sent. Here is your request ID.",
+      });
+      setIsTyping(true);
+      delay(900, t2Ref, () => {
+        addMsg({ role: "assistant", variant: "successCard" });
+        setIsTyping(false);
+        setFlowStep("done");
+      });
+    });
+  }
+
+  function handleFinalNo(yesNoMsgId: number) {
+    // Freeze the yes/no buttons
+    setMessages((prev) =>
+      prev.map((m) => (m.id === yesNoMsgId ? { ...m, yesNoChoice: "no" } : m)),
+    );
+    addMsg({ role: "user", text: "No" });
+    setFlowStep("done");
+    setIsTyping(true);
+    delay(800, t1Ref, () => {
+      addMsg({ role: "assistant", text: "No problem! The request was not sent. Let me know if you'd like to Accept, Decline, or try a different Adjustment." });
+      setIsTyping(false);
+    });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Free-text submission handler                                     */
+  /* ---------------------------------------------------------------- */
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = draftMessage.trim();
     if (!trimmed || isTyping) return;
 
-    appendMessage({ role: "user", text: trimmed });
-    setDraftMessage("");
-    setPhase("done");
-    queueAssistantReply(
-      "Based on the Supervisor Message, these proposed availability changes have no negative impact on your schedule preferences. I'd recommend accepting this request.",
-    );
+    const lower = trimmed.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
+    /** Robust intent helpers */
+    function intentsAccept() {
+      return (
+        lower.includes("accept") ||
+        lower.includes("approve") ||
+        lower.includes("approved") ||
+        lower.includes("looks good") ||
+        lower.includes("go ahead") ||
+        lower.includes("proceed") ||
+        lower.includes("sounds good") ||
+        lower === "yes" ||
+        lower === "sure" ||
+        lower === "ok" ||
+        lower === "okay"
+      );
+    }
+
+    function intentsDecline() {
+      return (
+        lower.includes("decline") ||
+        lower.includes("reject") ||
+        lower.includes("no thanks") ||
+        lower.includes("don't approve") ||
+        lower.includes("do not approve") ||
+        lower.includes("not interested") ||
+        lower.includes("i don't want") ||
+        lower.includes("i do not want")
+      );
+    }
+
+    function intentsAdjust() {
+      return (
+        lower.includes("adjust") ||
+        lower.includes("modify") ||
+        lower.includes("change") ||
+        lower.includes("revise") ||
+        lower.includes("update") ||
+        lower.includes("different") ||
+        lower.includes("make some changes") ||
+        lower.includes("can we change")
+      );
+    }
+
+    function intentsYes() {
+      return (
+        lower === "yes" ||
+        lower === "yeah" ||
+        lower === "yep" ||
+        lower === "sure" ||
+        lower === "ok" ||
+        lower === "okay" ||
+        lower.includes("yes please") ||
+        lower.includes("go ahead") ||
+        lower.includes("send it") ||
+        lower.includes("confirm")
+      );
+    }
+
+    function intentsNo() {
+      return (
+        lower === "no" ||
+        lower === "nope" ||
+        lower === "nah" ||
+        lower.includes("no thanks") ||
+        lower.includes("don't send") ||
+        lower.includes("do not send") ||
+        lower.includes("cancel")
+      );
+    }
+
+    /* ------ awaitAction: initial Accept / Decline / Adjust routing ------ */
+    if (flowStep === "awaitAction") {
+      if (intentsAccept() && !intentsAdjust()) {
+        // Mark the availability card as accepted
+        setMessages((prev) =>
+          prev.map((m) => (m.variant === "availabilityCard" ? { ...m, availabilityAction: "accepted" } : m)),
+        );
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setFlowStep("acceptSuccess");
+        setActionState("accepted");
+        setIsTyping(true);
+        delay(900, t1Ref, () => {
+          addMsg({
+            role: "assistant",
+            text: "Great! Your acceptance has been submitted. Smith Jane will be notified.",
+            variant: "successCard",
+          });
+          setIsTyping(false);
+          setFlowStep("done");
+        });
+      } else if (intentsDecline()) {
+        setMessages((prev) =>
+          prev.map((m) => (m.variant === "availabilityCard" ? { ...m, availabilityAction: "declined" } : m)),
+        );
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setFlowStep("declineSuccess");
+        setActionState("declined");
+        setIsTyping(true);
+        delay(900, t1Ref, () => {
+          addMsg({
+            role: "assistant",
+            text: "Understood. The request has been declined. Your current availability remains unchanged. Smith Jane will be notified.",
+          });
+          setIsTyping(false);
+          setFlowStep("done");
+        });
+      } else if (intentsAdjust()) {
+        setMessages((prev) =>
+          prev.map((m) => (m.variant === "availabilityCard" ? { ...m, availabilityAction: "adjusted" } : m)),
+        );
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setFlowStep("adjustPrompt");
+        setIsTyping(true);
+        delay(900, t1Ref, () => {
+          addMsg({ role: "assistant", text: "What days would you like to make adjustments to?" });
+          setIsTyping(false);
+          setFlowStep("adjustAwaitInput");
+        });
+      } else {
+        // Ambiguous — ask for clarification
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setIsTyping(true);
+        delay(800, t1Ref, () => {
+          addMsg({
+            role: "assistant",
+            text: "I didn't quite catch that. Would you like to accept the request, decline it, or suggest an adjustment?",
+          });
+          setIsTyping(false);
+        });
+      }
+      return;
+    }
+
+    /* ------ adjustAwaitInput: user describes their adjustment ------ */
+    if (flowStep === "adjustAwaitInput") {
+      handleAdjustInput(trimmed);
+      return;
+    }
+
+    /* ------ adjustCounterOffer / adjustCounterInput: reply to counter-offer ------ */
+    if (flowStep === "adjustCounterOffer" || flowStep === "adjustCounterInput") {
+      handleCounterReject(trimmed);
+      return;
+    }
+
+    /* ------ adjustFinalConfirm: yes/no to send request to manager ------ */
+    if (flowStep === "adjustFinalConfirm") {
+      if (intentsYes()) {
+        // Freeze any yesNoButtons variant in history
+        setMessages((prev) =>
+          prev.map((m) => (m.variant === "yesNoButtons" ? { ...m, yesNoChoice: "yes" } : m)),
+        );
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setFlowStep("adjustSuccess");
+        setIsTyping(true);
+        delay(900, t1Ref, () => {
+          addMsg({
+            role: "assistant",
+            text: "A request to your manager has been sent. Here is your request ID.",
+          });
+          setIsTyping(true);
+          delay(900, t2Ref, () => {
+            addMsg({ role: "assistant", variant: "successCard" });
+            setIsTyping(false);
+            setFlowStep("done");
+          });
+        });
+      } else if (intentsNo()) {
+        setMessages((prev) =>
+          prev.map((m) => (m.variant === "yesNoButtons" ? { ...m, yesNoChoice: "no" } : m)),
+        );
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setFlowStep("done");
+        setIsTyping(true);
+        delay(800, t1Ref, () => {
+          addMsg({ role: "assistant", text: "No problem! The request was not sent. Let me know if you'd like to Accept, Decline, or try a different Adjustment." });
+          setIsTyping(false);
+        });
+      } else {
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setIsTyping(true);
+        delay(800, t1Ref, () => {
+          addMsg({ role: "assistant", text: "Please reply Yes to send the request to your manager, or No to cancel." });
+          setIsTyping(false);
+        });
+      }
+      return;
+    }
+
+    /* ------ done: handle any follow-up including accept/decline by text ------ */
+    if (flowStep === "done") {
+      if (intentsAccept() && !intentsAdjust()) {
+        setDraftMessage("");
+        addMsg({ role: "user", text: trimmed });
+        setFlowStep("acceptSuccess");
+        setActionState("accepted");
+        setIsTyping(true);
+        delay(900, t1Ref, () => {
+          addMsg({
+            role: "assistant",
+            text: "Great! Your acceptance has been submitted. Smith Jane will be notified.",
+            variant: "successCard",
+          });
+          setIsTyping(false);
+          setFlowStep("done");
+        });
+      } else if (intentsDecline()) {
+        setDraftMessage("");
+        addMsg({ role: "user", text: trimmed });
+        setFlowStep("declineSuccess");
+        setActionState("declined");
+        setIsTyping(true);
+        delay(900, t1Ref, () => {
+          addMsg({
+            role: "assistant",
+            text: "Understood. The request has been declined. Your current availability remains unchanged. Smith Jane will be notified.",
+          });
+          setIsTyping(false);
+          setFlowStep("done");
+        });
+      } else {
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setIsTyping(true);
+        delay(900, t1Ref, () => {
+          addMsg({ role: "assistant", text: "Is there anything else I can help you with regarding your availability?" });
+          setIsTyping(false);
+        });
+      }
+    }
   }
 
-  function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || event.shiftKey) return;
     event.preventDefault();
     event.currentTarget.form?.requestSubmit();
   }
 
-  function resizeComposer() {
-    const textarea = composerTextareaRef.current;
-    if (!textarea) return;
-    textarea.style.height = "56px";
-    const nextHeight = Math.min(textarea.scrollHeight, 180);
-    textarea.style.height = `${Math.max(56, nextHeight)}px`;
-    textarea.style.overflowY = textarea.scrollHeight > 180 ? "auto" : "hidden";
+  function resizeTextarea() {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "56px";
+    const next = Math.min(el.scrollHeight, 180);
+    el.style.height = `${Math.max(56, next)}px`;
+    el.style.overflowY = el.scrollHeight > 180 ? "auto" : "hidden";
   }
 
   useEffect(() => {
     if (!isPanelVisible) return;
-    scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, isTyping, isPanelVisible]);
 
-  useEffect(() => {
-    resizeComposer();
-  }, [draftMessage, isPanelVisible]);
+  useEffect(() => { resizeTextarea(); }, [draftMessage, isPanelVisible]);
 
   useEffect(() => {
-    return () => { clearReplyTimer(); clearCloseTimer(); clearNudgeTimer(); };
+    return () => { clearTimers(); clearCloseTimer(); clearNudgeTimer(); };
   }, []);
+
+  /* ---------------------------------------------------------------- */
+  /*  Render variant bubbles                                           */
+  /* ---------------------------------------------------------------- */
+
+  function renderVariant(msg: AuraChatMessage) {
+    switch (msg.variant) {
+      case "availabilityCard":
+        return (
+          <ChatAvailabilityCard
+            actionTaken={msg.availabilityAction}
+          />
+        );
+      case "requestedCalendar":
+        return <ChatRequestedCalendar />;
+      case "yesNoButtons":
+        return (
+          <ChatYesNoButtons
+            onYes={() => handleFinalYes(msg.id)}
+            onNo={() => handleFinalNo(msg.id)}
+            choiceMade={msg.yesNoChoice}
+          />
+        );
+      case "successCard":
+        return <ChatSuccessCard requestId={REQUEST_ID} />;
+      default:
+        return null;
+    }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Composer state                                                   */
+  /* ---------------------------------------------------------------- */
+
+  const composerDisabled =
+    isTyping ||
+    flowStep === "initial" ||
+    flowStep === "adjustChecking";
+
+  function getPlaceholder() {
+    if (flowStep === "awaitAction") return "Type: accept, decline, or adjust...";
+    if (flowStep === "adjustAwaitInput") return "e.g. I would like Wednesdays 8am to 10am off...";
+    if (flowStep === "adjustCounterOffer" || flowStep === "adjustCounterInput") return "Type your response...";
+    if (flowStep === "adjustFinalConfirm") return "Reply Yes to confirm or No to cancel...";
+    if (flowStep === "done") return "Ask AURA anything...";
+    return "Ask AURA";
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Render                                                           */
+  /* ---------------------------------------------------------------- */
 
   return (
     <>
+      {/* Launcher */}
       <div
         className={cn(
           "fixed bottom-4 right-4 z-50 transition-all duration-300 sm:bottom-6 sm:right-6",
@@ -618,6 +1395,7 @@ function ManagerAuraAssistant({
         <AuraLauncherButton onClick={openAssistant} />
       </div>
 
+      {/* Side panel */}
       <aside
         className={cn(
           "fixed z-50 flex w-[calc(100vw-24px)] max-w-[clamp(360px,28vw,420px)] origin-bottom-right flex-col overflow-hidden border border-[#d8dce6] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] transition-all duration-300 ease-out",
@@ -630,13 +1408,14 @@ function ManagerAuraAssistant({
         )}
         aria-hidden={!isPanelVisible}
       >
+        {/* Header */}
         <header className="flex h-[60px] items-center justify-between border-b border-[#e5e7eb] bg-white px-5">
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setPanelView((current) => (current === "history" ? "activeChat" : "history"))}
+              onClick={() => setPanelView((v) => (v === "history" ? "activeChat" : "history"))}
               className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937]"
-              aria-label={panelView === "history" ? "Return to active chat" : "Open chat history"}
+              aria-label={panelView === "history" ? "Return to chat" : "Chat history"}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -652,87 +1431,128 @@ function ManagerAuraAssistant({
             )}
           </div>
           <div className="flex items-center gap-2.5">
-            {panelView === "activeChat" ? (
+            {panelView === "activeChat" && (
               <>
-                <button type="button" className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937]" aria-label="Add new">
+                <button type="button" className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6]" aria-label="New chat">
                   <Plus className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsFullscreen((current) => !current)}
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#1f2937]"
-                  aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                  onClick={() => setIsFullscreen((f) => !f)}
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6]"
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 >
                   {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </button>
               </>
-            ) : null}
+            )}
             <button
               type="button"
               onClick={closeAssistant}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#333333]"
-              aria-label="Close AURA assistant"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-[#5c5c5c] transition hover:bg-[#f3f4f6] hover:text-[#333]"
+              aria-label="Close AURA"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
         </header>
 
+        {/* Body */}
         {panelView === "history" ? (
           <AuraChatHistoryView onSelectChat={() => setPanelView("activeChat")} />
         ) : (
           <>
-            <div className="scrollbar-slim flex-1 space-y-3 overflow-y-auto bg-white px-5 py-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "animate-[aura-message-in_800ms_ease-out] rounded-lg px-3 py-2 text-[14px] leading-5 shadow-sm",
-                    message.role === "assistant"
-                      ? "max-w-[92%] bg-[#E6F0FB] text-[#333333]"
-                      : "ml-auto max-w-[84%] bg-[#F4F5FA] text-[#111827]",
-                  )}
-                >
-                  <p className="whitespace-pre-wrap">{message.text}</p>
-                </div>
-              ))}
-              {isTyping ? (
-                <div className="animate-[aura-message-in_800ms_ease-out] max-w-[88%] rounded-lg bg-[#E6F0FB] px-3 py-2 text-[#5c5c5c] shadow-sm">
-                  <span className="sr-only">AURA AI is typing</span>
+            {/* Messages */}
+            <div className="scrollbar-slim flex-1 space-y-3 overflow-y-auto bg-white px-4 py-4">
+              {messages.map((msg) => {
+                const variant = renderVariant(msg);
+                const hasText = Boolean(msg.text?.trim());
+                const hasContent = Boolean(msg.content);
+
+                // Variant-only (no text bubble)
+                if (!hasText && variant) {
+                  return (
+                    <div key={msg.id} className="animate-[aura-message-in_800ms_ease-out] w-full">
+                      {variant}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "animate-[aura-message-in_800ms_ease-out] flex flex-col gap-2",
+                      msg.role === "user" && "items-end",
+                    )}
+                  >
+                    {(hasText || hasContent) && (
+                      <div
+                        className={cn(
+                          "rounded-2xl px-4 py-2.5 text-[14px] leading-[1.55] shadow-sm",
+                          msg.role === "assistant"
+                            ? "max-w-[92%] bg-[#E6F0FB] text-[#1a1a2e]"
+                            : "max-w-[84%] bg-[#F0F2F5] text-[#111827]",
+                        )}
+                      >
+                        {hasContent ? (
+                          <div>{msg.content}</div>
+                        ) : (
+                          <p className="whitespace-pre-wrap">{msg.text}</p>
+                        )}
+                      </div>
+                    )}
+                    {variant && (
+                      <div className={cn("w-full", msg.role === "user" && "flex justify-end")}>
+                        <div className={msg.role === "user" ? "max-w-[84%]" : "w-full"}>
+                          {variant}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Typing indicator */}
+              {isTyping && (
+                <div className="animate-[aura-message-in_800ms_ease-out] max-w-[88%] rounded-2xl bg-[#E6F0FB] px-4 py-3 shadow-sm">
+                  <span className="sr-only">AURA is typing</span>
                   <span className="flex h-5 items-center gap-1" aria-hidden="true">
                     <span className="aura-typing-dot" />
                     <span className="aura-typing-dot [animation-delay:420ms]" />
                     <span className="aura-typing-dot [animation-delay:840ms]" />
                   </span>
                 </div>
-              ) : null}
-              <div ref={scrollAnchorRef} />
+              )}
+
+              <div ref={scrollRef} />
             </div>
 
+            {/* Composer */}
             <div className="border-t border-[#e2e5ec] bg-white p-4">
               <form
                 className="flex min-h-[56px] items-end gap-3 rounded-[40px] border border-[#c9cbd2] bg-white px-3 py-2 shadow-sm"
                 onSubmit={handleSubmit}
               >
-                <button type="button" className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#5c5c5c] transition hover:bg-[#f3f6fb]" aria-label="Attach file">
+                <button type="button" className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#5c5c5c] transition hover:bg-[#f3f6fb]" aria-label="Attach">
                   <Paperclip className="h-5 w-5" />
                 </button>
                 <textarea
-                  ref={composerTextareaRef}
+                  ref={textareaRef}
                   rows={1}
-                  className="min-h-[56px] max-h-[180px] min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent py-4 text-[16px] leading-[1.4] text-[#111827] outline-none placeholder:text-[#888888] disabled:cursor-not-allowed"
+                  className="min-h-[56px] max-h-[180px] min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent py-4 text-[15px] leading-[1.4] text-[#111827] outline-none placeholder:text-[#aaa] disabled:cursor-not-allowed disabled:opacity-50"
                   placeholder="Ask AURA"
-                  aria-label="Ask AURA"
+                  aria-label="Message"
                   value={draftMessage}
-                  onChange={(event) => setDraftMessage(event.target.value)}
-                  onKeyDown={handleComposerKeyDown}
-                  disabled={isTyping}
+                  onChange={(e) => setDraftMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={composerDisabled}
                 />
                 <button
                   type="submit"
-                  disabled={!draftMessage.trim() || isTyping}
-                  className="mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
-                  aria-label="Send message"
+                  disabled={!draftMessage.trim() || composerDisabled}
+                  className="mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Send"
                 >
                   <img src={sendButtonIcon} alt="" className="h-12 w-12" aria-hidden="true" />
                 </button>
