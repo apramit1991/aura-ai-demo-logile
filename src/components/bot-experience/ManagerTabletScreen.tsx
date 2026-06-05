@@ -530,7 +530,10 @@ function ManagerAuraAssistant({
 
   function matchesProcessAllPrompt(value: string) {
     const normalized = normalizePrompt(value);
-    return normalized.includes("process all requests") && normalized.includes("recommendation");
+    const hasProcess = normalized.includes("process");
+    const hasRequest = normalized.includes("request");
+    const hasRec = normalized.includes("recommendation");
+    return hasProcess && hasRequest && hasRec;
   }
 
   // Matches prompt

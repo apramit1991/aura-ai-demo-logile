@@ -319,10 +319,21 @@ export function SkillGapEmployeeTabletScreen() {
                       </button>
                       <div className="flex items-center gap-1.5 px-2 text-[13px] text-[#333]">
                         <span>5/3/26 - 5/8/26</span>
-                        <CalendarIcon className="h-[15px] w-[15px] text-primary" />
+                        <ChevronDown className="h-4 w-4 text-[#888]" />
                       </div>
                       <button type="button" className="flex w-8 items-center justify-center border-l border-[#c9cbd2]">
-                        <span className="text-[#5c5c5c] font-medium text-sm">›</span>
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          class="lucide lucide-chevron-right h-4 w-4 text-[#5c5c5c]">
+                          <path d="m9 18 6-6-6-6"></path>
+                        </svg>
                       </button>
                     </div>
                     <button type="button" className="flex h-8 items-center gap-1.5 rounded-lg border border-[#c1c1c1] bg-white px-2.5 text-[13px] text-[#333]">
