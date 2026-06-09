@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronLeft,
   Check,
+  CheckCircle2,
   Maximize2,
   Minimize2,
   Paperclip,
@@ -27,6 +28,7 @@ import { cn } from "../../lib/utils";
 import sendButtonIcon from "../../assets/Send Button.svg";
 import availabilityIcon from "../../assets/approval-employee/addpunch.svg";
 import crossTrainingIcon from "../../assets/approval-employee/book-plus.png";
+import { getCounterRequest, saveCounterRequest, CounterRequest } from "../../lib/negotiationService";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -43,6 +45,8 @@ type PanelState = "closed" | "open" | "closing";
  * adjustAwaitInput  → Waiting for Sarah's typed adjustment request
  * adjustChecking    → Aura is checking (auto-advances with typing delay)
  * adjustCounterOffer→ "These adjustments cannot be made, 12pm–2pm instead?"
+ * adjustCounterOffer2→ Friday 12pm – 3pm instead?
+ * adjustSubmitCounterRequest→ Custom counter-proposal entry form
  * adjustCounterInput→ Waiting for Sarah's typed response to counter-offer
  * adjustFinalConfirm→ "Sure, I'll raise this to manager" + updated calendar + [Yes][No]
  * adjustSuccess     → "A request has been sent. Here is the request ID."
@@ -57,6 +61,9 @@ type AuraFlowStep =
   | "adjustAwaitInput"
   | "adjustChecking"
   | "adjustCounterOffer"
+  | "adjustChooseDeclineOrCounter"
+  | "adjustSubmitCounterRequest"
+  | "adjustSelectOtherSlots"
   | "adjustCounterInput"
   | "adjustFinalConfirm"
   | "adjustSuccess"
@@ -69,7 +76,9 @@ type MessageVariant =
   | "actionButtons"
   | "requestedCalendar"
   | "yesNoButtons"
-  | "successCard";
+  | "successCard"
+  | "customCounterRequestForm"
+  | "slotPicker";
 
 type AuraChatMessage = {
   id: number;
@@ -79,6 +88,12 @@ type AuraChatMessage = {
   variant?: MessageVariant;
   availabilityAction?: "accepted" | "declined" | "adjusted";
   yesNoChoice?: "yes" | "no";
+  isSuccess?: boolean;
+  slotPickerSubmitted?: boolean;
+  counterRequestData?: {
+    counter: string;
+    coverage: string;
+  };
 };
 /* ------------------------------------------------------------------ */
 /*  Page-level sub-components                                           */
@@ -305,7 +320,7 @@ function ChatAvailabilityCard({
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-[#dcdcdc] bg-white p-3 shadow-sm">
       {/* Original */}
-      <ChatAvailabilityTable
+      {/* <ChatAvailabilityTable
         label="Original Availability"
         sublabel="39h"
         labelColor="text-[#3a7d44]"
@@ -317,7 +332,7 @@ function ChatAvailabilityCard({
           { day: "Sat", value: "6:00a\n2:00p", headerBg: "bg-[#f3fcf1]", valueBg: "bg-[#f3fcf1]" },
           { day: "Sun", value: "10:00a\n4:00p" },
         ]}
-      />
+      /> */}
 
       {/* Divider */}
       <div className="border-t border-dashed border-[#dcdcdc]" />
@@ -325,7 +340,7 @@ function ChatAvailabilityCard({
       {/* Proposed */}
       <ChatAvailabilityTable
         label="Proposed Availability"
-        sublabel="52h"
+        sublabel="50h"
         labelColor="text-[#7c360b]"
         headerBg="bg-[#fff8e6]"
         days={[
@@ -452,6 +467,140 @@ function ChatSuccessCard({ requestId }: { requestId: string }) {
   );
 }
 
+function ChatCustomCounterRequestForm({
+  onSubmit,
+  isSubmitted
+}: {
+  onSubmit: (counter: string, coverage: string) => void;
+  isSubmitted: boolean;
+}) {
+  const [counter, setCounter] = useState("Sat 6a-12p");
+  const [coverage, setCoverage] = useState("50%");
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-[#dcdcdc] bg-white p-4 shadow-sm">
+      <p className="text-[14px] font-semibold text-[#0a68db]">Submit Counter-Proposal</p>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-[12px] font-medium text-slate-500">Proposed Day & Time Slot</label>
+        <input
+          type="text"
+          disabled={isSubmitted}
+          value={counter}
+          onChange={(e) => setCounter(e.target.value)}
+          className="h-9 w-full rounded-md border border-slate-300 px-3 text-[13px] text-slate-900 shadow-sm focus:border-[#0a68db] focus:ring-1 focus:ring-[#0a68db]"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1 hidden">
+        <label className="text-[12px] font-medium text-slate-500">Estimated Coverage Contribution</label>
+        <input
+          type="text"
+          disabled={isSubmitted}
+          value={coverage}
+          onChange={(e) => setCoverage(e.target.value)}
+          className="h-9 w-full rounded-md border border-slate-300 px-3 text-[13px] text-slate-900 shadow-sm focus:border-[#0a68db] focus:ring-1 focus:ring-[#0a68db]"
+        />
+      </div>
+
+      <button
+        type="button"
+        disabled={isSubmitted}
+        onClick={() => onSubmit(counter, coverage)}
+        className={cn(
+          "h-9 w-full rounded-lg text-[13px] font-semibold text-white transition",
+          isSubmitted
+            ? "bg-[#888] cursor-not-allowed"
+            : "bg-[#0a68db] hover:bg-[#0856b8] active:scale-95"
+        )}
+      >
+        {isSubmitted ? "Submitted to Manager" : "Submit to Manager"}
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Success Toast Component                                            */
+/* ------------------------------------------------------------------ */
+
+function SuccessToast({
+  onClose,
+  title = "Request sent successfully",
+  message = "Jenning Dwight's availability adjustment request has been sent.",
+}: {
+  onClose: () => void;
+  title?: string;
+  message?: string;
+}) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed right-6 top-6 z-[100] w-[390px] rounded-lg bg-[#1f8f46] p-4 text-white shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+    >
+      <div className="flex items-start gap-3">
+        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-semibold leading-5">{title}</p>
+          <p className="mt-1 text-[13px] leading-5 text-white/90">{message}</p>
+        </div>
+        <button
+          type="button"
+          aria-label="Close success message"
+          onClick={onClose}
+          className="rounded p-1 text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Toast Notification Component                                        */
+/* ------------------------------------------------------------------ */
+
+function ToastNotification({
+  onClose,
+  title,
+  message,
+  variant = "success",
+}: {
+  onClose: () => void;
+  title: string;
+  message: string;
+  variant?: "success" | "error";
+}) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={cn(
+        "fixed right-6 top-6 z-[100] w-[390px] rounded-lg p-4 text-white shadow-[0_18px_45px_rgba(15,23,42,0.22)] animate-in slide-in-from-right-8 fade-in",
+        variant === "success" ? "bg-[#1f8f46]" : "bg-[#E22D20]"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-semibold leading-5">{title}</p>
+          <p className="mt-1 text-[13px] leading-5 text-white/90">{message}</p>
+        </div>
+        <button
+          type="button"
+          aria-label="Close message"
+          onClick={onClose}
+          className="rounded p-1 text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  Main Screen                                                         */
 /* ------------------------------------------------------------------ */
@@ -460,12 +609,34 @@ export function SkillGapEmployeeDesktopScreen() {
   const [activeTab, setActiveTab] = useState("my-request");
   const [subTab, setSubTab] = useState<"submitted" | "received">("received");
   const [selectedRequest, setSelectedRequest] = useState<"availability" | "crossTrain">("availability");
-  const [actionState, setActionState] = useState<"pending" | "accepted" | "declined">("pending");
+  const [actionState, setActionState] = useState<"pending" | "accepted" | "declined" | "counterSubmitted">("pending");
+  const [askAuraToast, setAskAuraToast] = useState<{ title: string; message: string } | null>(null);
   const [chatMessages, setChatMessages] = useState<AuraChatMessage[]>([]);
   const [chatFlowStep, setChatFlowStep] = useState<AuraFlowStep>("initial");
   const [isAuraTyping, setIsAuraTyping] = useState(false);
+  const [counterRequest, setCounterRequest] = useState<CounterRequest | null>(null);
 
-  const sarahAvatar = getAvatarByName("Sarah Johnson");
+  useEffect(() => {
+    if (!askAuraToast) return;
+    const timeoutId = window.setTimeout(() => setAskAuraToast(null), 3600);
+    return () => window.clearTimeout(timeoutId);
+  }, [askAuraToast]);
+
+  useEffect(() => {
+    // Initial load
+    setCounterRequest(getCounterRequest());
+
+    const handleStorageChange = () => {
+      setCounterRequest(getCounterRequest());
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
+  const jenningAvatar = getAvatarByName("Jenning Dwight");
   const isEmbedded = new URLSearchParams(window.location.search).get("embed") === "1";
 
   return (
@@ -473,11 +644,11 @@ export function SkillGapEmployeeDesktopScreen() {
       activeNavLabel="Labor Model"
       showDemoBackLink={!isEmbedded}
       profile={{
-        name: "Sarah Johnson",
+        name: "Jenning Dwight",
         role: "Employee",
-        avatar: "SJ",
+        avatar: "JD",
         badge: 1,
-        avatarUrl: sarahAvatar,
+        avatarUrl: jenningAvatar,
       }}
     >
       <div className="flex h-full flex-col bg-[#F4F5FA]">
@@ -531,7 +702,7 @@ export function SkillGapEmployeeDesktopScreen() {
             <div className="flex items-center">
               <div className="flex h-9 overflow-hidden rounded-md border border-[#c9cbd2] bg-white">
                 <button type="button" className="flex w-9 items-center justify-center border-r border-[#c9cbd2]">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-left h-5 w-5 text-[#5c5c5c]"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" className="flex min-w-[170px] items-center justify-between px-2 text-[16px] leading-[22px] 2xl:min-w-[198px] 2xl:text-[17px]"><span>5/3/26 - 5/8/26</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-calendar h-[18px] w-[18px] text-primary"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg></button><button type="button" className="flex w-9 items-center justify-center border-l border-[#c9cbd2]"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-right h-5 w-5 text-[#5c5c5c]"><path d="m9 18 6-6-6-6"></path></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-left h-5 w-5 text-[#5c5c5c]"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" className="flex min-w-[170px] items-center justify-between px-2 text-[16px] leading-[22px] 2xl:min-w-[198px] 2xl:text-[17px]"><span>5/3/26 - 5/9/26</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-calendar h-[18px] w-[18px] text-primary"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg></button><button type="button" className="flex w-9 items-center justify-center border-l border-[#c9cbd2]"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-right h-5 w-5 text-[#5c5c5c]"><path d="m9 18 6-6-6-6"></path></svg>
                 </button>
               </div>
             </div>
@@ -561,7 +732,17 @@ export function SkillGapEmployeeDesktopScreen() {
             <RequestListCard
               icon={availabilityIcon}
               title="Adjust Availability Request"
-              status="Pending"
+              status={
+                actionState === "accepted"
+                  ? "Accepted"
+                  : actionState === "declined"
+                    ? "Declined"
+                    : counterRequest
+                      ? counterRequest.status === "Pending"
+                        ? "Pending Manager Review"
+                        : counterRequest.status
+                      : "Pending"
+              }
               isActive={selectedRequest === "availability"}
               onClick={() => setSelectedRequest("availability")}
             />
@@ -591,11 +772,11 @@ export function SkillGapEmployeeDesktopScreen() {
             <div className="flex-1 rounded-xl border border-[#dcdcdc] p-3">
               {/* Card header */}
               <div className="border-b border-[#dcdcdc] pb-4 mb-5">
-                <h3 className="text-[22px] font-medium text-[#333]">(149)Bakery, Baking(52h)</h3>
+                <h3 className="text-[22px] font-medium text-[#333]">(149)Bakery, Baking(50h)</h3>
                 <div className="mt-2 flex items-center justify-between flex-wrap gap-2 text-[15px]">
                   <p>
                     <span className="text-[#888]">Effective Start-End date:</span>{" "}
-                    <span className="text-[#333] font-medium">5/3/26 - 5/24/26</span>
+                    <span className="text-[#333] font-medium">5/3/26 - 5/9/26</span>
                   </p>
                   <p>
                     <span className="text-[#888]">Request By:</span>{" "}
@@ -609,18 +790,28 @@ export function SkillGapEmployeeDesktopScreen() {
                 {/* Left: availability tables */}
                 <div className="flex flex-1 flex-col gap-5 min-w-0">
                   <AvailabilityTable
-                    label="Sarah Availability(39h)"
+                    label={
+                      counterRequest?.status === "Approved"
+                        ? "Jenning Availability (Adjusted, 37h)"
+                        : "Jenning Availability(39h)"
+                    }
                     days={[
                       { day: "Mon", value: "6:00a\n-5:00p", headerBg: "bg-[#f3fcf1]", valueBg: "bg-[#f3fcf1]" },
                       { day: "Tue", value: "6:00a - 2:00p", headerBg: "bg-[#f3fcf1]", valueBg: "bg-[#f3fcf1]" },
                       { day: "Fri", value: "10:00a - 4:00p", headerBg: "bg-white", valueBg: "bg-white" },
-                      { day: "Sat", value: "6:00a - 2:00p", headerBg: "bg-[#f3fcf1]", valueBg: "bg-[#f3fcf1]" },
+                      {
+                        day: "Sat",
+                        value: counterRequest?.status === "Approved" ? "8:00a - 2:00p" : "6:00a - 2:00p",
+                        highlighted: counterRequest?.status === "Approved",
+                        headerBg: counterRequest?.status === "Approved" ? "bg-[#fff8e6]" : "bg-[#f3fcf1]",
+                        valueBg: counterRequest?.status === "Approved" ? "bg-[#fff8e6]" : "bg-[#f3fcf1]",
+                      },
                       { day: "Sun", value: "10:00a - 4:00p", headerBg: "bg-white", valueBg: "bg-white" },
                     ]}
                   />
 
                   <AvailabilityTable
-                    label="Proposed Availability(52h)"
+                    label="Proposed Availability(50h)"
                     days={[
                       { day: "Mon", value: "6:00a-5:00p" },
                       { day: "Tue", value: "6:00a - 2:00p" },
@@ -633,42 +824,78 @@ export function SkillGapEmployeeDesktopScreen() {
 
                   <div className="flex flex-col gap-2">
                     <p className="text-[15px] text-[#333]">Proposed Changes</p>
-                    <div className="rounded-lg bg-[#FFFCEA] px-4 py-3 text-[14px] text-[#0A68DB]">
-                      Wed 6:00a - 12:00p, Fri 4:00p - 7:00p, Sun 6:00a - 10:00a.
-                    </div>
+                    {counterRequest && counterRequest.status !== "Pending" ? (
+                      <div
+                        className={cn(
+                          "rounded-lg px-4 py-3 text-[14px] font-medium border",
+                          counterRequest.status === "Approved" && "bg-[#ecfdf3] border-[#a7f3d0] text-[#166534]",
+                          counterRequest.status === "Declined" && "bg-[#fef2f2] border-[#fecaca] text-[#991b1b]"
+                        )}
+                      >
+                        {counterRequest.status === "Approved" && (
+                          <span>
+                            Approved: Manager approved counter-proposal for <strong>{counterRequest.counter}</strong> ({counterRequest.coverage} coverage). Jennin's availability has been updated.
+                          </span>
+                        )}
+                        {counterRequest.status === "Declined" && (
+                          <span>
+                            Declined: Manager declined counter-proposal for <strong>{counterRequest.counter}</strong> ({counterRequest.coverage} coverage).
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg bg-[#FFFCEA] px-4 py-3 text-[14px] text-[#0A68DB]">
+                        Wed 8:00a - 2:00p, Fri 4:00p - 7:00p, Sun 6:00a - 10:00a.
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col items-start gap-1 shrink-0">
                     <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        disabled={actionState !== "pending"}
-                        onClick={() => setActionState("declined")}
-                        className={cn(
-                          "flex h-[36px] items-center justify-center rounded-lg px-6 text-[15px] text-white transition",
-                          actionState === "declined"
-                            ? "bg-[#888] cursor-not-allowed"
-                            : actionState === "accepted"
-                              ? "bg-[#888] cursor-not-allowed"
-                              : "bg-[#4f4f4f] hover:bg-[#333]",
-                        )}
-                      >
-                        {actionState === "declined" ? "Declined" : "Decline"}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={actionState !== "pending"}
-                        onClick={() => setActionState("accepted")}
-                        className={cn(
-                          "flex h-[36px] items-center justify-center rounded-lg px-6 text-[15px] transition",
-                          actionState === "accepted"
-                            ? "bg-[#E7E7E7] text-[#888888] cursor-not-allowed"
-                            : actionState === "declined"
-                              ? "bg-[#888] text-white cursor-not-allowed"
-                              : "bg-[#0a68db] text-white hover:bg-[#0856b8]"
-                        )}
-                      >
-                        {actionState === "accepted" ? "Accepted" : "Accept"}
-                      </button>
+                      {counterRequest ? (
+                        <span
+                          className={cn(
+                            "rounded-full px-4 py-1.5 text-[14px] font-semibold border",
+                            counterRequest.status === "Pending" && "bg-blue-50 border-blue-200 text-blue-700",
+                            counterRequest.status === "Approved" && "bg-green-50 border-green-200 text-green-700",
+                            counterRequest.status === "Declined" && "bg-red-50 border-red-200 text-red-700"
+                          )}
+                        >
+                          {counterRequest.status === "Pending" ? "Pending Manager Review" : `Counter-Proposal ${counterRequest.status}`}
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            disabled={actionState !== "pending"}
+                            onClick={() => setActionState("declined")}
+                            className={cn(
+                              "flex h-[36px] items-center justify-center rounded-lg px-6 text-[15px] text-white transition",
+                              actionState === "declined"
+                                ? "bg-[#888] cursor-not-allowed"
+                                : actionState === "accepted"
+                                  ? "bg-[#888] cursor-not-allowed"
+                                  : "bg-[#4f4f4f] hover:bg-[#333]",
+                            )}
+                          >
+                            {actionState === "declined" ? "Declined" : "Decline"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={actionState !== "pending"}
+                            onClick={() => setActionState("accepted")}
+                            className={cn(
+                              "flex h-[36px] items-center justify-center rounded-lg px-6 text-[15px] transition",
+                              actionState === "accepted"
+                                ? "bg-[#E7E7E7] text-[#888888] cursor-not-allowed"
+                                : actionState === "declined"
+                                  ? "bg-[#888] text-white cursor-not-allowed"
+                                  : "bg-[#0a68db] text-white hover:bg-[#0856b8]"
+                            )}
+                          >
+                            {actionState === "accepted" ? "Accepted" : "Accept"}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -702,51 +929,35 @@ export function SkillGapEmployeeDesktopScreen() {
         isTyping={isAuraTyping}
         setIsTyping={setIsAuraTyping}
         setActionState={setActionState}
+        setAskAuraToast={setAskAuraToast}
+        setCounterRequest={setCounterRequest}
       />
 
       {/* Page-level toast on Accept / Decline */}
-      {actionState !== "pending" && (
-        <div
-          className={`fixed right-6 top-20 z-[100] animate-in slide-in-from-right-8 fade-in flex w-[340px] flex-col rounded-lg p-4 text-white shadow-lg shadow-black/10 ${actionState === "accepted"
-            ? "bg-[#2B9A1F]"
-            : "bg-[#E22D20]"
-            }`}
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 mt-0.5">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-
-            <div>
-              <p className="text-[15px] font-semibold leading-tight">
-                Request {actionState === "accepted" ? "Accepted" : "Declined"}
-              </p>
-              <p className="mt-1 text-[14px] text-white/90 leading-snug">
-                The adjust availability request has been{" "}
-                {actionState === "accepted" ? "accepted" : "declined"}.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setActionState("pending")}
-              className="ml-auto text-white/70 hover:text-white"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+      {actionState !== "pending" && actionState !== "counterSubmitted" && (
+        <ToastNotification
+          title={
+            actionState === "accepted"
+              ? "Request Accepted"
+              : "Request Declined"
+          }
+          message={
+            actionState === "accepted"
+              ? "The adjust availability request has been accepted."
+              : "The adjust availability request has been declined."
+          }
+          onClose={() => setActionState("pending")}
+          variant={actionState === "declined" ? "error" : "success"}
+        />
       )}
+
+      {askAuraToast ? (
+        <SuccessToast
+          onClose={() => setAskAuraToast(null)}
+          title={askAuraToast.title}
+          message={askAuraToast.message}
+        />
+      ) : null}
     </AppShell>
   );
 }
@@ -765,6 +976,8 @@ function EmployeeAuraAssistant({
   isTyping,
   setIsTyping,
   setActionState,
+  setAskAuraToast,
+  setCounterRequest,
 }: {
   messages: AuraChatMessage[];
   setMessages: Dispatch<SetStateAction<AuraChatMessage[]>>;
@@ -772,13 +985,17 @@ function EmployeeAuraAssistant({
   setFlowStep: Dispatch<SetStateAction<AuraFlowStep>>;
   isTyping: boolean;
   setIsTyping: Dispatch<SetStateAction<boolean>>;
-  setActionState: Dispatch<SetStateAction<"pending" | "accepted" | "declined">>;
+  setActionState: Dispatch<SetStateAction<"pending" | "accepted" | "declined" | "counterSubmitted">>;
+  setAskAuraToast: Dispatch<SetStateAction<{ title: string; message: string } | null>>;
+  setCounterRequest: Dispatch<SetStateAction<CounterRequest | null>>;
 }) {
   const [panelState, setPanelState] = useState<PanelState>("closed");
   const [draftMessage, setDraftMessage] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [panelView, setPanelView] = useState<"activeChat" | "history">("activeChat");
   const [shouldNudgeLauncher, setShouldNudgeLauncher] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [slotSubmitted, setSlotSubmitted] = useState(false);
 
   const closeTimerRef = useRef<number | null>(null);
   const nudgeTimerRef = useRef<number | null>(null);
@@ -841,7 +1058,7 @@ function EmployeeAuraAssistant({
       delay(800, t1Ref, () => {
         addMsg({
           role: "assistant",
-          text: "Hey Sarah! Here is a proposed availability calendar for you, that aligns with your skills and supports the store.",
+          text: "Hey Jenning! Here is a proposed availability calendar for you, that aligns with your skills and supports the store.",
         });
         setIsTyping(true);
         // Step 2: availability card (1200ms)
@@ -974,7 +1191,11 @@ function EmployeeAuraAssistant({
     delay(1800, t1Ref, () => {
       addMsg({
         role: "assistant",
-        text: "These adjustments cannot be made. Would you like to take 12pm – 2pm off instead?",
+        content: (
+          <span>
+            These adjustments cannot be made. Would you like to take <span className="font-bold">8a – 12p</span> slot instead?
+          </span>
+        ),
       });
       setIsTyping(false);
       setFlowStep("adjustCounterOffer");
@@ -985,34 +1206,128 @@ function EmployeeAuraAssistant({
   /*  Adjust flow — Step 3: Sarah rejects counter-offer → final confirm*/
   /* ---------------------------------------------------------------- */
 
-  function handleCounterReject(userText: string) {
-    addMsg({ role: "user", text: userText });
+  function handleCounterOffer1Response(userText: string) {
+    const trimmed = userText.trim();
+    const lower = trimmed.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
+    function intentsAccept() {
+      return (
+        lower.includes("accept") ||
+        lower.includes("approve") ||
+        lower.includes("looks good") ||
+        lower.includes("go ahead") ||
+        lower.includes("proceed") ||
+        lower.includes("sounds good") ||
+        lower.includes("yes") ||
+        lower.includes("sure") ||
+        lower.includes("ok") ||
+        lower.includes("okay") ||
+        lower.includes("yep") ||
+        lower.includes("yup") ||
+        lower.includes("yeah") ||
+        lower.includes("that works")
+      );
+    }
+
+    addMsg({ role: "user", text: trimmed });
     setDraftMessage("");
-    setFlowStep("adjustFinalConfirm");
     setIsTyping(true);
-    // Aura acknowledges and shows calendar + conversational prompt
-    delay(1000, t1Ref, () => {
-      addMsg({
-        role: "assistant",
-        text: "Sure, I will raise this adjustment request to your manager.",
+
+    if (intentsAccept()) {
+      // 1. Automatically approve the 8am–12pm slot (no request needed)
+      saveCounterRequest({
+        id: REQUEST_ID,
+        employee: "Jenning Dwight",
+        original: "Wed 12a-2p",
+        counter: "Wed 8a-12p",
+        coverage: "100%",
+        status: "Approved",
+        negotiationCount: 2
       });
-      setIsTyping(true);
-      delay(1200, t2Ref, () => {
-        addMsg({ role: "assistant", variant: "requestedCalendar" });
+      if (setCounterRequest) {
+        setCounterRequest(getCounterRequest());
+      }
+
+      setAskAuraToast({
+        title: "Requests sent successfully",
+        message: "We've confirmed your 8a–12p slot.",
+      });
+
+      setFlowStep("adjustSelectOtherSlots");
+      delay(900, t1Ref, () => {
+        // 2. Respond: "Your 8a–12p slot is confirmed" — styled as green success bubble
+        addMsg({
+          role: "assistant",
+          text: "Your 8a–12p slot is confirmed",
+          isSuccess: true,
+        });
         setIsTyping(true);
-        delay(800, t3Ref, () => {
+        delay(900, t2Ref, () => {
+          // 3. Then immediately follow with slot picker card
           addMsg({
             role: "assistant",
-            content: (
-              <span>
-                Would you like me to send this adjustment request to your manager? Reply <span className="font-semibold">Yes</span> to confirm or <span className="font-semibold">No</span> to cancel.
-              </span>
-            ),
+            text: "Here are a few other slots available — would you like to request one?",
           });
-          setIsTyping(false);
+          setIsTyping(true);
+          delay(600, t3Ref, () => {
+            addMsg({
+              role: "assistant",
+              variant: "slotPicker",
+            });
+            setIsTyping(false);
+          });
         });
       });
+    } else {
+      // User rejected Wednesday proposal. Transition to choose decline or counter step
+      setFlowStep("adjustChooseDeclineOrCounter");
+      delay(1000, t1Ref, () => {
+        addMsg({
+          role: "assistant",
+          text: "I understand. Since we couldn't find a matching recommendation, you can either decline this or submit your own counter-request.",
+        });
+        setIsTyping(false);
+      });
+    }
+  }
+
+  // handleCounterOffer2Response removed
+
+  function handleCustomCounterSubmit(msgId: number, counter: string, coverage: string) {
+    // Freeze the form card
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msgId ? { ...m, counterRequestData: { counter, coverage } } : m))
+    );
+    addMsg({ role: "user", text: `Submitted counter-proposal: ${counter}` });
+    setFlowStep("done");
+    setIsTyping(false);
+
+    // Save to localStorage using our new utility!
+    saveCounterRequest({
+      id: REQUEST_ID,
+      employee: "Jenning Dwight",
+      original: "Wed 12a-2p",
+      counter,
+      coverage,
+      status: "Pending",
+      negotiationCount: 2
     });
+
+    // Also update main page state immediately
+    setCounterRequest(getCounterRequest());
+
+    // Show success toast immediately
+    setAskAuraToast({
+      title: "Requests sent successfully",
+      message: "We’ve sent the adjustment proposal to your manager.",
+    });
+
+    // Submit immediate message replies in chat
+    addMsg({
+      role: "assistant",
+      text: "Your counter-proposal has been submitted. Smith Jane will be notified.",
+    });
+    addMsg({ role: "assistant", variant: "successCard" });
   }
 
   /* ---------------------------------------------------------------- */
@@ -1066,6 +1381,20 @@ function EmployeeAuraAssistant({
 
     const lower = trimmed.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
 
+    function getSlotSelected(text: string) {
+      const clean = text.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (clean.includes("122") || clean.includes("12pm2pm") || clean.includes("12to2") || clean.includes("12p2p") || clean.includes("12pmto2pm")) {
+        return "12pm–2pm";
+      }
+      if (clean.includes("24") || clean.includes("2pm4pm") || clean.includes("2to4") || clean.includes("2p4p") || clean.includes("2pmto4pm")) {
+        return "2pm–4pm";
+      }
+      if (clean.includes("46") || clean.includes("4pm6pm") || clean.includes("4to6") || clean.includes("4p6p") || clean.includes("4pmto6pm")) {
+        return "4pm–6pm";
+      }
+      return null;
+    }
+
     /** Robust intent helpers */
     function intentsAccept() {
       return (
@@ -1076,10 +1405,13 @@ function EmployeeAuraAssistant({
         lower.includes("go ahead") ||
         lower.includes("proceed") ||
         lower.includes("sounds good") ||
-        lower === "yes" ||
-        lower === "sure" ||
-        lower === "ok" ||
-        lower === "okay"
+        lower.includes("yes") ||
+        lower.includes("sure") ||
+        lower.includes("ok") ||
+        lower.includes("okay") ||
+        lower.includes("yep") ||
+        lower.includes("yup") ||
+        lower.includes("yeah")
       );
     }
 
@@ -1209,9 +1541,89 @@ function EmployeeAuraAssistant({
       return;
     }
 
-    /* ------ adjustCounterOffer / adjustCounterInput: reply to counter-offer ------ */
-    if (flowStep === "adjustCounterOffer" || flowStep === "adjustCounterInput") {
-      handleCounterReject(trimmed);
+    /* ------ adjustCounterOffer: reply to first counter-offer ------ */
+    if (flowStep === "adjustCounterOffer") {
+      handleCounterOffer1Response(trimmed);
+      return;
+    }
+
+    /* ------ adjustChooseDeclineOrCounter: choose between decline and counter proposal ------ */
+    if (flowStep === "adjustChooseDeclineOrCounter") {
+      const isDeclineIntent = lower === "decline it" || lower === "decline" || lower === "decline this";
+      const isCounterIntent = lower === "counter proposal" || lower === "counter" || lower === "proposal" || lower.includes("counter proposal");
+
+      if (isDeclineIntent) {
+        // Trigger the existing decline flow (DO NOT modify the decline logic)
+        setMessages((prev) =>
+          prev.map((m) => (m.variant === "availabilityCard" ? { ...m, availabilityAction: "declined" } : m)),
+        );
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setFlowStep("declineSuccess");
+        setActionState("declined");
+        setIsTyping(true);
+        delay(900, t1Ref, () => {
+          addMsg({
+            role: "assistant",
+            text: "Understood. The request has been declined. Your current availability remains unchanged. Smith Jane will be notified.",
+          });
+          setIsTyping(false);
+          setFlowStep("done");
+        });
+      } else if (isCounterIntent) {
+        // Trigger custom counter-proposal form
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setFlowStep("adjustSubmitCounterRequest");
+        setIsTyping(true);
+        delay(1000, t1Ref, () => {
+          addMsg({
+            role: "assistant",
+            text: "Please provide your proposed slot and coverage contribution below:",
+          });
+          setIsTyping(true);
+          delay(800, t2Ref, () => {
+            addMsg({ role: "assistant", variant: "customCounterRequestForm" });
+            setIsTyping(false);
+          });
+        });
+      } else {
+        // Fallback: prompt again
+        addMsg({ role: "user", text: trimmed });
+        setDraftMessage("");
+        setIsTyping(true);
+        delay(800, t1Ref, () => {
+          addMsg({
+            role: "assistant",
+            text: "I didn't quite catch that. Please type 'decline it' to decline the request, or 'counter proposal' to submit your own request.",
+          });
+          setIsTyping(false);
+        });
+      }
+      return;
+    }
+
+    // adjustCounterOffer2 removed
+
+    /* ------ adjustSelectOtherSlots: slot picker UI handles submit, nudge if text typed ------ */
+    if (flowStep === "adjustSelectOtherSlots") {
+      // User typed instead of using the picker — nudge them
+      addMsg({ role: "user", text: trimmed });
+      setDraftMessage("");
+      setIsTyping(true);
+      delay(700, t1Ref, () => {
+        addMsg({
+          role: "assistant",
+          text: "Please select a slot from the options above and tap Submit.",
+        });
+        setIsTyping(false);
+      });
+      return;
+    }
+
+    /* ------ adjustSubmitCounterRequest: user can type or wait for form ------ */
+    if (flowStep === "adjustSubmitCounterRequest") {
+      handleCustomCounterSubmit(nextIdRef.current, trimmed, "50%");
       return;
     }
 
@@ -1335,6 +1747,46 @@ function EmployeeAuraAssistant({
   /*  Render variant bubbles                                           */
   /* ---------------------------------------------------------------- */
 
+  function handleSlotPickerSubmit(slotPickerMsgId: number) {
+    if (!selectedSlot || slotSubmitted) return;
+    setSlotSubmitted(true);
+    // Freeze the slot picker card
+    setMessages((prev) =>
+      prev.map((m) => (m.id === slotPickerMsgId ? { ...m, slotPickerSubmitted: true } : m)),
+    );
+    addMsg({ role: "user", text: selectedSlot });
+    setFlowStep("done");
+
+    // Save request for approval to localStorage
+    saveCounterRequest({
+      id: REQUEST_ID,
+      employee: "Jenning Dwight",
+      original: "Wed 12a-2p",
+      counter: "Wed " + selectedSlot,
+      coverage: "50%",
+      status: "Pending",
+      negotiationCount: 2,
+    });
+    if (setCounterRequest) {
+      setCounterRequest(getCounterRequest());
+    }
+
+    setAskAuraToast({
+      title: "Requests sent successfully",
+      message: "We've sent the adjustment proposal to your manager.",
+    });
+
+    setIsTyping(true);
+    delay(900, t1Ref, () => {
+      addMsg({
+        role: "assistant",
+        text: "Sent to manager for approval.",
+        isSuccess: true,
+      });
+      setIsTyping(false);
+    });
+  }
+
   function renderVariant(msg: AuraChatMessage) {
     switch (msg.variant) {
       case "availabilityCard":
@@ -1355,6 +1807,92 @@ function EmployeeAuraAssistant({
         );
       case "successCard":
         return <ChatSuccessCard requestId={REQUEST_ID} />;
+      case "customCounterRequestForm":
+        return (
+          <ChatCustomCounterRequestForm
+            isSubmitted={!!msg.counterRequestData}
+            onSubmit={(counter, coverage) => handleCustomCounterSubmit(msg.id, counter, coverage)}
+          />
+        );
+      case "slotPicker": {
+        const submitted = msg.slotPickerSubmitted ?? false;
+        const slots = ["12p–2p", "2p–4p", "4p–6p"];
+        return (
+          <div className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-xl border border-[#d8dce6] bg-white shadow-sm overflow-hidden">
+            <div className="border-b border-[#e5e7eb] px-4 py-3">
+              <p className="text-[14px] font-semibold text-[#111827]">Select a slot</p>
+            </div>
+            <div className="space-y-2 px-4 py-3">
+              {slots.map((slot) => {
+                const isSelected = selectedSlot === slot;
+                const isDisabled = submitted;
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => !submitted && setSelectedSlot(slot)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                      isDisabled
+                        ? "cursor-not-allowed border-[#e5e7eb] bg-[#f9fafb]"
+                        : isSelected
+                          ? "border-primary bg-[#e8f2ff]"
+                          : "border-[#d8dce6] bg-white hover:border-primary/50 hover:bg-[#f0f7ff]",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition",
+                        isDisabled
+                          ? "border-slate-300"
+                          : isSelected
+                            ? "border-primary"
+                            : "border-[#c9cbd2]",
+                      )}
+                    >
+                      {isSelected && !isDisabled && (
+                        <span className="h-2 w-2 rounded-full bg-primary" />
+                      )}
+                      {isDisabled && isSelected && (
+                        <span className="h-2 w-2 rounded-full bg-slate-400" />
+                      )}
+                    </span>
+                    <span className={cn(
+                      "text-[14px] font-medium",
+                      isDisabled ? "text-[#9ca3af]" : isSelected ? "text-primary" : "text-[#111827]",
+                    )}>
+                      {slot}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {!submitted && (
+              <div className="border-t border-[#e5e7eb] px-4 py-3">
+                <button
+                  type="button"
+                  disabled={!selectedSlot}
+                  onClick={() => handleSlotPickerSubmit(msg.id)}
+                  className={cn(
+                    "w-full rounded-lg py-2 text-[14px] font-semibold transition",
+                    selectedSlot
+                      ? "bg-primary text-white hover:bg-primary/90 active:scale-[0.98]"
+                      : "cursor-not-allowed bg-[#e5e7eb] text-[#9ca3af]",
+                  )}
+                >
+                  Submit
+                </button>
+              </div>
+            )}
+            {submitted && (
+              <div className="border-t border-[#e5e7eb] px-4 py-3">
+                <p className="text-center text-[13px] font-medium text-[#6b7280]">Request submitted</p>
+              </div>
+            )}
+          </div>
+        );
+      }
       default:
         return null;
     }
@@ -1367,12 +1905,15 @@ function EmployeeAuraAssistant({
   const composerDisabled =
     isTyping ||
     flowStep === "initial" ||
-    flowStep === "adjustChecking";
+    flowStep === "adjustChecking" ||
+    flowStep === "adjustSubmitCounterRequest" ||
+    flowStep === "adjustSelectOtherSlots";
 
   function getPlaceholder() {
     if (flowStep === "awaitAction") return "Type: accept, decline, or adjust...";
-    if (flowStep === "adjustAwaitInput") return "e.g. I would like Wednesdays 8am to 10am off...";
-    if (flowStep === "adjustCounterOffer" || flowStep === "adjustCounterInput") return "Type your response...";
+    if (flowStep === "adjustAwaitInput") return "e.g. I would like Wednesdays 6a to 8a off...";
+    if (flowStep === "adjustCounterOffer" || flowStep === "adjustCounterInput") return "Type your response to counter-offer...";
+    if (flowStep === "adjustSubmitCounterRequest") return "Submit proposal using the form above...";
     if (flowStep === "adjustFinalConfirm") return "Reply Yes to confirm or No to cancel...";
     if (flowStep === "done") return "Ask AURA anything...";
     return "Ask AURA";
@@ -1487,20 +2028,27 @@ function EmployeeAuraAssistant({
                     )}
                   >
                     {(hasText || hasContent) && (
-                      <div
-                        className={cn(
-                          "rounded-2xl px-4 py-2.5 text-[14px] leading-[1.55] shadow-sm",
-                          msg.role === "assistant"
-                            ? "max-w-[92%] bg-[#E6F0FB] text-[#1a1a2e]"
-                            : "max-w-[84%] bg-[#F0F2F5] text-[#111827]",
-                        )}
-                      >
-                        {hasContent ? (
-                          <div>{msg.content}</div>
-                        ) : (
-                          <p className="whitespace-pre-wrap">{msg.text}</p>
-                        )}
-                      </div>
+                      msg.isSuccess ? (
+                        // Green success bubble — mirrors Ask Aura "Done — that's sent."
+                        <div className="animate-[aura-message-in_180ms_ease-out] max-w-[92%] rounded-lg border border-[#b8e4c8] bg-[#ecfdf3] px-3 py-2.5 text-[#166534] shadow-sm">
+                          <p className="whitespace-pre-line text-[14px] font-medium leading-5">{hasContent ? msg.content : msg.text}</p>
+                        </div>
+                      ) : (
+                        <div
+                          className={cn(
+                            "rounded-2xl px-4 py-2.5 text-[14px] leading-[1.55] shadow-sm",
+                            msg.role === "assistant"
+                              ? "max-w-[92%] bg-[#E6F0FB] text-[#1a1a2e]"
+                              : "max-w-[84%] bg-[#F0F2F5] text-[#111827]",
+                          )}
+                        >
+                          {hasContent ? (
+                            <div>{msg.content}</div>
+                          ) : (
+                            <p className="whitespace-pre-wrap">{msg.text}</p>
+                          )}
+                        </div>
+                      )
                     )}
                     {variant && (
                       <div className={cn("w-full", msg.role === "user" && "flex justify-end")}>

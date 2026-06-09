@@ -103,7 +103,7 @@ export function ManagerDesktopScreen() {
                 <div className="flex items-center">
                   <div className="flex h-9 overflow-hidden rounded-md border border-[#c9cbd2] bg-white">
                     <button type="button" className="flex w-9 items-center justify-center border-r border-[#c9cbd2]">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-left h-5 w-5 text-[#5c5c5c]"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" className="flex min-w-[170px] items-center justify-between px-2 text-[16px] leading-[22px] 2xl:min-w-[198px] 2xl:text-[17px]"><span>6/13/24 - 6/19/24</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-calendar h-[18px] w-[18px] text-primary"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg></button><button type="button" className="flex w-9 items-center justify-center border-l border-[#c9cbd2]"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-right h-5 w-5 text-[#5c5c5c]"><path d="m9 18 6-6-6-6"></path></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-left h-5 w-5 text-[#5c5c5c]"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" className="flex min-w-[170px] items-center justify-between px-2 text-[16px] leading-[22px] 2xl:min-w-[198px] 2xl:text-[17px]"><span>6/7/26 - 6/13/26</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-calendar h-[18px] w-[18px] text-primary"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg></button><button type="button" className="flex w-9 items-center justify-center border-l border-[#c9cbd2]"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-right h-5 w-5 text-[#5c5c5c]"><path d="m9 18 6-6-6-6"></path></svg>
                     </button>
                   </div>
                 </div>
@@ -253,7 +253,7 @@ export function ManagerDesktopScreen() {
                   <EmployeeRequestCard
                     avatarSrc={avatar1}
                     name="Jenning Dwight"
-                    dateStr="1/30/21 - 2/1/21"
+                    dateStr="1/30/26 - 2/1/26"
                     totalHrs="40h"
                     defaultExpanded={true}
                     checked={true}
@@ -261,27 +261,27 @@ export function ManagerDesktopScreen() {
                   <EmployeeRequestCard
                     avatarSrc={avatar3}
                     name="Bessie Cooper"
-                    dateStr="1/30/21 - 2/1/21"
+                    dateStr="1/30/26 - 2/1/26"
                     totalHrs="40h"
                     checked={false}
                   />
                   <EmployeeRequestCard
                     name="Sarah Johnson"
-                    dateStr="1/30/21 - 2/1/21"
+                    dateStr="1/30/26 - 2/1/26"
                     totalHrs="40h"
                     checked={false}
                     expandable={false}
                   />
                   <EmployeeRequestCard
                     name="Emily Carter"
-                    dateStr="1/30/21 - 2/1/21"
+                    dateStr="1/30/26 - 2/1/26"
                     totalHrs="40h"
                     checked={false}
                     expandable={false}
                   />
                   <EmployeeRequestCard
                     name="Ryan Anderson"
-                    dateStr="1/30/21 - 2/1/21"
+                    dateStr="1/30/26 - 2/1/26"
                     totalHrs="40h"
                     checked={false}
                     expandable={false}
@@ -753,8 +753,8 @@ function ManagerRagTableCard({ hasApproved }: { hasApproved: boolean }) {
       employee: "Emily Carter",
       role: "Front End Associate",
       impact: "High Impact",
-      requestedTime: "Friday, 4:00p–8:00p",
-      requestedChange: "Unavailable Friday 4p–8p",
+      requestedTime: "Friday 6/12/26, 4p–8p",
+      requestedChange: "Unavailable Friday 6/12/26, 4p–8p",
       recommendation: "Deny",
       avatarClassName: "bg-[#FEE2E2] text-[#DC2626]",
       impactClassName: "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]",
@@ -1028,10 +1028,10 @@ function EmployeeRequestCard({
             <div className="text-[#111827]">(149) Bulk Foods/ Team Member</div>
 
             <div className="text-[#6B7280]">Request Time:</div>
-            <div className="text-[#111827]">By Jenning Dwight/ (149) Employee Tue 1/11/21 4:12a</div>
+            <div className="text-[#111827]">By Jenning Dwight/ (149) Employee Tue 1/11/26 4:12a</div>
 
             <div className="text-[#6B7280]">Action by Date:</div>
-            <div className="text-[#111827]">Wed 1/10/21, 4:12p</div>
+            <div className="text-[#111827]">Wed 1/10/26, 4:12p</div>
 
             <div className="text-[#6B7280]">Reason Code:</div>
             <div className="text-[#111827]">Vacation</div>
@@ -1039,11 +1039,11 @@ function EmployeeRequestCard({
             <div className="text-[#6B7280]">Message:</div>
             <div className="text-[#111827] pr-8">
               By Dwight Jennings / (149) Employee Need an emergency vacation, need<br />
-              off from work (Tue 1/11/21 4:12a). Replied by (149) Supervisor
+              off from work (Tue 1/11/26 4:12a). Replied by (149) Supervisor
             </div>
 
             <div className="text-[#6B7280]">Request Details</div>
-            <div 
+            <div
               className="text-[#2563EB] cursor-pointer hover:underline"
               onClick={(e) => {
                 e.stopPropagation();

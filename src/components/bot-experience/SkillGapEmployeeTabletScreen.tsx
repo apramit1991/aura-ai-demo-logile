@@ -163,7 +163,7 @@ function RequestListCard({
 /* ------------------------------------------------------------------ */
 
 function TabletShell({ children }: { children: React.ReactNode }) {
-  const sarahAvatar = getAvatarByName("Sarah Johnson");
+  const jenningAvatar = getAvatarByName("Jenning Dwight");
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#f6f6f6] text-[#333333]">
@@ -192,11 +192,11 @@ function TabletShell({ children }: { children: React.ReactNode }) {
         {/* Profile */}
         <button type="button" className="flex h-11 min-w-0 items-center gap-2 rounded-md border border-[#d4d7de] bg-white px-2">
           <span className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#b8e0aa] text-xs font-bold text-[#2e6623]">
-            {sarahAvatar ? <img src={sarahAvatar} alt="" className="h-7 w-7 rounded-full object-cover" /> : "SJ"}
+            {jenningAvatar ? <img src={jenningAvatar} alt="" className="h-7 w-7 rounded-full object-cover" /> : "JD"}
             <span className="absolute -right-0.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e22d20] text-[10px] text-white">1</span>
           </span>
           <span className="hidden min-w-0 text-left leading-tight sm:block">
-            <span className="block truncate text-[13px] font-medium">Sarah Johnson</span>
+            <span className="block truncate text-[13px] font-medium">Jenning Dwight</span>
             <span className="block text-[13px] font-medium text-[#5c5c5c]">Employee</span>
           </span>
           <ChevronDown className="ml-auto hidden h-4 w-4 text-[#5c5c5c] sm:block" />
@@ -319,21 +319,10 @@ export function SkillGapEmployeeTabletScreen() {
                       </button>
                       <div className="flex items-center gap-1.5 px-2 text-[13px] text-[#333]">
                         <span>5/3/26 - 5/8/26</span>
-                        <ChevronDown className="h-4 w-4 text-[#888]" />
+                        <CalendarIcon className="h-[15px] w-[15px] text-primary" />
                       </div>
                       <button type="button" className="flex w-8 items-center justify-center border-l border-[#c9cbd2]">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          class="lucide lucide-chevron-right h-4 w-4 text-[#5c5c5c]">
-                          <path d="m9 18 6-6-6-6"></path>
-                        </svg>
+                        <span className="text-[#5c5c5c] font-medium text-sm">›</span>
                       </button>
                     </div>
                     <button type="button" className="flex h-8 items-center gap-1.5 rounded-lg border border-[#c1c1c1] bg-white px-2.5 text-[13px] text-[#333]">

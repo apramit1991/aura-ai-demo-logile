@@ -28,6 +28,8 @@ import { AppShell } from "./AppShell";
 import { AuraChatHistoryView } from "./AuraChatHistoryView";
 import { AuraLauncherButton } from "./AuraLauncherButton";
 import { PageHeader } from "./PageHeader";
+import type { CounterRequest } from "../../lib/negotiationService";
+
 import { Tabs } from "../ui/tabs";
 import { cn } from "../../lib/utils";
 import { getAvatarByName } from "../../lib/avatarHelper";
@@ -64,7 +66,7 @@ const adjustEmployees = [
     avatar: sarahAvatar,
     badges: ["Baking", "Pastry"],
     current: "Mon, Tue, Fri, Sat, Sun · 39h",
-    required: "Mon, Tue, Wed, Fri, Sat, Sun · 52h",
+    required: "Mon, Tue, Wed, Fri, Sat, Sun · 50",
     proposed: "Wed 6a - 12p · Fri 4p - 7p · Sun 6a - 10a",
   },
   {
@@ -72,7 +74,7 @@ const adjustEmployees = [
     avatar: emilyAvatar,
     badges: ["Pastry", "Food Safety"],
     current: "Mon, Tue, Wed, Fri, Sat · 38h",
-    required: "Mon, Tue, Wed, Fri, Sat, Sun · 52h",
+    required: "Mon, Tue, Wed, Fri, Sat, Sun · 50",
     proposed: "Wed 6a - 12p · Fri 4p - 7p · Sun 6a - 10a",
   },
   {
@@ -80,7 +82,7 @@ const adjustEmployees = [
     avatar: michaelAvatar,
     badges: ["Cake", "Decorating"],
     current: "Mon, Tue, Fri, Sat · 39h",
-    required: "Mon, Tue, Wed, Fri, Sat · 52h",
+    required: "Mon, Tue, Wed, Fri, Sat · 50",
     proposed: "Wed 6a - 12p · Fri 4p - 7p · Sun 6a - 10a",
   },
 ];
@@ -91,7 +93,7 @@ const crossTrainEmployees = [
     avatar: jessicaAvatar,
     badges: ["Customer Service"],
     current: "Secondary LT: Cake Decoration, Bakery Clerk, +1",
-    required: "Availability: Mon-Sun · 52h",
+    required: "Availability: Mon-Sun · 50",
   },
   {
     name: "Ryan Anderson",
@@ -215,25 +217,33 @@ type AskAuraPhase =
   | "awaitCriticalCardClick"
   | "awaitCrossTrainConsent"
   | "awaitAvailabilitySendConfirm"
-  | "awaitCrossTrainAfterAvailabilitySent"
   | "awaitCrossTrainSelection"
   | "awaitCrossTrainSendConfirm"
+  | "awaitCloseOrCrossTrainPrompt"
   | "awaitClosePrompt"
-  | "done";
+  | "done"
+  | "awaitCounterRequestDecision"
+  | "awaitDeclineNextStep";
 
 type AskAuraMessage =
   | { id: number; role: "assistant" | "user"; kind: "text"; text: string }
   | { id: number; role: "assistant"; kind: "successText"; text: string }
   | { id: number; role: "assistant"; kind: "criticalGapCards" }
   | { id: number; role: "assistant"; kind: "availabilityCards" }
-  | { id: number; role: "assistant"; kind: "crossTrainCards" };
+  | { id: number; role: "assistant"; kind: "crossTrainCards" }
+  | { id: number; role: "assistant"; kind: "counterRequestCard"; details: { employee: string; original: string; counter: string; coverage: string } }
+  | { id: number; role: "assistant"; kind: "counterRequestActions"; isDecided?: boolean; decision?: "Approved" | "Declined" }
+  | { id: number; role: "assistant"; kind: "declineCrossTrainActions"; isDecided?: boolean; decision?: "yes" | "no" };
 
 type AskAuraMessagePayload =
   | { role: "assistant" | "user"; kind: "text"; text: string }
   | { role: "assistant"; kind: "successText"; text: string }
   | { role: "assistant"; kind: "criticalGapCards" }
   | { role: "assistant"; kind: "availabilityCards" }
-  | { role: "assistant"; kind: "crossTrainCards" };
+  | { role: "assistant"; kind: "crossTrainCards" }
+  | { role: "assistant"; kind: "counterRequestCard"; details: { employee: string; original: string; counter: string; coverage: string } }
+  | { role: "assistant"; kind: "counterRequestActions"; isDecided?: boolean; decision?: "Approved" | "Declined" }
+  | { role: "assistant"; kind: "declineCrossTrainActions"; isDecided?: boolean; decision?: "yes" | "no" };
 
 const askAuraAvailabilityEmployees: AskAuraAvailabilityEmployee[] = [
   { name: "Sarah Johnson", avatar: sarahAvatar, skillLevel: "Secondary skill", impact: "85% gap reduction" },
@@ -245,7 +255,7 @@ const askAuraCrossTrainEmployees: AskAuraCrossTrainEmployee[] = [
     name: "Jessica Brown",
     avatar: jessicaAvatar,
     recommendationType: "Customer Service",
-    estimatedTime: "Mon-Sun · 52h",
+    estimatedTime: "Mon-Sun · 50",
     impact: "Secondary LT: Cake Decoration, Bakery Clerk, +1",
   },
   {
@@ -274,6 +284,20 @@ function matchesYesPrompt(value: string) {
 function matchesNoThanksPrompt(value: string) {
   const prompt = normalizePrompt(value);
   return prompt === "no thanks" || prompt === "no thanks.";
+}
+
+function matchesCrossTrainPrompt(value: string) {
+  const prompt = normalizePrompt(value);
+  return (
+    prompt.includes("cross train") ||
+    prompt.includes("cross-train") ||
+    prompt.includes("crosstrain") ||
+    prompt.includes("cross training") ||
+    prompt.includes("cross-training") ||
+    (prompt.includes("cross") && prompt.includes("train")) ||
+    prompt.includes("jessica") ||
+    prompt.includes("ryan")
+  );
 }
 
 function AskAuraEmployeeCard({
@@ -333,11 +357,15 @@ function SkillGapAuraAssistant({
   onOpen,
   onClose,
   onSendAvailabilityRequests,
+  onCriticalCardSelect,
+  onRegisterCardSelectHandler,
 }: {
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
   onSendAvailabilityRequests: (payload: { type: "availability" | "crossTraining"; employees: string[] }) => void;
+  onCriticalCardSelect?: (cardTitle: string) => void;
+  onRegisterCardSelectHandler?: (handler: (cardTitle: string) => void) => void;
 }) {
   const [panelState, setPanelState] = useState<"closed" | "open" | "closing">("closed");
   const [shouldNudgeLauncher, setShouldNudgeLauncher] = useState(false);
@@ -352,6 +380,12 @@ function SkillGapAuraAssistant({
   const [sentAvailabilityEmployees, setSentAvailabilityEmployees] = useState<Set<string>>(new Set());
   const [selectedCrossTrainEmployees, setSelectedCrossTrainEmployees] = useState<Set<string>>(new Set());
   const [sentCrossTrainEmployees, setSentCrossTrainEmployees] = useState<Set<string>>(new Set());
+  const pendingRequest = null;
+
+
+
+
+
   const [hasShownCriticalGaps, setHasShownCriticalGaps] = useState(false);
   const [hasShownCrossTrainPrompt, setHasShownCrossTrainPrompt] = useState(false);
   const [availabilitySkillGapReductionPercent, setAvailabilitySkillGapReductionPercent] = useState(0);
@@ -402,7 +436,7 @@ function SkillGapAuraAssistant({
         appendMessage({
           role: "assistant",
           kind: "text",
-          text: "Would you also like to see who you can cross-train?",
+          text: "Alright. Let me know if there's anything else I can help with. If you'd like, I can also show you cross-train options for the Bakery gap.",
         });
         setIsAuraTyping(false);
         typingTimerRef.current = null;
@@ -414,7 +448,7 @@ function SkillGapAuraAssistant({
     clearTypingTimer();
     setIsAuraTyping(true);
     typingTimerRef.current = window.setTimeout(() => {
-      appendMessage({ role: "assistant", kind: "successText", text: "Done — cross-train request sent." });
+      appendMessage({ role: "assistant", kind: "successText", text: "Sent! We’ve passed your cross-train request along." });
       setIsAuraTyping(false);
       typingTimerRef.current = null;
     }, 900);
@@ -435,6 +469,15 @@ function SkillGapAuraAssistant({
     }
   }
 
+  // Keep a stable ref to the latest handleCriticalCardSelect to avoid stale closures
+  const handleCriticalCardSelectRef = useRef<(cardTitle: string) => void>(() => { });
+
+  useEffect(() => {
+    // Register a stable wrapper with the parent so the panel card click can trigger the chat flow
+    onRegisterCardSelectHandler?.((cardTitle) => handleCriticalCardSelectRef.current(cardTitle));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!isOpen) {
       clearTypingTimer();
@@ -450,6 +493,7 @@ function SkillGapAuraAssistant({
     if (!hasStartedConversationRef.current) {
       hasStartedConversationRef.current = true;
       nextMessageIdRef.current = 1;
+
       setPhase("awaitCriticalGapPrompt");
       setSelectedCriticalGapCard(null);
       setSelectedAvailabilityEmployees(new Set());
@@ -490,11 +534,10 @@ function SkillGapAuraAssistant({
 
   useEffect(() => {
     const hasSarah = selectedAvailabilityEmployees.has("Sarah Johnson");
-    const hasEmily = selectedAvailabilityEmployees.has("Emily Carter");
-    const percent = hasSarah && hasEmily ? 100 : hasSarah ? 85 : 0;
+    const percent = hasSarah ? 85 : 0;
     setAvailabilitySkillGapReductionPercent(percent);
 
-    if (!hasSarah || !hasEmily || availabilityRequestSent || hasPromptedAvailabilityRequest) return;
+    if (!hasSarah || availabilityRequestSent || hasPromptedAvailabilityRequest) return;
     if (followUpTimerRef.current) {
       window.clearTimeout(followUpTimerRef.current);
       followUpTimerRef.current = null;
@@ -504,13 +547,13 @@ function SkillGapAuraAssistant({
     queueAssistant({
       role: "assistant",
       kind: "text",
-      text: "You selected Sarah Johnson and Emily Carter. This will reduce the skill gap by 100%. Would you like me to send availability requests to both of them?",
+      text: "You selected Sarah Johnson. This will reduce the skill gap by 85%. Would you like me to send availability request to her?",
     });
   }, [selectedAvailabilityEmployees, availabilityRequestSent, hasPromptedAvailabilityRequest]);
 
   useEffect(() => {
     const selectionCount = selectedCrossTrainEmployees.size;
-    const percent = selectionCount >= 2 ? 99 : selectionCount === 1 ? 60 : 0;
+    const percent = selectionCount >= 2 ? 90 : selectionCount === 1 ? 60 : 0;
     setCrossTrainSkillGapReductionPercent(percent);
 
     if (selectionCount !== 2 || crossTrainRequestSent || hasPromptedCrossTrainRequest) return;
@@ -546,6 +589,8 @@ function SkillGapAuraAssistant({
     appendMessage({ role: "user", kind: "text", text: trimmedMessage });
     setDraftMessage("");
 
+
+
     if (phase === "awaitCriticalGapPrompt") {
       if (!matchesCriticalGapPrompt(trimmedMessage)) {
         queueAssistant({ role: "assistant", kind: "text", text: "Please ask me for the critical skill gaps to get started." });
@@ -569,38 +614,24 @@ function SkillGapAuraAssistant({
       queueAssistant({
         role: "assistant",
         kind: "text",
-        text: "Select Sarah Johnson and Emily Carter to send availability requests.",
+        text: "Select Sarah Johnson to send availability request.",
       });
       return;
     }
 
     if (phase === "awaitAvailabilitySendConfirm") {
       if (!matchesYesPrompt(trimmedMessage)) {
-        queueAssistant({ role: "assistant", kind: "text", text: "Please confirm with 'Yes' if you want me to send both availability requests." });
+        queueAssistant({ role: "assistant", kind: "text", text: "Please confirm with 'Yes' if you want me to send the availability request." });
         return;
       }
-      const sent = new Set(["Sarah Johnson", "Emily Carter"]);
+      const sent = new Set(["Sarah Johnson"]);
       setSentAvailabilityEmployees(sent);
       setSelectedAvailabilityEmployees(sent);
-      setAvailabilitySkillGapReductionPercent(100);
+      setAvailabilitySkillGapReductionPercent(85);
       setAvailabilityRequestSent(true);
-      onSendAvailabilityRequests({ type: "availability", employees: ["Sarah Johnson", "Emily Carter"] });
-      setPhase("awaitCrossTrainAfterAvailabilitySent");
+      onSendAvailabilityRequests({ type: "availability", employees: ["Sarah Johnson"] });
+      setPhase("awaitCloseOrCrossTrainPrompt");
       queueAvailabilitySuccessFollowUp();
-      return;
-    }
-
-    if (phase === "awaitCrossTrainAfterAvailabilitySent") {
-      if (matchesYesPrompt(trimmedMessage)) {
-        setPhase("awaitCrossTrainSelection");
-        queueAssistant([
-          { role: "assistant", kind: "text", text: "I found 2 employees who can be Cross Trained to reduce the skill gap by 99%." },
-          { role: "assistant", kind: "crossTrainCards" },
-        ]);
-        return;
-      }
-      setPhase("awaitClosePrompt");
-      queueAssistant({ role: "assistant", kind: "text", text: "Alright. Let me know if there's anything else I can help with." });
       return;
     }
 
@@ -635,7 +666,7 @@ function SkillGapAuraAssistant({
       const sent = new Set(["Jessica Brown", "Ryan Anderson"]);
       setSelectedCrossTrainEmployees(sent);
       setSentCrossTrainEmployees(sent);
-      setCrossTrainSkillGapReductionPercent(99);
+      setCrossTrainSkillGapReductionPercent(90);
       setCrossTrainRequestSent(true);
       onSendAvailabilityRequests({ type: "crossTraining", employees: ["Jessica Brown", "Ryan Anderson"] });
       setPhase("awaitClosePrompt");
@@ -643,7 +674,37 @@ function SkillGapAuraAssistant({
       return;
     }
 
+    if (phase === "awaitCloseOrCrossTrainPrompt") {
+      if (matchesCrossTrainPrompt(trimmedMessage)) {
+        setPhase("awaitCrossTrainSelection");
+        queueAssistant([
+          { role: "assistant", kind: "text", text: "Sure! Here are the cross-training recommendations. Select Jessica Brown and Ryan Anderson to prepare the requests." },
+          { role: "assistant", kind: "crossTrainCards" },
+        ]);
+        return;
+      }
+      if (matchesNoThanksPrompt(trimmedMessage)) {
+        setPhase("done");
+        queueAssistant({ role: "assistant", kind: "text", text: "Have a good day!" });
+        return;
+      }
+      queueAssistant({
+        role: "assistant",
+        kind: "text",
+        text: "Would you like to see cross-train options? Just say \"cross-train\" or reply \"No, thanks\" to finish.",
+      });
+      return;
+    }
+
     if (phase === "awaitClosePrompt") {
+      if (matchesCrossTrainPrompt(trimmedMessage)) {
+        setPhase("awaitCrossTrainSelection");
+        queueAssistant([
+          { role: "assistant", kind: "text", text: "Sure! Here are the cross-training recommendations. Select Jessica Brown and Ryan Anderson to prepare the requests." },
+          { role: "assistant", kind: "crossTrainCards" },
+        ]);
+        return;
+      }
       if (!matchesNoThanksPrompt(trimmedMessage)) {
         queueAssistant({ role: "assistant", kind: "text", text: "If you're done, you can reply with 'No, thanks.'." });
         return;
@@ -696,15 +757,17 @@ function SkillGapAuraAssistant({
 
   function handleCriticalCardSelect(cardTitle: string) {
     setSelectedCriticalGapCard(cardTitle);
+    onCriticalCardSelect?.(cardTitle);
     if (cardTitle !== "Bakery - Baking, 40h") return;
     if (messages.some((message) => message.kind === "availabilityCards")) return;
     setPhase("awaitCrossTrainConsent");
     queueAssistant([
       { role: "assistant", kind: "text", text: "Here are a few recommendations." },
       { role: "assistant", kind: "availabilityCards" },
-      { role: "assistant", kind: "text", text: "My preferred combination for full coverage is Sarah Johnson at 100% allocation and Emily Carter at 10% support. This can create 100% fulfilment for the Baking gap." },
     ]);
   }
+  // Always keep the ref up to date
+  handleCriticalCardSelectRef.current = handleCriticalCardSelect;
 
   return (
     <>
@@ -715,7 +778,19 @@ function SkillGapAuraAssistant({
           !isOpen && shouldNudgeLauncher && "aura-launcher-nudge",
         )}
       >
-        <AuraLauncherButton onClick={onOpen} />
+        {pendingRequest && !isOpen ? (
+          <div className="absolute right-16 top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#0066d9] px-3 py-1.5 text-xs font-semibold text-white shadow-md animate-bounce">
+            1 new adjustment request
+            <div className="absolute right-[-4px] top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-l-4 border-l-[#0066d9]"></div>
+          </div>
+        ) : null}
+        <AuraLauncherButton onClick={onOpen}>
+          {pendingRequest && !isOpen ? (
+            <div className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-[#E22D20] text-[11px] font-bold text-white shadow-md">
+              1
+            </div>
+          ) : null}
+        </AuraLauncherButton>
       </div>
 
       <aside
@@ -831,7 +906,8 @@ function SkillGapAuraAssistant({
                 ) : message.kind === "availabilityCards" ? (
                   <div key={message.id} className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-xl border border-[#d8dce6] bg-white shadow-sm">
                     <div className="border-b border-[#e5e7eb] px-4 py-3">
-                      <p className="text-[15px] font-semibold leading-5 text-primary">Availability movement — solves in 2 days</p>
+                      {/* <p className="text-[15px] font-semibold leading-5 text-primary">Availability movement — solves in 2 days</p> */}
+                      <p className="text-[15px] font-semibold leading-5 text-primary">Availability movement</p>
                       <p className="mt-2 text-[13px] leading-5 text-[#1f2937]">Sarah Johnson has Bakery as a secondary skill. If approved, this can solve 85% of the Baking gap.</p>
                       <p className="mt-1 text-[13px] leading-5 text-[#1f2937]">Emily Carter has Bakery as a tertiary skill. If approved, this can help achieve 100% reduction when combined with Sarah Johnson.</p>
                     </div>
@@ -843,7 +919,7 @@ function SkillGapAuraAssistant({
                           selected={selectedAvailabilityEmployees.has(employee.name)}
                           disabled={sentAvailabilityEmployees.has(employee.name)}
                           onToggle={() => toggleAvailabilityEmployee(employee.name)}
-                          subtitle={`${employee.skillLevel} • ${employee.impact}`}
+                          subtitle={`${employee.skillLevel}`}
                           status={sentAvailabilityEmployees.has(employee.name) ? "Pending Approval" : undefined}
                         />
                       ))}
@@ -865,7 +941,8 @@ function SkillGapAuraAssistant({
                 ) : message.kind === "crossTrainCards" ? (
                   <div key={message.id} className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-xl border border-[#d8dce6] bg-white shadow-sm">
                     <div className="border-b border-[#e5e7eb] px-4 py-3">
-                      <p className="text-[15px] font-semibold leading-5 text-primary">Cross-training — estimated in 2 weeks</p>
+                      {/* <p className="text-[15px] font-semibold leading-5 text-primary">Cross-training — estimated in 2 weeks</p> */}
+                      <p className="text-[15px] font-semibold leading-5 text-primary">Cross-training</p>
                       <p className="mt-2 text-[13px] leading-5 text-[#1f2937]">Select employees to prepare cross-training requests for Bakery coverage support.</p>
                     </div>
                     <div className="space-y-3 px-4 py-4">
@@ -883,7 +960,7 @@ function SkillGapAuraAssistant({
                       {crossTrainSkillGapReductionPercent > 0 ? (
                         <div className="rounded-md border border-[#d8dce6] bg-[#f8fafc] px-3 py-3">
                           <p className="text-[13px] font-semibold leading-5 text-[#334155]">
-                            {crossTrainSkillGapReductionPercent >= 99 ? "Skill gap 99% reduced" : `Skill gap ${crossTrainSkillGapReductionPercent}% reduced`}
+                            {crossTrainSkillGapReductionPercent >= 90 ? "Skill gap 90% reduced" : `Skill gap ${crossTrainSkillGapReductionPercent}% reduced`}
                           </p>
                           <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
                             <div
@@ -895,6 +972,7 @@ function SkillGapAuraAssistant({
                       ) : null}
                     </div>
                   </div>
+
                 ) : null
               ))}
 
@@ -932,7 +1010,7 @@ function SkillGapAuraAssistant({
                 />
                 <button
                   type="submit"
-                  disabled
+                  disabled={isAuraTyping || !draftMessage.trim()}
                   className="mb-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                   aria-label="Send message"
                 >
@@ -971,9 +1049,10 @@ function HeatCell({ value }: { value: string }) {
       ? "bg-[#eaf8f1] text-[#00843d]"
       : value === "1"
         ? "bg-[#fff7bd] text-[#9a5a00]"
-        : value === "4"
+        : value === "4" || value === "9"
           ? "bg-[#ff413b] text-white"
           : "bg-[#ffa000] text-white";
+
 
   return <div className={cn("flex h-[26px] w-full min-w-0 items-center justify-center rounded-[4px] text-[14px] font-semibold 2xl:h-[28px] 2xl:text-[16px]", tone)}>{value}</div>;
 }
@@ -998,7 +1077,7 @@ function SkillGapAccordion({
           <ChevronDown className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")} />
         </button>
         <h2 className="min-w-0 text-[21px] font-normal leading-[30px] text-[#111827]">
-          Bakery - 40h Baking skill gap, 16 Weeks(7/26/26 - 8/16/26)
+          Bakery - 40h Baking skill gap, 4 Weeks(5/3/26 - 5/24/26)
         </h2>
       </div>
       {expanded ? (
@@ -1038,7 +1117,7 @@ function Metric({ icon: Icon, label, value, tone = "default" }: { icon: LucideIc
         <Icon className="h-[18px] w-[18px] shrink-0" />
         {label}
       </p>
-      <p className={cn("mt-2 whitespace-normal break-words text-[24px] font-bold leading-tight", valueClass)}>{value}</p>
+      <p className={cn("mt-2 whitespace-normal break-words text-[18px] font-semibold leading-tight", valueClass)}>{value}</p>
     </div>
   );
 }
@@ -1064,20 +1143,24 @@ function EmployeeCard({
   selected = false,
   requestSent = false,
   onToggle,
+  isAskAuraLayout = false,
 }: {
   employee: RecommendationEmployee;
   selected?: boolean;
   requestSent?: boolean;
   onToggle?: () => void;
+  isAskAuraLayout?: boolean;
 }) {
   const isInteractive = Boolean(onToggle);
+  const counterRequest: any = null;
+  const hasCounterRequest = false;
 
   return (
     <article
       className={cn(
         "rounded-xl border bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.14)] transition",
         selected ? "border-primary bg-blue-50/30 ring-1 ring-primary/20" : "border-slate-200",
-        requestSent && "border-slate-300 bg-slate-50 ring-0 opacity-90",
+        (requestSent || hasCounterRequest) && "border-slate-300 bg-slate-50 ring-0 opacity-90",
       )}
     >
       <div className="space-y-3">
@@ -1087,25 +1170,37 @@ function EmployeeCard({
             aria-label={`Select ${employee.name}`}
             role="checkbox"
             aria-checked={selected}
-            disabled={!isInteractive || requestSent}
+            disabled={!isInteractive || requestSent || !!hasCounterRequest}
             onClick={onToggle}
             className={cn(
               "mt-3 flex h-6 w-6 shrink-0 items-center justify-center rounded border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
               selected ? "border-primary bg-primary text-white" : "border-slate-300 bg-white text-transparent",
-              requestSent && "border-slate-400 bg-slate-200 text-slate-600",
-              isInteractive && !requestSent ? "cursor-pointer hover:border-primary" : "cursor-not-allowed",
+              (requestSent || hasCounterRequest) && "border-slate-400 bg-slate-200 text-slate-600",
+              isInteractive && !requestSent && !hasCounterRequest ? "cursor-pointer hover:border-primary" : "cursor-not-allowed",
             )}
           >
-            {selected || requestSent ? <Check className="h-4 w-4" /> : null}
+            {selected || requestSent || (hasCounterRequest && counterRequest.status === "Approved") ? <Check className="h-4 w-4" /> : null}
           </button>
           <img src={employee.avatar} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
           <div className="min-w-0 flex-1">
             <p className="whitespace-normal break-words text-[16px] font-semibold leading-snug text-slate-900">{employee.name}</p>
-            {requestSent ? (
+            {requestSent && !hasCounterRequest ? (
               <span className="mt-1 inline-flex rounded-full border border-[#d1d5db] bg-[#f3f4f6] px-2 py-0.5 text-[12px] font-medium leading-4 text-[#6b7280]">
                 Pending Approval
               </span>
             ) : null}
+            {hasCounterRequest && (
+              <span
+                className={cn(
+                  "mt-1 inline-flex rounded-full border px-2 py-0.5 text-[12px] font-semibold leading-4",
+                  counterRequest.status === "Pending" && "border-blue-200 bg-blue-50 text-blue-700",
+                  counterRequest.status === "Approved" && "border-green-200 bg-green-50 text-green-700",
+                  counterRequest.status === "Declined" && "border-red-200 bg-red-50 text-red-700"
+                )}
+              >
+                {counterRequest.status === "Pending" ? "Pending Manager Review" : `Counter-Proposal ${counterRequest.status}`}
+              </span>
+            )}
           </div>
         </div>
 
@@ -1119,11 +1214,53 @@ function EmployeeCard({
       <div className="mt-4 border-t border-slate-200 pt-4">
         <div className="space-y-3">
           <DetailBlock label="Current" value={employee.current} />
-          <DetailBlock label="Required" value={employee.required} />
+          {/* <DetailBlock label="Required" value={employee.required} /> */}
         </div>
       </div>
 
-      {employee.proposed ? (
+      {hasCounterRequest ? (
+        <div
+          className={cn(
+            "mt-4 rounded-lg border px-3 py-2",
+            counterRequest.status === "Pending" && "border-blue-200 bg-blue-50",
+            counterRequest.status === "Approved" && "border-green-200 bg-green-50",
+            counterRequest.status === "Declined" && "border-red-200 bg-red-50"
+          )}
+        >
+          <div className="flex gap-2.5">
+            <Sparkles
+              className={cn(
+                "mt-0.5 h-4 w-4 shrink-0",
+                counterRequest.status === "Pending" && "text-[#0066d9]",
+                counterRequest.status === "Approved" && "text-[#16a34a]",
+                counterRequest.status === "Declined" && "text-[#dc2626]"
+              )}
+            />
+            <div className="min-w-0">
+              <p
+                className={cn(
+                  "text-[14px] font-semibold leading-snug",
+                  counterRequest.status === "Pending" && "text-[#0066d9]",
+                  counterRequest.status === "Approved" && "text-[#16a34a]",
+                  counterRequest.status === "Declined" && "text-[#dc2626]"
+                )}
+              >
+                Employee Counter-Proposal
+              </p>
+              <p
+                className={cn(
+                  "mt-1 whitespace-normal break-words text-[14px] font-semibold leading-snug",
+                  counterRequest.status === "Pending" && "text-blue-950",
+                  counterRequest.status === "Approved" && "text-green-950",
+                  counterRequest.status === "Declined" && "text-red-950"
+                )}
+              >
+                {counterRequest.counter} ({counterRequest.coverage} coverage)
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : employee.proposed ? (
         <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
           <div className="flex gap-2.5">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -1134,6 +1271,22 @@ function EmployeeCard({
           </div>
         </div>
       ) : null}
+
+      {isAskAuraLayout && employee.name === "Sarah Johnson" && (
+        <button
+          type="button"
+          disabled={requestSent}
+          onClick={onToggle}
+          className={cn(
+            "mt-3 w-full rounded-lg border py-2 text-center text-[14px] font-semibold transition active:scale-[0.98]",
+            requestSent
+              ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
+              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+          )}
+        >
+          Make Adjustment
+        </button>
+      )}
     </article>
   );
 }
@@ -1262,7 +1415,7 @@ function RequestAvailabilityModal({ onClose, onSend }: { onClose: () => void; on
   const recommendedDays = [
     { day: "Mon", time: "6:00a -\n5:00p" },
     { day: "Tue", time: "6:00a -\n2:00p" },
-    { day: "Wed", time: "6:00a -\n12:00p" },
+    { day: "Wed", time: "6:00a -\n2:00p" },
     { day: "Fri", time: "10:00a -\n7:00p" },
     { day: "Sat", time: "6:00a -\n2:00p" },
     { day: "Sun", time: "6:00a -\n4:00p" },
@@ -1333,7 +1486,7 @@ function RequestAvailabilityModal({ onClose, onSend }: { onClose: () => void; on
 
           <div className="grid grid-cols-2 gap-4 2xl:gap-5">
             <AvailabilityMiniTable title="Current Availability (39h)" days={currentDays} type="current" />
-            <AvailabilityMiniTable title="Recommended Availability (52h)" days={recommendedDays} changedDays={["Wed", "Fri", "Sun"]} type="recommended" />
+            <AvailabilityMiniTable title="Recommended Availability (50)" days={recommendedDays} changedDays={["Wed", "Fri", "Sun"]} type="recommended" />
           </div>
 
           <div className="flex items-center justify-center gap-8 text-[14px] leading-5 text-slate-600">
@@ -1396,16 +1549,21 @@ function SolutionCard({
   onToggleEmployee?: (employeeName: string) => void;
   onSendRequest?: () => void;
 }) {
-  const isRequestSent = requestSentEmployeeId === "Sarah Johnson";
-  const canSendRequest = selectedEmployeeId === "Sarah Johnson" && !isRequestSent;
+  const counterRequest: any = null;
+
   const isAdjustAvailabilityCard = title === "Adjust Availability";
-  const showBottomActionLayout = isAskAuraLayout && isAdjustAvailabilityCard;
+  const isApproved = isAdjustAvailabilityCard && counterRequest?.status === "Approved";
+  const isRequestSent = requestSentEmployeeId === "Sarah Johnson" || (isAdjustAvailabilityCard && counterRequest?.status === "Pending");
+  const canSendRequest = selectedEmployeeId === "Sarah Johnson" && !isRequestSent && !isApproved;
+  const showBottomActionLayout = false;
   const selectedCount = selectedEmployeeId === "Sarah Johnson" ? 1 : 0;
   const showSelectedIndicator = isAdjustAvailabilityCard && selectedCount > 0;
   const orderedEmployees = isRequestSent
     ? [...employees].sort((a, b) => (a.name === "Sarah Johnson" ? 1 : b.name === "Sarah Johnson" ? -1 : 0))
     : employees;
   const hasNeutralSelectedBorder = selected && isAdjustAvailabilityCard;
+
+  const gapReductionPct = isApproved ? 50 : 85;
 
   return (
     <section
@@ -1425,28 +1583,34 @@ function SolutionCard({
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#edf5ff] text-primary">
             <Icon className="h-6 w-6" />
           </span>
-          <h4 className="min-w-0 truncate text-[21px] font-normal leading-[30px] text-[#333333]">{title}</h4>
+          <h4 className="min-w-0 truncate text-[18px] font-semibold leading-[30px] text-[#333333]">{title}</h4>
         </div>
         {!showBottomActionLayout ? (
           <button
             type="button"
-            disabled={!canSendRequest}
+            disabled={!canSendRequest || isApproved}
             onClick={canSendRequest ? onSendRequest : undefined}
             className={cn(
               "h-[31px] shrink-0 rounded-md px-4 text-[17px] font-medium leading-[22px] transition",
               canSendRequest && "cursor-pointer bg-primary text-white hover:bg-[#0858b9]",
-              !canSendRequest && !isRequestSent && "cursor-not-allowed bg-[#e5e5e5] text-[#8a8a8a]",
+              !canSendRequest && !isRequestSent && !isApproved && "cursor-not-allowed bg-[#e5e5e5] text-[#8a8a8a]",
               isRequestSent && "cursor-not-allowed border border-[#d1d5db] bg-[#e5e7eb] text-[#6b7280]",
+              isApproved && "cursor-not-allowed border border-green-200 bg-green-50 text-green-700",
             )}
           >
-            {isRequestSent ? "Pending Approval" : "Send Request"}
+            {isApproved ? "Approved" : isRequestSent ? "Pending Approval" : "Send Request"}
           </button>
         ) : null}
       </div>
       <div className={cn("grid shrink-0 grid-cols-3 gap-0 px-4 py-3", isTabletEmbed ? "min-h-[82px]" : "min-h-[88px] 2xl:min-h-[98px] 2xl:px-8 2xl:py-4")}>
         {metrics.map((metric, index) => (
           <div key={metric.label} className={cn("min-w-0", index > 0 && "border-l border-slate-300", index > 0 && (isTabletEmbed ? "pl-3" : "pl-4 2xl:pl-8"))}>
-            <Metric {...metric} />
+            <Metric
+              icon={metric.icon}
+              label={metric.label}
+              value={metric.label === "Gap Reduction" && isApproved ? "50%" : metric.value}
+              tone={metric.tone}
+            />
           </div>
         ))}
       </div>
@@ -1456,15 +1620,16 @@ function SolutionCard({
             <Users aria-hidden="true" className="h-5 w-5 text-[#475569]" />
             {selectedCount} of 3 Employees Selected
           </p>
-          <p className="mt-2 text-[16px] font-normal leading-6 text-[#334155]">Reduce the skill Gap 85%</p>
+          <p className="mt-2 text-[16px] font-normal leading-6 text-[#334155]">Reduce the skill Gap {gapReductionPct}%</p>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
             <div
               role="progressbar"
               aria-label="Skill gap reduction progress"
-              aria-valuenow={85}
+              aria-valuenow={gapReductionPct}
               aria-valuemin={0}
               aria-valuemax={100}
-              className="h-full w-[85%] rounded-full bg-[#34b233]"
+              className="h-full rounded-full bg-[#34b233]"
+              style={{ width: `${gapReductionPct}%` }}
             />
           </div>
         </div>
@@ -1491,6 +1656,7 @@ function SolutionCard({
             selected={selectedEmployeeId === employee.name}
             requestSent={requestSentEmployeeId === employee.name}
             onToggle={employee.name === "Sarah Johnson" ? () => onToggleEmployee?.(employee.name) : undefined}
+            isAskAuraLayout={isAskAuraLayout}
           />
         ))}
       </div>
@@ -1502,31 +1668,33 @@ function SolutionCard({
                 <Users aria-hidden="true" className="h-5 w-5 text-[#475569]" />
                 {selectedCount} of 3 Employees Selected
               </p>
-              <p className="mt-2 text-[16px] font-normal leading-6 text-[#334155]">Reduce the skill Gap 85%</p>
+              <p className="mt-2 text-[16px] font-normal leading-6 text-[#334155]">Reduce the skill Gap {gapReductionPct}%</p>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#d8dbe2]">
                 <div
                   role="progressbar"
                   aria-label="Skill gap reduction progress"
-                  aria-valuenow={85}
+                  aria-valuenow={gapReductionPct}
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  className="h-full w-[85%] rounded-full bg-[#34b233]"
+                  className="h-full rounded-full bg-[#34b233]"
+                  style={{ width: `${gapReductionPct}%` }}
                 />
               </div>
             </div>
           ) : null}
           <button
             type="button"
-            disabled={!canSendRequest}
+            disabled={!canSendRequest || isApproved}
             onClick={canSendRequest ? onSendRequest : undefined}
             className={cn(
               "mt-3 h-[34px] w-full rounded-md px-4 text-[17px] font-medium leading-[22px] transition",
               canSendRequest && "cursor-pointer bg-primary text-white hover:bg-[#0858b9]",
-              !canSendRequest && !isRequestSent && "cursor-not-allowed bg-[#e5e5e5] text-[#8a8a8a]",
+              !canSendRequest && !isRequestSent && !isApproved && "cursor-not-allowed bg-[#e5e5e5] text-[#8a8a8a]",
               isRequestSent && "cursor-not-allowed border border-[#d1d5db] bg-[#e5e7eb] text-[#6b7280]",
+              isApproved && "cursor-not-allowed border border-green-200 bg-green-50 text-green-700",
             )}
           >
-            {isRequestSent ? "Pending Approval" : "Send Request"}
+            {isApproved ? "Approved" : isRequestSent ? "Pending Approval" : "Send Request"}
           </button>
         </div>
       ) : null}
@@ -1534,18 +1702,29 @@ function SolutionCard({
   );
 }
 
-function SkillGapDetailPane({ isAskAuraFlow = false, isTabletEmbed = false }: { isAskAuraFlow?: boolean; isTabletEmbed?: boolean }) {
+function SkillGapDetailPane({
+  isAskAuraFlow = false,
+  isTabletEmbed = false,
+}: {
+  isAskAuraFlow?: boolean;
+  isTabletEmbed?: boolean;
+}) {
   const [accordionExpanded, setAccordionExpanded] = useState(true);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [requestSentEmployeeId, setRequestSentEmployeeId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const counterRequest: any = null;
+  const setCounterRequest = () => { };
 
   useEffect(() => {
     if (!showSuccessToast) return;
     const timeoutId = window.setTimeout(() => setShowSuccessToast(false), 3600);
     return () => window.clearTimeout(timeoutId);
   }, [showSuccessToast]);
+
+  const isApproved = counterRequest?.status === "Approved";
+  const isPending = counterRequest?.status === "Pending";
 
   function handleToggleEmployee(employeeName: string) {
     if (requestSentEmployeeId === employeeName) return;
@@ -1585,16 +1764,20 @@ function SkillGapDetailPane({ isAskAuraFlow = false, isTabletEmbed = false }: { 
             Hire Recommendations
           </button>
         </div>
-        <div className="mt-3 flex min-h-[48px] min-w-0 items-center rounded-lg border border-[#bcdcff] bg-[#f7f4ff] px-3 2xl:mt-4 2xl:h-[51px] 2xl:px-4">
+        <div className={cn("mt-3 flex min-h-[48px] min-w-0 items-center rounded-lg border px-3 2xl:mt-4 2xl:h-[51px] 2xl:px-4", isApproved ? "border-emerald-200 bg-emerald-50" : "border-[#bcdcff] bg-[#f7f4ff]")}>
           <p className="flex min-w-0 items-center gap-1.5 text-[15px] leading-5 text-[#111827]">
-            <Sparkles className="mr-1 h-6 w-6 shrink-0 text-primary" />
-            <span className="font-semibold">AI Recommendation :</span>
-            <span className="font-semibold text-primary">Adjust employee availability</span>
-            <span className="min-w-0 whitespace-normal">offers the fastest resolution with lowest risk.</span>
+            {isApproved ? (
+              <Check className="mr-1 h-6 w-6 shrink-0 text-[#16a34a]" />
+            ) : (
+              <Sparkles className="mr-1 h-6 w-6 shrink-0 text-primary" />
+            )}
+            <span className="font-semibold">{isApproved ? "Approved Solution:" : "AI Recommendation :"}</span>
+            <span className={cn("font-semibold", isApproved ? "text-[#16a34a]" : "text-primary")}>{isApproved ? "Adjusted employee availability (Sarah Johnson)" : "Adjust employee availability"}</span>
+            <span className="min-w-0 whitespace-normal">{isApproved ? "has been approved and updated." : "offers the fastest resolution with lowest risk."}</span>
           </p>
         </div>
         {isAskAuraFlow ? (
-          <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2 xl:grid-cols-3 2xl:mt-4">
+          <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2 xl:grid-cols-3 2xl:mt-4 hidden">
             {recommendationChips.map((chip) => (
               <span
                 key={chip.id}
@@ -1617,18 +1800,18 @@ function SkillGapDetailPane({ isAskAuraFlow = false, isTabletEmbed = false }: { 
           <SolutionCard
             title="Adjust Availability"
             icon={CalendarDays}
-            selected={!requestSentEmployeeId}
+            selected={!requestSentEmployeeId && !isApproved}
             isAskAuraLayout={isAskAuraFlow}
             isTabletEmbed={isTabletEmbed}
             employeeCount="3 Employees"
             metrics={[
-              { icon: TrendingUp, label: "Gap Reduction", value: "85%" },
+              { icon: TrendingUp, label: "Gap Reduction", value: isApproved ? "50%" : "85%" },
               { icon: Clock3, label: "Time to Implement", value: "1-2 days" },
               { icon: AlertTriangle, label: "Risk Level", value: "Low", tone: "green" },
             ]}
             employees={adjustEmployees}
-            selectedEmployeeId={selectedEmployeeId}
-            requestSentEmployeeId={requestSentEmployeeId}
+            selectedEmployeeId={isApproved ? null : isPending ? null : selectedEmployeeId}
+            requestSentEmployeeId={isPending ? "Sarah Johnson" : requestSentEmployeeId}
             onToggleEmployee={handleToggleEmployee}
             onSendRequest={handleSendRequest}
           />
@@ -1661,6 +1844,10 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
   const [activeSkillGapTab, setActiveSkillGapTab] = useState("alert");
   const [isAuraOpen, setIsAuraOpen] = useState(false);
   const [askAuraToast, setAskAuraToast] = useState<{ title: string; message: string } | null>(null);
+  // Ref to call handleCriticalCardSelect inside SkillGapAuraAssistant from the parent
+  const criticalCardSelectRef = useRef<((cardTitle: string) => void) | null>(null);
+
+
 
   useEffect(() => {
     if (!askAuraToast) return;
@@ -1675,15 +1862,15 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
   function handleAskAuraSendRequest(payload: { type: "availability" | "crossTraining"; employees: string[] }) {
     if (payload.type === "crossTraining") {
       setAskAuraToast({
-        title: "Cross-training requests sent successfully",
-        message: "Cross-training requests have been prepared for Jessica Brown and Ryan Anderson.",
+        title: "Requests sent successfully",
+        message: "We’ve got cross-training requests ready for Jessica Brown and Ryan Anderson.",
       });
       return;
     }
 
     setAskAuraToast({
-      title: "Availability requests sent successfully",
-      message: "Availability requests have been sent for Sarah Johnson and Emily Carter.",
+      title: "Request sent successfully",
+      message: "We've sent the availability request for Sarah Johnson",
     });
   }
 
@@ -1794,15 +1981,24 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
                     key={alert.id}
                     card={alert}
                     isActive={selectedAlertId === alert.id}
-                    onClick={() => setSelectedAlertId(alert.id)}
-                    clickable={!(isAskAuraFlow && alert.id === 1)}
+                    onClick={() => {
+                      setSelectedAlertId(alert.id);
+                    }}
+                    clickable={true}
                   />
                 ))}
               </div>
             </aside>
 
             <main className="min-w-0 max-w-full overflow-visible bg-white">
-              {selectedAlertId === 1 ? <SkillGapDetailPane isAskAuraFlow={isAskAuraFlow} isTabletEmbed={useTabletSkillGapLayout} /> : <EmptyRightPane />}
+              {selectedAlertId === 1 ? (
+                <SkillGapDetailPane
+                  isAskAuraFlow={isAskAuraFlow}
+                  isTabletEmbed={useTabletSkillGapLayout}
+                />
+              ) : (
+                <EmptyRightPane />
+              )}
             </main>
           </div>
         </section>
@@ -1813,6 +2009,13 @@ export function SkillGapDesktopScreen({ mode = "standard" }: { mode?: "standard"
           onOpen={() => setIsAuraOpen(true)}
           onClose={() => setIsAuraOpen(false)}
           onSendAvailabilityRequests={handleAskAuraSendRequest}
+          onCriticalCardSelect={(cardTitle) => {
+            // When card is selected from chat panel, also expand the right detail pane
+            if (cardTitle === "Bakery - Baking, 40h") setSelectedAlertId(1);
+          }}
+          onRegisterCardSelectHandler={(handler) => {
+            criticalCardSelectRef.current = handler;
+          }}
         />
       ) : null}
     </AppShell>
