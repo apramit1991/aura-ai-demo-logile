@@ -608,7 +608,7 @@ export function AuraAssistant({
     scheduleDemoAssistant(
       {
         variant: "tableCard",
-        tableTitle: "Final Availability Matrix",
+        tableTitle: "Recommended Availability",
         tableRows: scriptedFinalRows,
         summaryHours: "50 hrs total",
         summaryDays: "6 days/week",
@@ -800,13 +800,37 @@ export function AuraAssistant({
 
     if (scriptedPhase === 0) {
       setScriptedPhase(1);
-      queueAssistantReply("Sure. Do you want me to update your availability and suggest an option that could still work within the rules?", 1000);
+      queueAssistantReply("Based on your preferences and current demand patterns, here is your recommended availability for this week.", 1000);
+      scriptedStepTimerRef.current = window.setTimeout(() => {
+        queueAssistantReply(
+          {
+            variant: "tableCard",
+            tableTitle: "Recommended Availability",
+            tableRows: initialRecommendationRows,
+            summaryHours: "48 hrs total",
+            summaryDays: "5 days/week",
+          },
+          1000,
+        );
+      }, 1650);
       return;
     }
 
     if (scriptedPhase === 1) {
-      setScriptedPhase(2);
-      queueAssistantReply("What duration will you be unavailable for? Will it be the full day or only part of the day?", 1000);
+      setScriptedPhase(5);
+      queueAssistantReply("Got it — I've adjusted your Thursday availability. Here is your updated recommended availability for this week.", 1000);
+      scriptedStepTimerRef.current = window.setTimeout(() => {
+        queueAssistantReply(
+          {
+            variant: "tableCard",
+            tableTitle: "Recommended Availability",
+            tableRows: scriptedFinalRows,
+            summaryHours: "50 hrs total",
+            summaryDays: "6 days/week",
+          },
+          1000,
+        );
+      }, 1650);
       return;
     }
 
@@ -839,12 +863,12 @@ export function AuraAssistant({
 
     if (scriptedPhase === 4) {
       setScriptedPhase(5);
-      queueAssistantReply("Sure, that looks good. Here is your final availability matrix for this week.", 1000);
+      queueAssistantReply("Sure, that looks good. Here is your recommended availability for this week.", 1000);
       scriptedStepTimerRef.current = window.setTimeout(() => {
         queueAssistantReply(
           {
             variant: "tableCard",
-            tableTitle: "Final Availability Matrix",
+            tableTitle: "Recommended Availability",
             tableRows: scriptedFinalRows,
             summaryHours: "50 hrs total",
             summaryDays: "6 days/week",

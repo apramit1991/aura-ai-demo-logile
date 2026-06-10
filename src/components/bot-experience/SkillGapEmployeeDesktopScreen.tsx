@@ -1816,7 +1816,7 @@ function EmployeeAuraAssistant({
         );
       case "slotPicker": {
         const submitted = msg.slotPickerSubmitted ?? false;
-        const slots = ["12p–2p", "2p–4p", "4p–6p"];
+        const slots = ["12p–4p", "4p–8p", "8p–12a"];
         return (
           <div className="animate-[aura-message-in_180ms_ease-out] max-w-[94%] rounded-xl border border-[#d8dce6] bg-white shadow-sm overflow-hidden">
             <div className="border-b border-[#e5e7eb] px-4 py-3">
