@@ -29,7 +29,7 @@ import tabletVoiceNoThanks from "../../assets/audio/availability-tablet/no-thank
 
 type AuraState = "empty" | "partial" | "valid" | "error";
 type PanelState = "closed" | "open" | "closing";
-type ScriptedPhase = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+type ScriptedPhase = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 type VoiceDemoStatus = "idle" | "listening" | "transcribing";
 
 type AuraMessage = {
@@ -54,7 +54,7 @@ type AuraAssistantProps = {
   isSubmitted: boolean;
   hideLauncherTooltip?: boolean;
   placement?: "fixed" | "inside-frame";
-  demoMode?: "tabletVoiceTranscript";
+  demoMode?: "tabletVoiceTranscript" | "changePref";
 };
 
 const voiceDemoTiming = {
@@ -145,7 +145,18 @@ const scriptedFinalRows: RecommendationData = [
   { day: "Saturday", time: "10:00a - 8:00p", hours: "10h" },
 ];
 
+const changePrefRecommendationRows: RecommendationData = [
+  { day: "Monday", time: "8:00a - 5:00p", hours: "9h" },
+  { day: "Tuesday", time: "9:00a - 4:00p", hours: "7h" },
+  { day: "Wednesday", time: "8:00a - 5:00p", hours: "9h" },
+  { day: "Thursday", time: "9:00a - 4:00p", hours: "7h" },
+  { day: "Friday", time: "8:00a - 4:00p", hours: "8h" },
+  { day: "Saturday", time: "9:00a - 1:00p", hours: "4h" },
+];
+
 const scriptedGreeting = "Hello Jennings, How are you ! What can I do for you ?";
+
+const changePrefGreeting = "Hi! I noticed you haven't set your availability preferences yet. Would you like me to suggest an availability based on your preferred hours and days?";
 
 function getBadge(state: AuraState) {
   if (state === "error") {
@@ -448,6 +459,7 @@ export function AuraAssistant({
   const showLauncher = panelState === "closed";
   const isInsideFrame = placement === "inside-frame";
   const isVoiceDemo = demoMode === "tabletVoiceTranscript";
+  const isChangePref = demoMode === "changePref";
   const isVoiceDemoActive = voiceDemoStatus !== "idle";
   const voiceDemoStatusLabel = voiceDemoStatus === "listening" ? "Listening..." : "Transcribing...";
 
@@ -707,7 +719,7 @@ export function AuraAssistant({
       setShowSendConfirmationActions(false);
       setIsTyping(true);
       scriptedStepTimerRef.current = window.setTimeout(() => {
-        appendMessage({ role: "assistant", text: scriptedGreeting });
+        appendMessage({ role: "assistant", text: isChangePref ? changePrefGreeting : scriptedGreeting });
         setIsTyping(false);
         scriptedStepTimerRef.current = null;
       }, 1000);
@@ -762,23 +774,40 @@ export function AuraAssistant({
     if (isTyping) return;
     setShowSendConfirmationActions(false);
     appendMessage({ role: "user", text: "Submit" });
-    onSendToManager(scriptedFinalRows);
-    queueAssistantReply(
-      {
-        variant: "status",
-        text: "Done — sent to your manager.\n\nYour request ID is 437862374.",
-      },
-      1000,
-    );
-    setScriptedPhase(9);
+    if (isChangePref) {
+      onSendToManager(changePrefRecommendationRows);
+      queueAssistantReply(
+        {
+          variant: "status",
+          text: "Done -- your availability preference request has been sent. You'll be notified once your manager reviews it.",
+        },
+        1000,
+      );
+      setScriptedPhase(7);
+    } else {
+      onSendToManager(scriptedFinalRows);
+      queueAssistantReply(
+        {
+          variant: "status",
+          text: "Done - Sent to your manager. Your request ID is 437862374.",
+        },
+        1000,
+      );
+      setScriptedPhase(9);
+    }
   }
 
   function handleNotNowSubmission() {
     if (isTyping) return;
     setShowSendConfirmationActions(false);
     appendMessage({ role: "user", text: "Not now" });
-    queueAssistantReply("No problem. I’ll keep this availability request as a draft.", 1000);
-    setScriptedPhase(8);
+    if (isChangePref) {
+      queueAssistantReply("No problem. I’ll keep this availability preference request as a draft.", 1000);
+      setScriptedPhase(7);
+    } else {
+      queueAssistantReply("No problem. I’ll keep this availability request as a draft.", 1000);
+      setScriptedPhase(8);
+    }
   }
 
   function handleUndo() {
@@ -798,50 +827,88 @@ export function AuraAssistant({
     setDraftMessage("");
     setRequestState("partial");
 
-    if (scriptedPhase === 0) {
-      setScriptedPhase(1);
-      queueAssistantReply("Based on your preferences and current demand patterns, here is your recommended availability for this week.", 1000);
-      scriptedStepTimerRef.current = window.setTimeout(() => {
+    // ── changePref mode phases ──
+    if (isChangePref) {
+      if (scriptedPhase === 0) {
+        setScriptedPhase(1);
+        queueAssistantReply("Got it -- 40 hours over 5 days. Do you have a preference on which days you'd like to be available?", 1000);
+        return;
+      }
+
+      if (scriptedPhase === 1) {
+        setScriptedPhase(2);
+        queueAssistantReply("Understood -- no Sundays. What about Saturdays? Would you like to keep that open for flexibility, or exclude it too?", 1000);
+        return;
+      }
+
+      if (scriptedPhase === 2) {
+        setScriptedPhase(3);
+        queueAssistantReply("That works. Since your target is 40 hours across Mon\u2013Fri, I'll keep Saturday as a lighter availability buffer. Are there specific days during the week where you can offer a bit more time?", 1000);
+        return;
+      }
+
+      if (scriptedPhase === 3) {
+        setScriptedPhase(4);
+        queueAssistantReply("Perfect. Here's a suggested availability based on your preferences. This gives you solid coverage at your target, with Saturday kept light so it doesn't lock you in.", 1000);
+        scriptedStepTimerRef.current = window.setTimeout(() => {
+          queueAssistantReply(
+            {
+              variant: "tableCard",
+              tableTitle: "Recommended Availability",
+              tableRows: changePrefRecommendationRows,
+              summaryHours: "44 hrs total",
+              summaryDays: "6 days/week",
+            },
+            1000,
+          );
+        }, 1650);
+        return;
+      }
+
+      if (scriptedPhase === 4) {
+        setScriptedPhase(5);
+        queueAssistantReply("Great. Just so you know -- this availability supports your 40-hour preference, but your actual scheduled hours may be less depending on business needs. This just ensures you're eligible. Does that make sense?", 1000);
+        return;
+      }
+
+      if (scriptedPhase === 5) {
+        setScriptedPhase(6);
         queueAssistantReply(
           {
-            variant: "tableCard",
-            tableTitle: "Recommended Availability",
-            tableRows: initialRecommendationRows,
-            summaryHours: "48 hrs total",
-            summaryDays: "5 days/week",
+            variant: "confirmSubmit",
+            text: "Would you like me to submit this to your manager for approval?",
           },
           1000,
         );
-      }, 1650);
+        setShowSendConfirmationActions(true);
+        return;
+      }
+
+      queueAssistantReply(getFreeTextReply(trimmedMessage), 820);
+      return;
+    }
+
+    // ── default desktop mode phases ──
+    if (scriptedPhase === 0) {
+      setScriptedPhase(1);
+      queueAssistantReply("Sure. Do you want me to update your availability and suggest an option that could still work within the rules?", 1000);
       return;
     }
 
     if (scriptedPhase === 1) {
-      setScriptedPhase(5);
-      queueAssistantReply("Got it — I've adjusted your Thursday availability. Here is your updated recommended availability for this week.", 1000);
-      scriptedStepTimerRef.current = window.setTimeout(() => {
-        queueAssistantReply(
-          {
-            variant: "tableCard",
-            tableTitle: "Recommended Availability",
-            tableRows: scriptedFinalRows,
-            summaryHours: "50 hrs total",
-            summaryDays: "6 days/week",
-          },
-          1000,
-        );
-      }, 1650);
+      setScriptedPhase(2);
+      queueAssistantReply("What duration will you be unavailable for? Will it be the full day or only part of the day?", 1000);
       return;
     }
 
     if (scriptedPhase === 2) {
       setScriptedPhase(3);
-      queueAssistantReply("Great, sounds like you’ve got plans. Here is your current availability.", 1000);
+      queueAssistantReply("Great, sounds like you've got plans. Here is your current availability.", 1000);
       scriptedStepTimerRef.current = window.setTimeout(() => {
         queueAssistantReply(
           {
             variant: "tableCard",
-            tableTitle: "Current Availability (48h)",
+            tableTitle: "Recommended Availability (48h)",
             tableRows: scriptedCurrentRows,
             summaryHours: "48 hrs total",
             summaryDays: "5 days/week",
@@ -856,19 +923,19 @@ export function AuraAssistant({
       setScriptedPhase(4);
       queueAssistantReply("You might not meet the full requirement for this week. This change may create a gap in coverage during this time period.", 1000);
       scriptedStepTimerRef.current = window.setTimeout(() => {
-        queueAssistantReply("If you can work Sunday 9:00a–2:00p, your request has a 95% chance of approval. Without this adjustment, the chance of manager approval may reduce to 30%.", 1000);
+        queueAssistantReply("If you can work Sunday 9:00a\u20132:00p, your request has a 95% chance of approval. Without this adjustment, the chance of manager approval may reduce to 30%.", 1000);
       }, 1650);
       return;
     }
 
     if (scriptedPhase === 4) {
       setScriptedPhase(5);
-      queueAssistantReply("Sure, that looks good. Here is your recommended availability for this week.", 1000);
+      queueAssistantReply("Sure, that looks good. Here is your final availability matrix for this week.", 1000);
       scriptedStepTimerRef.current = window.setTimeout(() => {
         queueAssistantReply(
           {
             variant: "tableCard",
-            tableTitle: "Recommended Availability",
+            tableTitle: "Recommended Availability (48h)",
             tableRows: scriptedFinalRows,
             summaryHours: "50 hrs total",
             summaryDays: "6 days/week",
@@ -907,7 +974,7 @@ export function AuraAssistant({
       setShowActionButtons(false);
       setHasAppliedSuggestion(false);
       queueAssistantReply({
-        text: "Here’s my recommendation:",
+        text: "Here's my recommendation:",
         variant: "recommendation",
         applied: false,
         recommendationRows: warningRecommendationRows,

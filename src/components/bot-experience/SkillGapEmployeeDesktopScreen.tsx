@@ -994,7 +994,7 @@ function EmployeeAuraAssistant({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [panelView, setPanelView] = useState<"activeChat" | "history">("activeChat");
   const [shouldNudgeLauncher, setShouldNudgeLauncher] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [slotSubmitted, setSlotSubmitted] = useState(false);
 
   const closeTimerRef = useRef<number | null>(null);
@@ -1748,13 +1748,14 @@ function EmployeeAuraAssistant({
   /* ---------------------------------------------------------------- */
 
   function handleSlotPickerSubmit(slotPickerMsgId: number) {
-    if (!selectedSlot || slotSubmitted) return;
+    if (selectedSlots.length === 0 || slotSubmitted) return;
     setSlotSubmitted(true);
     // Freeze the slot picker card
     setMessages((prev) =>
       prev.map((m) => (m.id === slotPickerMsgId ? { ...m, slotPickerSubmitted: true } : m)),
     );
-    addMsg({ role: "user", text: selectedSlot });
+    const submittedText = selectedSlots.join(", ");
+    addMsg({ role: "user", text: submittedText });
     setFlowStep("done");
 
     // Save request for approval to localStorage
@@ -1762,7 +1763,7 @@ function EmployeeAuraAssistant({
       id: REQUEST_ID,
       employee: "Jenning Dwight",
       original: "Wed 12a-2p",
-      counter: "Wed " + selectedSlot,
+      counter: "Wed " + submittedText,
       coverage: "50%",
       status: "Pending",
       negotiationCount: 2,
@@ -1824,14 +1825,22 @@ function EmployeeAuraAssistant({
             </div>
             <div className="space-y-2 px-4 py-3">
               {slots.map((slot) => {
-                const isSelected = selectedSlot === slot;
+                const isSelected = selectedSlots.includes(slot);
                 const isDisabled = submitted;
                 return (
                   <button
                     key={slot}
                     type="button"
                     disabled={isDisabled}
-                    onClick={() => !submitted && setSelectedSlot(slot)}
+                    onClick={() => {
+                      if (!submitted) {
+                        setSelectedSlots((prev) =>
+                          prev.includes(slot)
+                            ? prev.filter((s) => s !== slot)
+                            : [...prev, slot]
+                        );
+                      }
+                    }}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
                       isDisabled
@@ -1843,19 +1852,18 @@ function EmployeeAuraAssistant({
                   >
                     <span
                       className={cn(
-                        "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition",
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition",
                         isDisabled
-                          ? "border-slate-300"
+                          ? isSelected
+                            ? "border-slate-400 bg-slate-400 text-white"
+                            : "border-slate-300 bg-slate-50"
                           : isSelected
-                            ? "border-primary"
-                            : "border-[#c9cbd2]",
+                            ? "border-primary bg-primary text-white"
+                            : "border-[#c9cbd2] bg-white",
                       )}
                     >
-                      {isSelected && !isDisabled && (
-                        <span className="h-2 w-2 rounded-full bg-primary" />
-                      )}
-                      {isDisabled && isSelected && (
-                        <span className="h-2 w-2 rounded-full bg-slate-400" />
+                      {isSelected && (
+                        <Check className="h-3 w-3 stroke-[3]" />
                       )}
                     </span>
                     <span className={cn(
@@ -1872,11 +1880,11 @@ function EmployeeAuraAssistant({
               <div className="border-t border-[#e5e7eb] px-4 py-3">
                 <button
                   type="button"
-                  disabled={!selectedSlot}
+                  disabled={selectedSlots.length === 0}
                   onClick={() => handleSlotPickerSubmit(msg.id)}
                   className={cn(
                     "w-full rounded-lg py-2 text-[14px] font-semibold transition",
-                    selectedSlot
+                    selectedSlots.length > 0
                       ? "bg-primary text-white hover:bg-primary/90 active:scale-[0.98]"
                       : "cursor-not-allowed bg-[#e5e7eb] text-[#9ca3af]",
                   )}

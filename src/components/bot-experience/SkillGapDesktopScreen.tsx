@@ -1602,7 +1602,7 @@ function SolutionCard({
           </button>
         ) : null}
       </div>
-      <div className={cn("grid shrink-0 grid-cols-3 gap-0 px-4 py-3", isTabletEmbed ? "min-h-[82px]" : "min-h-[88px] 2xl:min-h-[98px] 2xl:px-8 2xl:py-4")}>
+      <div className={cn("grid shrink-0 grid-cols-3 gap-0 px-4 py-3 hidden", isTabletEmbed ? "min-h-[82px]" : "min-h-[88px] 2xl:min-h-[98px] 2xl:px-8 2xl:py-4")}>
         {metrics.map((metric, index) => (
           <div key={metric.label} className={cn("min-w-0", index > 0 && "border-l border-slate-300", index > 0 && (isTabletEmbed ? "pl-3" : "pl-4 2xl:pl-8"))}>
             <Metric
@@ -1634,7 +1634,7 @@ function SolutionCard({
           </div>
         </div>
       ) : (
-        <div className="mx-4 flex h-16 shrink-0 items-center justify-between rounded-md bg-white px-4">
+        <div className="mx-4 mt-4 flex h-16 shrink-0 items-center justify-between rounded-md bg-white px-4">
           <p className="flex items-center gap-2 text-[16px] leading-5 text-slate-900">
             <Users className="h-5 w-5" />
             {employeeCount}

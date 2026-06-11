@@ -58,6 +58,7 @@ function DemoNavigationScreen() {
       description: "Manage employee availability preferences and AI-suggested schedules.",
       links: [
         { label: "Availability Employee— Desktop", to: "/availability-desktop", device: "Desktop", icon: Monitor },
+        { label: "Availability Recommendation (High Preferences)", to: "/availability-desktop-change-pref", device: "Desktop", icon: Monitor },
         { label: "Availability Manager — Desktop", to: "/availability-manager", device: "Desktop", icon: Monitor },
         { label: "Availability Employee — Tablet", to: "/availability-tablet", device: "Tablet", icon: Tablet },
         { label: "Availability Manager — Tablet", to: "/availability-manager-tablet", device: "Tablet", icon: Tablet },
@@ -402,6 +403,214 @@ function AvailabilityDesktopScreen() {
         hasPopulatedRows={hasPopulatedRows}
         isSubmitted={isSubmitted}
         hideLauncherTooltip={isTouchMode}
+      />
+    </AppShell>
+  );
+}
+
+function AvailabilityChangePrefScreen() {
+  const [activeTab, setActiveTab] = useState("availability");
+  const [isLoading, setIsLoading] = useState(false);
+  const [availabilityRows, setAvailabilityRows] = useState<AvailabilityRow[]>(availabilityDays);
+  const [baselineRows, setBaselineRows] = useState<AvailabilityRow[] | null>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [managerToastVisible, setManagerToastVisible] = useState(false);
+  const [availabilityValidationState, setAvailabilityValidationState] = useState<AvailabilityValidationState>("valid");
+
+  const hasPopulatedRows = useMemo(
+    () => availabilityRows.some((row) => row.hours !== "0h"),
+    [availabilityRows],
+  );
+
+  function simulateDateChange() {
+    setIsLoading(true);
+    window.setTimeout(() => setIsLoading(false), 650);
+  }
+
+  function parseRecommendationTime(timeStr: string) {
+    const [start, end] = timeStr.split(" - ").map((part) => part.trim());
+    return { start: start ?? "00:00a/p", end: end ?? "00:00a/p" };
+  }
+
+  function handleApplyRecommendation(
+    recommendation: RecommendationData,
+    options: { validationState?: AvailabilityValidationState } = {},
+  ) {
+    setIsSubmitted(false);
+    setAvailabilityValidationState(options.validationState ?? "valid");
+    setBaselineRows(availabilityRows.map((row) => ({ ...row })));
+
+    const recommendationByDay = Object.fromEntries(recommendation.map((item) => [item.day, item]));
+
+    setAvailabilityRows((current) =>
+      current.map((row) => {
+        const matched = recommendationByDay[row.day];
+        if (!matched) {
+          return {
+            ...row,
+            start: "00:00a/p",
+            end: "00:00a/p",
+            hours: "0h",
+            auraFilled: false,
+          };
+        }
+
+        const times = parseRecommendationTime(matched.time);
+        return {
+          ...row,
+          start: times.start,
+          end: times.end,
+          hours: matched.hours,
+          auraFilled: true,
+        };
+      }),
+    );
+  }
+
+  function handleDeleteRow(day: string) {
+    setAvailabilityRows((current) =>
+      current.map((row) =>
+        row.day === day
+          ? {
+            ...row,
+            start: "00:00a/p",
+            end: "00:00a/p",
+            hours: "0h",
+            auraFilled: false,
+          }
+          : row,
+      ),
+    );
+  }
+
+  function handleReset() {
+    setAvailabilityRows(availabilityDays.map((row) => ({ ...row, auraFilled: false })));
+    setBaselineRows(null);
+    setShowConfirmDialog(false);
+    setIsSubmitted(false);
+    setAvailabilityValidationState("valid");
+  }
+
+  function handleUndoRecommendation() {
+    if (!baselineRows) return;
+    setAvailabilityRows(baselineRows.map((row) => ({ ...row, auraFilled: false })));
+    setBaselineRows(null);
+    setAvailabilityValidationState("valid");
+  }
+
+  function handleSubmitClick() {
+    if (!hasPopulatedRows || isSubmitted) return;
+    setShowConfirmDialog(true);
+  }
+
+  function handleConfirmSubmit() {
+    setAvailabilityRows((current) => current.map((row) => ({ ...row, auraFilled: false })));
+    setBaselineRows(null);
+    setShowConfirmDialog(false);
+    setIsSubmitted(true);
+    setAvailabilityValidationState("valid");
+    setToastVisible(true);
+    window.setTimeout(() => setToastVisible(false), 3600);
+  }
+
+  function handleSendToManager(finalRows: RecommendationData) {
+    handleApplyRecommendation(finalRows, { validationState: "valid" });
+    setManagerToastVisible(true);
+    window.setTimeout(() => setManagerToastVisible(false), 3600);
+  }
+
+  return (
+    <AppShell showDemoBackLink>
+      {toastVisible ? (
+        <div className="fixed right-6 top-6 z-[70] w-[360px] rounded-lg bg-[#1f8f46] p-4 text-white shadow-[0_18px_45px_rgba(15,23,42,0.22)]">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-white" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold">Availability request submitted</p>
+              <p className="mt-1 text-[13px] text-white/90">Your availability request has been submitted for manager review.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastVisible(false)}
+              className="rounded p-1 text-white/80 hover:bg-white/10 hover:text-white"
+              aria-label="Close success toast"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {managerToastVisible ? (
+        <div className="fixed right-6 top-6 z-[72] w-[360px] rounded-lg bg-[#1f8f46] p-4 text-white shadow-[0_18px_45px_rgba(15,23,42,0.22)]">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-white" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold">Request sent successfully</p>
+              <p className="mt-1 text-[13px] text-white/90">Your availability request has been sent to your manager.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setManagerToastVisible(false)}
+              className="rounded p-1 text-white/80 hover:bg-white/10 hover:text-white"
+              aria-label="Close success toast"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {showConfirmDialog ? (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/30 p-4">
+          <div className="w-full max-w-[340px] rounded-lg border border-[#d8dce6] bg-white p-4 shadow-xl">
+            <h3 className="text-[18px] font-semibold text-[#1f2937]">Submit Availability Request?</h3>
+            <p className="mt-2 text-[14px] text-[#4b5563]">
+              You're about to submit this availability request for review. Please confirm that the highlighted availability details are correct.
+            </p>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmDialog(false)}
+                className="inline-flex h-9 items-center justify-center rounded-md border border-[#c9cbd2] bg-white px-4 text-[14px] font-medium text-[#333333] hover:bg-[#f3f4f6]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSubmit}
+                className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-[14px] font-medium text-white hover:bg-[#0858b9]"
+              >
+                Confirm Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <PageHeader activeTab={activeTab} onTabChange={setActiveTab} />
+      {activeTab === "availability" ? (
+        <AvailabilityScreen
+          isLoading={isLoading}
+          onCycleDate={simulateDateChange}
+          rows={availabilityRows}
+          onDeleteRow={handleDeleteRow}
+          onReset={handleReset}
+          onSubmit={handleSubmitClick}
+          isSubmitted={isSubmitted}
+          validationState={availabilityValidationState}
+        />
+      ) : (
+        <EmptyState />
+      )}
+      <AuraAssistant
+        onApplyRecommendation={handleApplyRecommendation}
+        onUndoRecommendation={handleUndoRecommendation}
+        onSendToManager={handleSendToManager}
+        hasPopulatedRows={hasPopulatedRows}
+        isSubmitted={isSubmitted}
+        demoMode="changePref"
       />
     </AppShell>
   );
@@ -926,6 +1135,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/demo" replace />} />
         <Route path="/demo" element={<DemoNavigationScreen />} />
         <Route path="/availability-desktop" element={<AvailabilityDesktopScreen />} />
+        <Route path="/availability-desktop-change-pref" element={<AvailabilityChangePrefScreen />} />
         <Route path="/availability-manager" element={<ManagerDesktopScreen />} />
         <Route path="/skill-gap-desktop" element={<SkillGapDesktopScreen />} />
         <Route path="/skill-gap-ask-aura" element={<SkillGapDesktopScreen mode="askAura" />} />
